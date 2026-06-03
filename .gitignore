@@ -1,0 +1,8 @@
+# Cursor IDE / agent rules (local)
+.cursor/
+
+# Local dialogue history with the agent
+dialogue-history/
+
+# Draft notes (source material, not published in repo)
+Черновики/
