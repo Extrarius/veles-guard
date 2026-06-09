@@ -297,6 +297,18 @@ Design Review → Pre-Release Review → Production Review
 | IR-09 | Postmortem обновляет threat model | Medium | TODO |
 | IR-10 | Postmortem обновляет tests/monitoring | Medium | TODO |
 
+## 19. AI Coding / SDD
+
+| ID | Проверка | Severity | Status |
+|---|---|---|---|
+| AC-01 | Generated code review перед commit/merge | High | TODO |
+| AC-02 | `AGENTS.md` / `.cursor/rules` / skills версионируются и ревьюятся | High | TODO |
+| AC-03 | Spec/proposal одобрен до того, как агент пишет код | Medium | TODO |
+| AC-04 | Coding agent не имеет лишних прав в репозитории | High | TODO |
+| AC-05 | Агент не может отключать security checks в diff | High | TODO |
+
+Подробный AI-coding чек-лист — в [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md).
+
 ## Production gate
 
 Минимальный gate перед production:
@@ -312,7 +324,8 @@ BLOCK release if:
 - нет kill-switch;
 - high-risk red team test failed;
 - новый MCP server без review;
-- нет incident response owner.
+- нет incident response owner;
+- generated code попал в production без review.
 ```
 
 ## Пример машинно-читаемого checklist item
