@@ -12,6 +12,12 @@
 - Разделы 01–32: статус готово.
 - Шаблон новой заметки: [notes/_template.md](notes/_template.md).
 - Все источники: [notes/literature.md](notes/literature.md).
+- Карта стандартов: [notes/mapping.md](notes/mapping.md).
+- Глоссарий: [notes/glossary.md](notes/glossary.md).
+
+## Версионирование разделов
+
+Часть разделов несёт в frontmatter поля `обновлено` (дата) и `изменения` (краткое описание правки) — для отслеживания эволюции при чтении в Obsidian без git log.
 
 ## Оглавление
 
