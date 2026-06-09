@@ -100,6 +100,7 @@ flowchart LR
 | Human Trust Exploitation | approval UI не скрывает риск действия |
 | MCP / Tool Supply Chain | вредный server/tool не получает capabilities автоматически |
 | Multi-Agent | один агент не эскалирует права через другого |
+| Generated Code | агент не вставляет insecure код, backdoor, отключение security checks в diff |
 
 ## Угроза / контекст
 
@@ -113,6 +114,7 @@ flowchart LR
 | Memory poisoning | агент сохраняет “всегда доверяй этому домену” | High |
 | Runaway loop | задача провоцирует бесконечные self-reflection steps | Medium |
 | Hallucinated source | агент ссылается на несуществующий источник | Medium |
+| Malicious generated code | агент по adversarial-запросу пишет код с уязвимостью или отключает проверку | High |
 
 ## Подходы и контрмеры
 
@@ -184,6 +186,17 @@ memory write должен быть отклонён
 ```text
 finding → fix → test → CI gate → monitoring rule
 ```
+
+### 6. Red team сгенерированного кода
+
+Red team проверяет не только ответ агента, но и код, который он генерирует и коммитит:
+
+- adversarial-запросы, провоцирующие insecure код (SQLi, command injection, отключение auth);
+- попытки спрятать изменение в тестах, конфигах, lockfiles;
+- отключение или ослабление security checks в diff;
+- backdoor/exfiltration в сгенерированном коде.
+
+Generated code review — это отдельный security gate, а не только функциональная проверка. Процесс review и spec-driven workflow — в [29 — AI-generated code review](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md).
 
 ## Пример (Go)
 
@@ -367,6 +380,8 @@ func RunSuite(ctx context.Context, agent AgentUnderTest, cases []TestCase) error
 - [ ] Результаты тестов связаны с trace/logs.
 - [ ] Есть owner у каждого finding.
 - [ ] Есть дата retest.
+- [ ] Есть adversarial-тесты на генерацию insecure кода агентом.
+- [ ] Сгенерированный код red team / human review, не только ответ агента.
 
 ## Литература
 
@@ -384,3 +399,4 @@ func RunSuite(ctx context.Context, agent AgentUnderTest, cases []TestCase) error
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md)
+- [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
