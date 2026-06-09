@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-06-09
-изменения: "Добавлены code review, spec-driven workflow и diff risk classifier."
+изменения: "Добавлены code review, spec-driven workflow и diff risk classifier; дополнен Security Review Agent (сравнение с SAST, security boundary)."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -298,6 +298,18 @@ Security Review Agent — это специализированный AI-reviewe
 
 Security Review Agent не должен иметь право сам merge/deploy.
 Его результат — finding/comment, а решение остаётся за человеком и CI gates.
+
+### Отличие от SAST/DAST
+
+| Свойство | SAST/DAST | Security Review Agent |
+|---|---|---|
+| Проверка по правилам | да | частично |
+| Понимание PR/diff/контекста | ограниченно | лучше |
+| Объяснение проблемы и remediation | ограниченно | да |
+| Учёт agent-specific рисков (tool auto-approval, MCP, prompt injection) | обычно нет | да |
+| Может пропустить проблему | да | да |
+
+Security Review Agent — это дополнительный reviewer, а не security boundary. Он не заменяет human review, SAST, dependency/secret scanning, branch protection, required checks, sandbox, approval и least privilege.
 
 ## Чек-лист
 
