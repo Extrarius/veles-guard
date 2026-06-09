@@ -109,6 +109,17 @@ flowchart LR
 | CI/CD | token leakage, compromised workflow, unreviewed deploy |
 | Secrets | hardcoded keys, overbroad tokens, missing rotation |
 
+### Instruction и skill supply chain
+
+В AI-coding и IDE-агентах появляется отдельный управляющий слой — не код приложения, а инструкции и skills, которые задают поведение агента:
+
+- `AGENTS.md`, `.cursor/rules`, `CLAUDE.md`, steering files — это **не документация**, а недоверенный контент с правами на поведение агента; версионируется и ревьюится как код.
+- **Agent Skills**: видимое `description` (что видит человек при выборе) vs скрытое `body` (progressive disclosure — агент видит больше при активации).
+- **Skill poisoning**: безопасное `description` + вредный `body` или optional script.
+- **Rug pull**: benign skill/MCP server/модель меняет поведение после consent или обновления на `latest` — pin по version или hash, не `latest`.
+
+Подробный разбор AI-coding supply chain — в [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md).
+
 ## Угроза / контекст
 
 | Угроза | Пример | Risk |
@@ -362,6 +373,9 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] CI запускает red team regression tests.
 - [ ] Runtime проверяет hashes/versions для critical artifacts.
 - [ ] Есть rollback.
+- [ ] Instruction files (`AGENTS.md`, `.cursor/rules`, `CLAUDE.md`) версионируются и ревьюятся.
+- [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
+- [ ] Защита от rug pull: skills/MCP/модели pinned, не `latest`.
 
 ## Когда блокировать release
 
@@ -386,6 +400,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [NIST Secure Software Development Framework](https://csrc.nist.gov/Projects/ssdf)
 - [OpenSSF Scorecard](https://github.com/ossf/scorecard)
 - [CycloneDX SBOM Standard](https://cyclonedx.org/)
+- [OWASP Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
 
 ## См. также
 
@@ -394,3 +409,4 @@ func (a Allowlist) Check(item Artifact) error {
 - [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md)
 - [21 — Compliance и Standards](21-compliance-standards.md)
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md)
+- [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md)
