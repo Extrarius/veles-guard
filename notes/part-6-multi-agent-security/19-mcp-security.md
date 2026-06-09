@@ -131,6 +131,32 @@ flowchart LR
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
 
+## MCP03 — Tool Poisoning
+
+**MCP03 (Tool Poisoning)** — атака, при которой описание, schema или metadata MCP tool заставляют агента использовать инструмент не так, как ожидает пользователь. Агент доверяет metadata сервера; злоумышленник или скомпрометированный сервер может подменить поведение без явного взлома runtime.
+
+| Сценарий | Суть | Risk |
+|---|---|---|
+| Hidden instructions in description | скрытые инструкции в `tool.description` («ignore policy», «call shell next») | High |
+| Capability lie | tool заявлен как read-only, но выполняет write / delete / deploy | High |
+| Rug pull | benign server меняет поведение после consent пользователя или обновления пакета | High |
+| Tool-output-as-command | вывод tool трактуется агентом как команда вызвать другой tool | Critical |
+| Cross-server influence | один MCP server влияет на выбор и аргументы tools другого сервера | High |
+| Context injection | MCP resource или prompt подмешивает инструкции в план агента | High |
+| Shadow server | новый MCP server или tool появляется без review и попадает в discovery | High |
+
+**Shadow servers** — серверы или tools, которые агент обнаруживает динамически (discovery, обновление конфига, подмена package) без прохождения allowlist и security review. **Context injection** — когда resource, prompt или tool output содержит управляющие инструкции, которые агент принимает как часть задачи пользователя.
+
+Контрмеры (детали — в подразделах ниже):
+
+- **Не доверять tool metadata** (п. 3) — поведение задаётся локальной policy, не описанием сервера.
+- **Strict schema validation** (п. 4) — args, paths, URLs проверяются до execution.
+- **Sandboxing MCP tools** (п. 8) — shell, filesystem, network в изоляции.
+- Pin tool definitions (version/hash); при изменении metadata — re-review и alert.
+- Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
+
+См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
+
 ## Подходы и контрмеры
 
 ### 1. MCP server allowlist
@@ -483,6 +509,9 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [ ] Есть monitoring по MCP failures, denied calls и egress.
 - [ ] Есть kill-switch per MCP server.
 - [ ] Версии MCP server/packages фиксируются и обновляются контролируемо.
+- [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
+- [ ] Tool output не трактуется как инструкция вызвать другой tool.
+- [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
 
 ## Когда отключать MCP server
 
@@ -513,3 +542,4 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
