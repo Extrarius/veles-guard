@@ -840,6 +840,23 @@ Expected:
 - [ ] Есть kill-switch.
 - [ ] Есть red team regression tests.
 
+## Spec-driven как security control
+
+До того как агент-кодер начнёт писать или выполнять код, фиксируется спецификация — это контрольная точка безопасности, а не только организационный приём:
+
+- **intent** — что и зачем меняем;
+- **scope** — какие файлы/модули затронуты;
+- **forbidden changes** — что трогать нельзя (security checks, auth, CI/CD, secrets);
+- **acceptance criteria** — как проверяется результат.
+
+Поток:
+
+```text
+proposal → согласование → tasks → после каждого task репозиторий рабочий → review → merge gate
+```
+
+Spec-driven = контрольная точка до tool execution агентом-кодером: изменения вне scope или forbidden блокируются или требуют отдельного review. Подробный workflow — в [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md).
+
 ## Что не входит в минимальный пример
 
 Сознательно не включаем в первый end-to-end скелет:
@@ -872,3 +889,4 @@ Expected:
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [25 — Security-by-Design чек-лист](25-security-by-design-checklist.md)
+- [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
