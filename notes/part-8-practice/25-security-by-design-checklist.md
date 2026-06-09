@@ -6,7 +6,7 @@ tags: [ai-security, agents, checklist, security-by-design, review]
 
 # 25 — Security-by-Design чек-лист
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](24-end-to-end-secure-agent-go.md) · [Вперёд →](../../README.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](24-end-to-end-secure-agent-go.md) · [Вперёд →](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
 
 *Кратко: финальный чек-лист для проектирования, ревью и выпуска AI-агента. Его цель — не “закрыть все галочки”, а не пропустить критичные границы доверия, права, tools, данные, egress, тесты и incident response.*
 
@@ -442,3 +442,4 @@ func Export(items []Item) ([]byte, error) {
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [24 — End-to-End: безопасный агент на Go](24-end-to-end-secure-agent-go.md)
+- [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)

@@ -9,7 +9,7 @@
 ## Как читать
 
 - Каждый раздел — отдельная заметка с единой структурой: Суть · Угроза и контекст · Подходы и контрмеры · Пример (Go) · Чек-лист · Литература · См. также.
-- Статус: каркас (заглушки `TODO`), наполняется по разделам.
+- Разделы 01–32: статус готово.
 - Шаблон новой заметки: [notes/_template.md](notes/_template.md).
 - Все источники: [notes/literature.md](notes/literature.md).
 
@@ -55,6 +55,15 @@
 ### Часть VIII. Практика
 24. [End-to-End: безопасный агент на Go](notes/part-8-practice/24-end-to-end-secure-agent-go.md)
 25. [Security-by-Design чек-лист](notes/part-8-practice/25-security-by-design-checklist.md)
+
+### Часть IX. AI Coding Agent Security
+26. [AI-coding agent: модель угроз](notes/part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
+27. [Репозиторий как источник инструкций](notes/part-9-ai-coding-security/27-repository-instructions-attack-surface.md)
+28. [Permissions, sandbox и approval для coding agents](notes/part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)
+29. [AI-generated code review и spec-driven workflow](notes/part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
+30. [AI Coding Supply Chain](notes/part-9-ai-coding-security/30-ai-coding-supply-chain.md)
+31. [CI/CD, MCP, Skills и production path](notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
+32. [AI Coding Security Checklist](notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 
 ## Литература
 
