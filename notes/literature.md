@@ -37,6 +37,11 @@ tags: [ai-security, конспект, литература]
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
 
+## Threat intelligence (отчёты вендоров)
+
+- **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
+- **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
+
 ## Prompt Injection
 
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
