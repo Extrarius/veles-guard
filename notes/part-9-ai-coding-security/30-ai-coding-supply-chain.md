@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, supply-chain, dependencies, sbom]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлен supply chain профиль для AI-coding agents."
+обновлено: 2026-06-13
+изменения: "Добавлен supply chain профиль для AI-coding agents; дополнен блок model provenance."
 ---
 
 # 30 — AI Coding Supply Chain
@@ -180,6 +180,10 @@ release scripts
 
 Instruction files и skills — это не “документация”, а управляющий слой агента.
 
+### 6. Model provenance
+
+Coding-агент не должен подключать недоверенные модели, веса или inference-эндпоинты без review: источник весов, кто дообучал, какие safety-гарантии сняты. Произвольные аблитерированные или «расцензуренные» модели — high-risk artifact. Общий контекст model supply chain — в [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md).
+
 ## Go snippet: supply chain diff detector
 
 ```go
@@ -281,6 +285,7 @@ func BlocksRelease(files []ChangedFile, decision ReviewDecision) bool {
 - [ ] Агент не может отключить scanners.
 - [ ] Агент не может изменить required checks без review.
 - [ ] Версии pinned.
+- [ ] Агент не подтягивает недоверенные модели/веса/inference-эндпоинты; model provenance проверен (см. §22).
 - [ ] Есть SBOM.
 - [ ] Есть secret scanning.
 - [ ] Есть dependency scanning.
