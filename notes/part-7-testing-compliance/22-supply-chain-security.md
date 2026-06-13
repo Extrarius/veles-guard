@@ -130,6 +130,7 @@ flowchart LR
 | Tool poisoning | новый tool описан как read-only, но выполняет write | High |
 | MCP server compromise | MCP server получает доступ к файлам и shell | Critical |
 | Model version drift | новая модель меняет tool-use поведение | Medium |
+| Untrusted model provenance | дообученная или аблитерированная модель неизвестного происхождения; поведение и safety-гарантии не подтверждены | High |
 | Dataset poisoning | eval set или knowledge base содержит вредные инструкции | High |
 | Secret leakage in build | token попал в logs или container layer | High |
 | Unpinned image | build подтянул новый base image без проверки | Medium |
@@ -368,6 +369,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Новый tool требует threat model update.
 - [ ] Новый MCP server требует review.
 - [ ] Model version фиксируется.
+- [ ] Model provenance проверен: источник весов, кто дообучал; не используются произвольные аблитерированные или «расцензуренные» модели без review.
 - [ ] Eval datasets версионируются.
 - [ ] Vector index имеет source/provenance.
 - [ ] CI запускает red team regression tests.
