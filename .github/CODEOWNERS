@@ -1,0 +1,12 @@
+# Everything requires owner review
+* @Extrarius
+
+# Governance and sensitive paths
+/.github/ @Extrarius
+LICENSE @Extrarius
+LICENSE-CODE @Extrarius
+SECURITY.md @Extrarius
+
+# Security-sensitive handbook sections
+/notes/part-6-multi-agent-security/ @Extrarius
+/notes/part-9-ai-coding-security/ @Extrarius

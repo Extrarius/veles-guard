@@ -1,0 +1,54 @@
+name: Предложение / Suggestion
+description: Новая тема, расширение раздела или улучшение структуры
+title: "[Suggestion] "
+labels: ["suggestion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **RU:** Предложение новой темы или расширения. Maintainer может принять, отложить или отклонить.
+        **EN:** Suggest a new topic or expansion. The maintainer may accept, defer, or decline.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область / Area
+      options:
+        - Part I — Architecture & threats
+        - Part II — Input security
+        - Part III — Processing security
+        - Part IV — Output security
+        - Part V — Control & observability
+        - Part VI — Multi-agent / MCP
+        - Part VII — Testing & compliance
+        - Part VIII — Practice
+        - Part IX — AI coding security
+        - Shared (README, literature, templates, governance)
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предложение / Proposal
+      description: Что добавить и зачем; границы темы относительно соседних разделов
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Источники / Sources
+      description: Первоисточники (docs, standards, papers, vendor reports)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки / Checks
+      options:
+        - label: Тема укладывается в defensive / educational framing
+          required: true
+        - label: Нет запроса на offensive-only контент
+          required: true
