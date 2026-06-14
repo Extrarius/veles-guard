@@ -1,0 +1,45 @@
+name: Исправление / Correction
+description: Ошибка, неточность или уточнение в существующем разделе
+title: "[Correction] "
+labels: ["correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **RU:** Исправление факта, формулировки или ссылки в существующем разделе.
+        **EN:** Fix a fact, wording, or reference in an existing section.
+
+  - type: input
+    id: section
+    attributes:
+      label: Раздел / Section
+      description: Путь к файлу, например notes/part-1-architecture-threats/02-threat-model.md
+      placeholder: notes/part-.../NN-....md
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Что не так / What is wrong
+      description: Текущая формулировка или факт и почему это ошибка
+    validations:
+      required: true
+
+  - type: textarea
+    id: fix
+    attributes:
+      label: Предлагаемое исправление / Proposed fix
+      description: Как должно быть; ссылки на первоисточники
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки / Checks
+      options:
+        - label: Есть первоисточник / Primary source cited
+          required: true
+        - label: Нет секретов и offensive payload / No secrets or offensive payloads
+          required: true
