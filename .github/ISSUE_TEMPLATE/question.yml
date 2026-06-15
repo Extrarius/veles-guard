@@ -1,0 +1,37 @@
+name: Вопрос / Question
+description: Вопрос по материалам, структуре или применению справочника
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **RU:** Задайте вопрос по материалам справочника.
+        **EN:** Ask a question about the handbook materials.
+
+        Пожалуйста, не публикуйте реальные секреты, токены, внутренние URL или вредоносные payload.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Вопрос / Question
+      description: Что именно непонятно или требует уточнения?
+    validations:
+      required: true
+
+  - type: input
+    id: section
+    attributes:
+      label: Раздел / Section
+      description: Если вопрос относится к конкретному файлу, укажите путь
+      placeholder: notes/part-.../NN-....md
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки / Checks
+      options:
+        - label: Нет реальных секретов / No real secrets
+          required: true
+        - label: Нет offensive payload / No offensive payloads
+          required: true
