@@ -127,9 +127,9 @@ AI-агенты перестают быть «чатом с моделью»: о
 
 ## License
 
-Documentation, notes, checklists and templates are licensed under **[CC BY 4.0](LICENSE)**.
+Documentation, notes, checklists and templates are licensed under **[CC BY 4.0](DOCS-LICENSE.md)**.
 
-Code examples are licensed under the **[MIT License](LICENSE-CODE)**.
+Code examples are licensed under the **[MIT License](LICENSE)**.
 
 You are free to use, share and adapt the materials with attribution.
 
