@@ -19,7 +19,7 @@ tags: [ai-security, конспект, литература]
 
 ## Стандарты и фреймворки
 
-- **OWASP Top 10 for AI Agents (ASI Top 10)** — ASI01 Agent Goal Hijack, ASI02 Tool Misuse, ASI03 Identity & Privilege Abuse, ASI04 Supply Chain, ASI05 Unexpected Code Execution, ASI06 Memory & Context Poisoning, ASI07 Insecure Inter-Agent Communication, ASI08 Cascading Failures, ASI09 Human-Agent Trust Exploitation, ASI10 Rogue Agents.
+- **OWASP Top 10 for Agentic Applications 2026 (ASI Top 10)** — <https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/> — ASI01 Agent Goal Hijack, ASI02 Tool Misuse, ASI03 Identity & Privilege Abuse, ASI04 Supply Chain, ASI05 Unexpected Code Execution, ASI06 Memory & Context Poisoning, ASI07 Insecure Inter-Agent Communication, ASI08 Cascading Failures, ASI09 Human-Agent Trust Exploitation, ASI10 Rogue Agents.
 - **OWASP — Agentic AI: Threats and Mitigations** — <https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/>
 - **OWASP — Securing Agentic Applications Guide 1.0** — <https://genai.owasp.org/resource/securing-agentic-applications-guide-1-0/>
 - **OWASP — Multi-Agentic System Threat Modeling Guide v1.0** — <https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/>
