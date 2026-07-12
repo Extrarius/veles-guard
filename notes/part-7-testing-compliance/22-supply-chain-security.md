@@ -10,6 +10,10 @@ tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 
 *Кратко: supply chain security для AI-агента — это контроль всего, что попадает в runtime: код, зависимости, модели, prompts, datasets, tools, MCP servers, containers, CI/CD и конфигурации.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/22-supply-chain-security.py) ·
+> [TypeScript](../../examples/typescript/part-7/22-supply-chain-security.ts)
+
 ## Суть
 
 В классическом backend supply chain — это зависимости, контейнеры, CI/CD и deployment.

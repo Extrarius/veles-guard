@@ -10,6 +10,10 @@ tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 
 *Кратко: red teaming для AI-агента — это проверка, как система ведёт себя под атакой: prompt injection, tool misuse, data exfiltration, unsafe output, runaway loops, privilege abuse и multi-step attacks.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/20-red-teaming-adversarial-testing.py) ·
+> [TypeScript](../../examples/typescript/part-7/20-red-teaming-adversarial-testing.ts)
+
 ## Суть
 
 Обычные unit-тесты проверяют, что система работает правильно.
