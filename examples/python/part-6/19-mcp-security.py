@@ -151,3 +151,24 @@ class Executor:
 
         self.audit.log_mcp_call(call, "allowed", "policy passed")
         return self.client.call_tool(call.server_id, call.tool, call.args)
+
+
+_CONTROL_PHRASES = (
+    "ignore previous",
+    "call tool",
+    "run command",
+    "execute",
+    "system:",
+)
+
+
+def validate_tool_output(raw: str, max_len: int) -> str:
+    if len(raw) > max_len:
+        raise ValueError(f"tool output exceeds max length: {max_len}")
+
+    lower = raw.lower()
+    for phrase in _CONTROL_PHRASES:
+        if phrase in lower:
+            raise ValueError(f"tool output contains control instruction: {phrase!r}")
+
+    return raw

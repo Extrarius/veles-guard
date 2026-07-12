@@ -2,6 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлен подраздел Runtime Trust Gap + Go-сниппет ValidateToolOutput"
 ---
 
 # 19 — MCP Security
@@ -160,6 +162,28 @@ flowchart LR
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
+
+## Runtime Trust Gap (connect-time review ≠ runtime output)
+
+Allowlist, consent и security review обычно происходят **при подключении** MCP server: проверяют origin, tool list, metadata, risk level. Но в runtime агент получает новые данные, которые **не проходили** тот же review:
+
+- `tool output` после execution;
+- `resource content` (файлы, документы, записи БД);
+- `prompt provider output` (шаблоны и инструкции от сервера).
+
+Это и есть **Runtime Trust Gap**: connect-time review не гарантирует безопасность runtime output.
+
+> **Правило:** tool metadata, tool output, resource content и prompt provider output — **untrusted context**. Tool output — это **данные**, а не команда для следующего tool call.
+
+| Connect-time контроль | Runtime gap | Контрмера |
+|---|---|---|
+| Server allowlist + review | Tool output содержит скрытые инструкции | Output validation: размер, формат, reject control phrases |
+| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions |
+| Schema validation args | Output трактуется как «вызови tool X» | Tool output ≠ команда; planner решает только по user task + policy |
+| Single server policy | Cross-server chaining через output | Separate internal vs external MCP; no chaining без policy |
+| Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
+
+См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
 
 ## Подходы и контрмеры
 
@@ -483,6 +507,35 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 }
 ```
 
+### Валидация tool output (Runtime Trust Gap)
+
+Tool output — данные для контекста, не управляющие инструкции. Перед попаданием в model context проверяем размер и отклоняем free-text control phrases.
+
+```go
+var controlPhrases = []string{
+	"ignore previous",
+	"call tool",
+	"run command",
+	"execute",
+	"system:",
+}
+
+func ValidateToolOutput(raw string, maxLen int) (string, error) {
+	if len(raw) > maxLen {
+		return "", fmt.Errorf("tool output exceeds max length: %d", maxLen)
+	}
+
+	lower := strings.ToLower(raw)
+	for _, phrase := range controlPhrases {
+		if strings.Contains(lower, phrase) {
+			return "", fmt.Errorf("tool output contains control instruction: %q", phrase)
+		}
+	}
+
+	return raw, nil
+}
+```
+
 ## STRIDE для MCP
 
 | STRIDE | Угроза |
@@ -515,6 +568,9 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [ ] Версии MCP server/packages фиксируются и обновляются контролируемо.
 - [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
 - [ ] Tool output не трактуется как инструкция вызвать другой tool.
+- [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
+- [ ] Internal и external MCP servers разделены.
+- [ ] Cross-server tool chaining запрещён без явной policy.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
 
 ## Когда отключать MCP server
@@ -535,6 +591,7 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
+- [OWASP MCP Tool Poisoning](https://owasp.org/www-community/attacks/MCP_Tool_Poisoning)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 
