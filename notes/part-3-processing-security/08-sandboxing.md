@@ -10,6 +10,10 @@ tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, 
 
 *Кратко: sandbox ограничивает среду, в которой выполняются опасные tools: shell, code execution, browser automation, file operations, external fetch и работа с пользовательскими артефактами.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-3/08-sandboxing.py) ·
+> [TypeScript](../../examples/typescript/part-3/08-sandboxing.ts)
+
 ## Суть
 
 **Sandboxing** — это изоляция выполнения. Даже если агент ошибся, prompt injection сработал или tool получил вредные параметры, ущерб должен быть ограничен.
