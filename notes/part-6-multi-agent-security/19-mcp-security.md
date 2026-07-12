@@ -3,7 +3,7 @@ tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
 обновлено: 2026-07-12
-изменения: "Добавлен подраздел Runtime Trust Gap + Go-сниппет ValidateToolOutput"
+изменения: "Добавлен подраздел Runtime Trust Gap + Go-сниппет ValidateToolOutput; подраздел Localhost is not a trust boundary (AutoJack) + Go-сниппет isLoopbackOrPrivateHost"
 ---
 
 # 19 — MCP Security
@@ -184,6 +184,35 @@ Allowlist, consent и security review обычно происходят **при
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
 
 См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
+
+## Localhost is not a trust boundary (AutoJack)
+
+**AutoJack** — кейс, когда вредная веб-страница управляет browser tool агента, а тот обращается к **локальному** привилегированному MCP/WebSocket на `127.0.0.1` / `localhost` **без auth** → выполнение команд → RCE на хосте разработчика.
+
+Это не SSRF «наружу» (см. [§13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)). Здесь уязвимость в **ложном доверии к loopback**: сервис считают «внутренним и безопасным», хотя до него может дотянуться browser automation агента.
+
+```mermaid
+flowchart LR
+    Page[External: Malicious Web Page]
+    Browser[Process: Agent Browser Tool]
+    Local["Local MCP / WebSocket loopback no auth"]
+    Host[External System: Shell / OS]
+    Page -->|"drives agent"| Browser
+    Browser -->|"127.0.0.1:port"| Local
+    Local -->|"tool exec"| Host
+```
+
+> **Правило:** `localhost`, loopback, private IP и link-local адреса — **не** trust boundary. Локальный MCP/WebSocket требует **auth+authz**; origin/referer check недостаточен.
+
+| Ложное допущение | Реальность | Контрмера |
+|---|---|---|
+| Loopback = безопасно | Browser tool агента / DNS rebinding достигают local service | Auth+authz на локальном сервере; не полагаться на bind address |
+| Origin check достаточно | Подделывается; non-browser клиент обходит | Token + authz per request |
+| Bind `0.0.0.0` для удобства | Сервис доступен из сети | Bind loopback + token; firewall |
+| Egress только «наружу» | Агент ходит на `127.0.0.1` / private ranges | Egress блокирует loopback/private/link-local по умолчанию (§13) |
+| Dev MCP «временный» | Dev-машина хранит secrets и tokens | Experimental frameworks — в sandbox/devbox (§08) |
+
+См. [isLoopbackOrPrivateHost](#блокировка-loopbackprivate-адресов-autojack) в примере ниже.
 
 ## Подходы и контрмеры
 
@@ -536,6 +565,30 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 }
 ```
 
+### Блокировка loopback/private адресов (AutoJack)
+
+Перед MCP egress или HTTP tool call отклоняем loopback, private и link-local адреса, если policy не разрешает явно.
+
+```go
+import (
+	"net"
+	"strings"
+)
+
+func isLoopbackOrPrivateHost(host string) bool {
+	h := strings.ToLower(strings.TrimSpace(host))
+	if h == "localhost" || strings.HasSuffix(h, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(h)
+	if ip == nil {
+		return false // hostname: резолвить и проверять отдельно per policy
+	}
+	return ip.IsLoopback() || ip.IsPrivate() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+```
+
 ## STRIDE для MCP
 
 | STRIDE | Угроза |
@@ -571,6 +624,10 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 - [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
 - [ ] Internal и external MCP servers разделены.
 - [ ] Cross-server tool chaining запрещён без явной policy.
+- [ ] Local MCP/WebSocket требует auth+authz (loopback не считается защитой).
+- [ ] Origin/referer check не считается достаточной защитой local MCP.
+- [ ] Egress агента блокирует loopback/private/link-local по умолчанию.
+- [ ] Experimental agent frameworks и local privileged services — в sandbox/devbox.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
 
 ## Когда отключать MCP server
@@ -592,6 +649,7 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
 - [OWASP MCP Tool Poisoning](https://owasp.org/www-community/attacks/MCP_Tool_Poisoning)
+- [Microsoft — AutoJack: single-page RCE on host running AI agent](https://www.microsoft.com/en-us/security/blog/2026/06/18/autojack-single-page-rce-host-running-ai-agent/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 

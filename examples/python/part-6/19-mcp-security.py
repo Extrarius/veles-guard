@@ -172,3 +172,21 @@ def validate_tool_output(raw: str, max_len: int) -> str:
             raise ValueError(f"tool output contains control instruction: {phrase!r}")
 
     return raw
+
+
+def is_loopback_or_private_host(host: str) -> bool:
+    import ipaddress
+
+    h = host.strip().lower()
+    if h == "localhost" or h.endswith(".localhost"):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        return False  # hostname: резолвить и проверять отдельно per policy
+    return (
+        ip.is_loopback
+        or ip.is_private
+        or ip.is_link_local
+        or ip.is_unspecified
+    )
