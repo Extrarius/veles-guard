@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 
 *Кратко: AI-coding agent опасен не только локальными изменениями. Через CI/CD, MCP и skills он может повлиять на путь к production.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/31-ci-cd-mcp-skills-production-path.py) ·
+> [TypeScript](../../examples/typescript/part-9/31-ci-cd-mcp-skills-production-path.ts)
+
 ## Суть
 
 AI-coding agent часто работает не один:

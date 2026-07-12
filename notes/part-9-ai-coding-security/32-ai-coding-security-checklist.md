@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, checklist, production-review]
 
 *Кратко: итоговый checklist для безопасной работы с AI-coding agents: repo instructions, permissions, sandbox, review, supply chain, CI/CD, MCP, skills, secrets и incident response.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/32-ai-coding-security-checklist.py) ·
+> [TypeScript](../../examples/typescript/part-9/32-ai-coding-security-checklist.ts)
+
 ## Как использовать
 
 Этот checklist применяется к AI-coding agent в IDE, terminal, cloud agent или CI/CD workflow.
