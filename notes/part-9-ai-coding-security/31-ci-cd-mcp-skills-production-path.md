@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлен раздел о CI/CD, MCP, skills и production path для coding agents."
+обновлено: 2026-07-12
+изменения: "Добавлена врезка Localhost trust gap (AutoJack) в MCP threat model; примеры не требуют обновления"
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -131,6 +131,13 @@ flowchart LR
 | Shell tool abuse | MCP tool запускает команды | Critical |
 | Egress bypass | MCP server отправляет данные наружу | Critical |
 | Cross-server contamination | output одного server влияет на другой tool | High |
+| Localhost trust gap | browser tool агента → local MCP/WebSocket без auth → RCE на dev-машине | Critical |
+
+## Localhost is not a trust boundary (dev context)
+
+Dev-машина coding agent хранит secrets, tokens, SSH keys и часто примыкает к production (VPN, cloud creds, deploy access). **AutoJack** показывает: вредная страница → browser tool → `localhost` MCP/WebSocket без auth → RCE на хосте.
+
+В AI-coding контексте это особенно опасно: агент постоянно открывает внешние страницы (docs, issues, PR diffs), а локальные MCP/skills слушают loopback. Контрмеры: auth+authz на local MCP, egress блокирует loopback/private, experimental frameworks — в sandbox/devbox. Подробнее: [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack), [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary).
 
 ## Skills threat model
 
@@ -260,6 +267,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Есть kill-switch per MCP server / skill.
 - [ ] Agent-generated artifacts имеют provenance.
 - [ ] Есть audit по PR, CI, deploy.
+- [ ] Локальные MCP/WebSocket в dev-среде требуют auth; browser tools не доверяют localhost.
 
 ## Литература
 
