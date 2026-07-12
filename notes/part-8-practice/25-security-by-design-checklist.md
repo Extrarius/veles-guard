@@ -10,6 +10,10 @@ tags: [ai-security, agents, checklist, security-by-design, review]
 
 *Кратко: финальный чек-лист для проектирования, ревью и выпуска AI-агента. Его цель — не “закрыть все галочки”, а не пропустить критичные границы доверия, права, tools, данные, egress, тесты и incident response.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-8/25-security-by-design-checklist.py) ·
+> [TypeScript](../../examples/typescript/part-8/25-security-by-design-checklist.ts)
+
 ## Как использовать
 
 Чек-лист применяется на трёх этапах:

@@ -200,3 +200,26 @@ class Executor {
     return this.client.callTool(call.serverId, call.tool, call.args);
   }
 }
+
+const CONTROL_PHRASES = [
+  "ignore previous",
+  "call tool",
+  "run command",
+  "execute",
+  "system:",
+];
+
+function validateToolOutput(raw: string, maxLen: number): string {
+  if (raw.length > maxLen) {
+    throw new Error(`tool output exceeds max length: ${maxLen}`);
+  }
+
+  const lower = raw.toLowerCase();
+  for (const phrase of CONTROL_PHRASES) {
+    if (lower.includes(phrase)) {
+      throw new Error(`tool output contains control instruction: ${JSON.stringify(phrase)}`);
+    }
+  }
+
+  return raw;
+}
