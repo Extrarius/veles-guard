@@ -10,6 +10,10 @@ tags: [ai-security, agents, multi-agent, handoff, delegation]
 
 *Кратко: inter-agent security — это безопасность взаимодействия между агентами: handoff, delegation, shared memory, message passing, delegated tools и ответственность за действия.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-6/18-inter-agent-security.py) ·
+> [TypeScript](../../examples/typescript/part-6/18-inter-agent-security.ts)
+
 ## Суть
 
 Мультиагентная система — это не просто несколько LLM рядом.

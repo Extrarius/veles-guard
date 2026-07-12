@@ -10,6 +10,10 @@ tags: [ai-security, agents, mcp, tools, protocol-security]
 
 *Кратко: MCP Security — это безопасность подключения агента к внешним MCP-серверам, tools и data sources. Главный риск: MCP расширяет возможности агента, но одновременно расширяет attack surface.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-6/19-mcp-security.py) ·
+> [TypeScript](../../examples/typescript/part-6/19-mcp-security.ts)
+
 ## Суть
 
 MCP — Model Context Protocol.
