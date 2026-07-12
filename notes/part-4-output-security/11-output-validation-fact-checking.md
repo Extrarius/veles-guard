@@ -10,6 +10,10 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 
 *Кратко: выход модели нельзя считать доверенным. Перед показом пользователю или передачей в другой компонент ответ нужно проверить: формат, безопасность, ссылки на источники, отсутствие секретов, корректность действий и соответствие политике.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-4/11-output-validation-fact-checking.py) ·
+> [TypeScript](../../examples/typescript/part-4/11-output-validation-fact-checking.ts)
+
 ## Суть
 
 **Output Validation** — это слой проверки ответа агента перед тем, как он попадёт:

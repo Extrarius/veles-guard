@@ -10,6 +10,10 @@ tags: [ai-security, schema-validation, parameter-validation, tool-safety, proces
 
 *Кратко: LLM может предложить tool call, но аргументы tool call нельзя выполнять как есть. Runtime должен проверять типы, enum, диапазоны, URL, пути, resource ownership и лишние поля.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-3/07-parameter-validation-schema.py) ·
+> [TypeScript](../../examples/typescript/part-3/07-parameter-validation-schema.ts)
+
 ## Суть
 
 **Parameter Validation** — проверка значений аргументов.

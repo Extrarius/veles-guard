@@ -1,6 +1,6 @@
 ---
 tags: [ai-security, конспект, литература]
-статус: черновик
+статус: готово
 ---
 
 # Список литературы
@@ -19,7 +19,7 @@ tags: [ai-security, конспект, литература]
 
 ## Стандарты и фреймворки
 
-- **OWASP Top 10 for AI Agents (ASI Top 10)** — ASI01 Agent Goal Hijack, ASI02 Tool Misuse, ASI03 Identity & Privilege Abuse, ASI04 Supply Chain, ASI05 Unexpected Code Execution, ASI06 Memory & Context Poisoning, ASI07 Insecure Inter-Agent Communication, ASI08 Cascading Failures, ASI09 Human-Agent Trust Exploitation, ASI10 Rogue Agents.
+- **OWASP Top 10 for Agentic Applications 2026 (ASI Top 10)** — <https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/> — ASI01 Agent Goal Hijack, ASI02 Tool Misuse, ASI03 Identity & Privilege Abuse, ASI04 Supply Chain, ASI05 Unexpected Code Execution, ASI06 Memory & Context Poisoning, ASI07 Insecure Inter-Agent Communication, ASI08 Cascading Failures, ASI09 Human-Agent Trust Exploitation, ASI10 Rogue Agents.
 - **OWASP — Agentic AI: Threats and Mitigations** — <https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/>
 - **OWASP — Securing Agentic Applications Guide 1.0** — <https://genai.owasp.org/resource/securing-agentic-applications-guide-1-0/>
 - **OWASP — Multi-Agentic System Threat Modeling Guide v1.0** — <https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/>
@@ -36,6 +36,11 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
+
+## Threat intelligence (отчёты вендоров)
+
+- **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
+- **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
 
 ## Prompt Injection
 

@@ -10,6 +10,10 @@ tags: [ai-security, rbac, tool-permissions, excessive-agency, processing-securit
 
 *Кратко: агент не должен вызывать любой tool только потому, что LLM решила это сделать. Между LLM и инструментом должен стоять слой прав: role, scope, allowlist, approval и audit.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-3/06-rbac-tool-permissions.py) ·
+> [TypeScript](../../examples/typescript/part-3/06-rbac-tool-permissions.ts)
+
 ## Суть
 
 **RBAC** — это контроль доступа по ролям.
