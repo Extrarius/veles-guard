@@ -10,6 +10,10 @@ tags: [ai-security, secrets-management, credentials, least-privilege, processing
 
 *Кратко: секреты не должны попадать в prompt, память, tool arguments от модели, логи и trace. Агент должен работать через scoped credentials, которые подставляет executor, а не LLM.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-3/10-secrets-management.py) ·
+> [TypeScript](../../examples/typescript/part-3/10-secrets-management.ts)
+
 ## Суть
 
 **Secrets Management** — это хранение, выдача, использование, ротация и отзыв секретов: API keys, tokens, passwords, private keys, session cookies, database credentials.

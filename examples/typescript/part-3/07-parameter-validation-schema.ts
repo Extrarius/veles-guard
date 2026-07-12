@@ -1,5 +1,6 @@
 // Illustrative examples for notes/part-3-processing-security/07-parameter-validation-schema.md
 // Not for production use. Licensed under MIT (see LICENSE-CODE).
+/// <reference path="../types.d.ts" />
 
 import { isAbsolute, normalize, resolve, sep } from "node:path";
 

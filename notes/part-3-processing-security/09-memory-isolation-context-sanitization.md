@@ -10,6 +10,10 @@ tags: [ai-security, memory-isolation, context-sanitization, rag-security, proces
 
 *Кратко: память и контекст агента нельзя считать доверенными. В память не должны попадать вредные инструкции, секреты, чужие данные и сырые tool outputs без маркировки доверия.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-3/09-memory-isolation-context-sanitization.py) ·
+> [TypeScript](../../examples/typescript/part-3/09-memory-isolation-context-sanitization.ts)
+
 ## Суть
 
 **Memory Isolation** — разделение памяти по пользователям, сессиям, задачам, источникам и уровню доверия.
