@@ -10,6 +10,10 @@ tags: [ai-security, agents, monitoring, alerting, detection]
 
 *Кратко: monitoring отвечает на вопрос “что происходит с агентом прямо сейчас?”, а alerting — “когда нужно вмешаться”. Для AI-агента важно мониторить не только CPU и latency, но и security-события: prompt injection, tool denial, egress, approvals, token budget, loop anomalies.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/16-monitoring-alerting.py) ·
+> [TypeScript](../../examples/typescript/part-5/16-monitoring-alerting.ts)
+
 ## Суть
 
 Observability помогает расследовать. Monitoring помогает заметить проблему вовремя.

@@ -10,6 +10,10 @@ tags: [ai-security, agents, go, end-to-end, secure-runtime]
 
 *Кратко: практический скелет безопасного AI-агента на Go: input guardrails → context isolation → LLM planning → policy → tool validation → approval → sandbox/egress → output validation → logging/monitoring.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-8/24-end-to-end-secure-agent-go.py) ·
+> [TypeScript](../../examples/typescript/part-8/24-end-to-end-secure-agent-go.ts)
+
 ## Цель
 
 Собрать минимальную архитектуру агента, где LLM не управляет системой напрямую.

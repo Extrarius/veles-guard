@@ -10,6 +10,10 @@ tags: [ai-security, prompt-injection, input-security, конспект]
 
 *Кратко: prompt injection — это попытка через пользовательский ввод или внешний контент изменить поведение модели, обойти инструкции, заставить агента вызвать tool, раскрыть данные или выполнить чужую цель.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-2/03-prompt-injection-detection.py) ·
+> [TypeScript](../../examples/typescript/part-2/03-prompt-injection-detection.ts)
+
 ## Суть
 
 **Prompt Injection Detection** — это входной контроль, который пытается обнаружить вредные инструкции до того, как они попадут в управляющий контекст агента.

@@ -10,6 +10,10 @@ tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, кон
 
 *Кратко: входной слой должен ограничивать частоту запросов, размер входа, стоимость обработки, количество tool calls и глубину агентного цикла.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-2/05-rate-limiting-quotas-token-bombing.py) ·
+> [TypeScript](../../examples/typescript/part-2/05-rate-limiting-quotas-token-bombing.ts)
+
 ## Суть
 
 **Rate limiting** ограничивает частоту запросов.

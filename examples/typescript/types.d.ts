@@ -22,3 +22,12 @@ declare module "node:child_process" {
     options: ExecFileSyncOptions & { encoding: BufferEncoding },
   ): string;
 }
+
+declare module "node:crypto" {
+  export interface Hash {
+    update(data: string): Hash;
+    digest(encoding: "hex"): string;
+  }
+
+  export function createHash(algorithm: "sha256"): Hash;
+}
