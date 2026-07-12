@@ -10,6 +10,10 @@ tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 
 *Кратко: circuit breaker временно ограничивает опасное или нестабильное поведение, а kill-switch аварийно отключает агента, tool или egress. Это последний слой защиты, когда prevention и detection уже недостаточны.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/17-circuit-breaker-kill-switch.py) ·
+> [TypeScript](../../examples/typescript/part-5/17-circuit-breaker-kill-switch.ts)
+
 ## Суть
 
 Агент может попасть в опасное состояние:
