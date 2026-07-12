@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injec
 
 *Кратко: для AI-coding agent репозиторий — это не только код, но и источник инструкций. `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, issues, PR comments, README и test fixtures могут влиять на поведение агента.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/27-repository-instructions-attack-surface.py) ·
+> [TypeScript](../../examples/typescript/part-9/27-repository-instructions-attack-surface.ts)
+
 ## Суть
 
 У обычного агента основные инструкции приходят из system/developer prompt.

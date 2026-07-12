@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, supply-chain, dependencies, sbom]
 
 *Кратко: AI-coding supply chain — это контроль всего, что агент может добавить или изменить в разработке: dependencies, lockfiles, scripts, Dockerfile, CI/CD, MCP config, skills, prompts и generated code.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/30-ai-coding-supply-chain.py) ·
+> [TypeScript](../../examples/typescript/part-9/30-ai-coding-supply-chain.ts)
+
 ## Суть
 
 В обычной supply chain защите мы проверяем зависимости, контейнеры и CI/CD.
