@@ -2,6 +2,8 @@
 tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлен раздел Типы evals для AI-agent security + чек-лист EV-01..EV-05"
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -119,6 +121,35 @@ flowchart LR
 | Runaway loop | задача провоцирует бесконечные self-reflection steps | Medium |
 | Hallucinated source | агент ссылается на несуществующий источник | Medium |
 | Malicious generated code | агент по adversarial-запросу пишет код с уязвимостью или отключает проверку | High |
+
+## Типы evals для AI-agent security
+
+Security evals для AI-агентов лучше рассматривать как **несколько слоёв проверки**, а не как один универсальный тест.
+
+| Тип eval | Что проверяет | Где силён | Ограничения |
+|---|---|---|---|
+| Code-based | regex, schema, allowlist, deterministic policy checks | быстро, дёшево, воспроизводимо | плохо ловит смысл и контекст |
+| LLM-as-judge | semantic violations, prompt injection, unsafe intent, качество ответа | ловит смысловые нарушения и «серые зоны» | шумит, требует калибровки, стоит денег |
+| Human / SME | threat model, red team cases, спорные решения | золотой стандарт для сложных security-кейсов | дорого и медленно |
+| User / online | реальные инциденты, жалобы, abuse patterns, telemetry | настоящий production-сигнал | приходит уже после релиза |
+
+> **Правило:** чем опаснее действие агента, тем меньше можно полагаться только на online-сигналы. Утечки секретов, dangerous tool use, sandbox bypass и prompt injection propagation должны ловиться **до релиза** через code-based checks, LLM-as-judge, human review и red teaming. Online-сигналы — дополнительный слой.
+
+Минимальная схема:
+
+```text
+deterministic checks → LLM-as-judge → human review → online monitoring
+```
+
+### Security evals checklist
+
+| ID | Проверка | Severity | Status |
+|---|---|---|---|
+| EV-01 | Для агента определены security evals до релиза | High | TODO |
+| EV-02 | Code-based checks покрывают schema, secrets, allowlist и dangerous tool args | High | TODO |
+| EV-03 | LLM-as-judge используется только как дополнительный слой, не как единственная защита | Medium | TODO |
+| EV-04 | High-risk сценарии проходят Human/SME review | High | TODO |
+| EV-05 | Online/user-сигналы используются для мониторинга, но не заменяют pre-release testing | High | TODO |
 
 ## Подходы и контрмеры
 
