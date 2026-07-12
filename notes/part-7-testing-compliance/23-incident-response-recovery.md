@@ -10,6 +10,10 @@ tags: [ai-security, agents, incident-response, recovery, playbooks]
 
 *Кратко: incident response для AI-агента — это процесс обнаружения, остановки, расследования и восстановления после prompt injection, tool misuse, data exfiltration, memory poisoning, supply chain compromise или unsafe automation.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/23-incident-response-recovery.py) ·
+> [TypeScript](../../examples/typescript/part-7/23-incident-response-recovery.ts)
+
 ## Суть
 
 AI-агент может ошибиться сам или быть атакован.

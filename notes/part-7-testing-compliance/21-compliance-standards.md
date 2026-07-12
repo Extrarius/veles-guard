@@ -10,6 +10,10 @@ tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 
 *Кратко: compliance для AI-агента — это не “поставить галочку”, а связать архитектуру, угрозы, контрмеры, тесты, логи и incident response с понятными стандартами и фреймворками.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/21-compliance-standards.py) ·
+> [TypeScript](../../examples/typescript/part-7/21-compliance-standards.ts)
+
 ## Суть
 
 Для конспекта по AI-безопасности стандарты нужны как карта:
