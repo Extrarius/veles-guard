@@ -2,6 +2,8 @@
 tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 22 — Supply Chain Security

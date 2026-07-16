@@ -47,11 +47,11 @@ AI-агенты перестают быть «чатом с моделью»: о
 - Все источники: [notes/literature.md](notes/literature.md).
 - Карта стандартов: [notes/mapping.md](notes/mapping.md).
 - Глоссарий: [notes/glossary.md](notes/glossary.md).
-- Рабочие шаблоны (threat model, risk register, tool/MCP review, incident report): [templates/](templates/).
+- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, incident report): [templates/](templates/).
 
 ## Версионирование разделов
 
-Часть разделов несёт в frontmatter поля `обновлено` (дата) и `изменения` (краткое описание правки) — для отслеживания эволюции при чтении в Obsidian без git log.
+Разделы несут в frontmatter поля `обновлено` (дата) и `изменения` (краткое описание правки) — для отслеживания эволюции при чтении в Obsidian без git log. При правке раздела обновляйте оба поля; в новых заметках — по [notes/_template.md](notes/_template.md).
 
 ## Оглавление
 

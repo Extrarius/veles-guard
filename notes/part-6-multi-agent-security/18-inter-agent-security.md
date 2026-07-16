@@ -2,6 +2,8 @@
 tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 18 — Inter-Agent Security
