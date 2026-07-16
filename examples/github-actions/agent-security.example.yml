@@ -1,0 +1,27 @@
+# Учебный пример CI для MCP / skills — НЕ копировать в .github/workflows без адаптации.
+# Pin versions; не использовать @latest.
+# Скрипты: examples/bash/verify-pins.sh, examples/bash/check-allowed-tools.sh
+
+name: Agent Security Example
+
+on:
+  pull_request:
+
+jobs:
+  agent-security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Пример: MCP / skills scan (подставьте pinned-версию; не @latest)
+      # - run: uvx mcp-scan@<pinned-version> --skills
+
+      # Пример: Snyk Agent Scan (требует аккаунт/токен; не обязателен для этого репо)
+      # - run: uvx snyk-agent-scan@<pinned-version>
+
+      - name: Verify pinned versions
+        run: bash examples/bash/verify-pins.sh
+
+      - name: Check allowed-tools heuristics
+        run: bash examples/bash/check-allowed-tools.sh
