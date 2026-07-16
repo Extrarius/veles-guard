@@ -2,6 +2,8 @@
 tags: [ai-security, schema-validation, parameter-validation, tool-safety, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 07 — Parameter Validation и Schema Enforcement

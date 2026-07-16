@@ -55,7 +55,15 @@ tags: [ai-security, конспект, литература]
 - **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan>
 - **OWASP — Practical Guide for Securely Using Third-Party MCP Servers** — <https://genai.owasp.org/resource/cheatsheet-a-practical-guide-for-securely-using-third-party-mcp-servers-1-0/>
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
-- **mcpscan.ai**, **Snyk Agent Scan**, **Snyk MCP Server**.
+- **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
+
+## Agent skills / MCP scanning tools
+
+- **OWASP Agentic Skills Top 10** — <https://owasp.org/www-project-agentic-skills-top-10/> — риски agent skills (registry / installation / runtime / governance).
+- **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan> — сканер MCP (tool poisoning, rug pull и др.); см. также секцию MCP выше.
+- **Snyk Agent Scan** — <https://github.com/snyk/agent-scan> — inventory и scan agent components (MCP servers, skills).
+- **promptfoo — LLM red teaming** — <https://www.promptfoo.dev/docs/red-team/> — практики red teaming для LLM / agents.
+- **Bumblebee** — <https://github.com/perplexityai/bumblebee> — read-only inventory collector (package / extension / developer-tool metadata); не обязательный workflow.
 
 ## Инструменты
 

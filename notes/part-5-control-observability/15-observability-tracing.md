@@ -2,6 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 15 — Observability и Tracing
@@ -9,6 +11,10 @@ tags: [ai-security, agents, observability, tracing, audit]
 > Навигация: [Оглавление](../../README.md) · [← Назад](14-human-in-the-loop.md) · [Вперёд →](16-monitoring-alerting.md)
 
 *Кратко: observability для агента — это возможность восстановить, почему агент принял решение, какие tools вызвал, какие политики сработали и где возникла ошибка или атака.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/15-observability-tracing.py) ·
+> [TypeScript](../../examples/typescript/part-5/15-observability-tracing.ts)
 
 ## Суть
 

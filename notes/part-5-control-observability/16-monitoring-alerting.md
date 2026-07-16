@@ -2,6 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлена ссылка на §20 Layered security evals в чек-лист; примеры не требуют обновления"
 ---
 
 # 16 — Monitoring и Alerting
@@ -9,6 +11,10 @@ tags: [ai-security, agents, monitoring, alerting, detection]
 > Навигация: [Оглавление](../../README.md) · [← Назад](15-observability-tracing.md) · [Вперёд →](17-circuit-breaker-kill-switch.md)
 
 *Кратко: monitoring отвечает на вопрос “что происходит с агентом прямо сейчас?”, а alerting — “когда нужно вмешаться”. Для AI-агента важно мониторить не только CPU и latency, но и security-события: prompt injection, tool denial, egress, approvals, token budget, loop anomalies.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/16-monitoring-alerting.py) ·
+> [TypeScript](../../examples/typescript/part-5/16-monitoring-alerting.ts)
 
 ## Суть
 
@@ -363,6 +369,7 @@ var Rules = []Rule{
 - [ ] Есть правила для auto-response.
 - [ ] Есть защита от alert fatigue.
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
+- [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
 
 ## Литература
 

@@ -2,6 +2,8 @@
 tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 21 — Compliance и Standards
@@ -9,6 +11,10 @@ tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 > Навигация: [Оглавление](../../README.md) · [← Назад](20-red-teaming-adversarial-testing.md) · [Вперёд →](22-supply-chain-security.md)
 
 *Кратко: compliance для AI-агента — это не “поставить галочку”, а связать архитектуру, угрозы, контрмеры, тесты, логи и incident response с понятными стандартами и фреймворками.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/21-compliance-standards.py) ·
+> [TypeScript](../../examples/typescript/part-7/21-compliance-standards.ts)
 
 ## Суть
 
