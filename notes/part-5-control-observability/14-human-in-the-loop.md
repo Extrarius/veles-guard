@@ -10,6 +10,10 @@ tags: [ai-security, agents, human-in-the-loop, approval]
 
 *Кратко: Human-in-the-Loop — это контрольная точка перед опасным действием агента. Человек не “чинит LLM”, а утверждает или отклоняет конкретное действие с понятным контекстом, риском и audit trail.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/14-human-in-the-loop.py) ·
+> [TypeScript](../../examples/typescript/part-5/14-human-in-the-loop.ts)
+
 ## Суть
 
 AI-агент не должен выполнять опасные действия напрямую.

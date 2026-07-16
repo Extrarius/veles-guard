@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлен итоговый checklist для AI-coding agents."
+обновлено: 2026-07-12
+изменения: "Добавлены пункты Clean Repo Attack: AC-RI-09, AC-PERM-11, AC-RT-09."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -11,6 +11,10 @@ tags: [ai-security, ai-coding, checklist, production-review]
 > Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../../README.md)
 
 *Кратко: итоговый checklist для безопасной работы с AI-coding agents: repo instructions, permissions, sandbox, review, supply chain, CI/CD, MCP, skills, secrets и incident response.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/32-ai-coding-security-checklist.py) ·
+> [TypeScript](../../examples/typescript/part-9/32-ai-coding-security-checklist.ts)
 
 ## Как использовать
 
@@ -55,6 +59,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-RI-06 | README/docs не могут override security policy | High | TODO |
 | AC-RI-07 | Instruction files не могут отключить approval/sandbox | High | TODO |
 | AC-RI-08 | Изменение instruction files требует human review | High | TODO |
+| AC-RI-09 | Setup instructions из README/docs не считаются trusted | High | TODO |
 
 ## 3. Permissions and sandbox
 
@@ -70,6 +75,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-PERM-08 | CI/CD edits требуют mandatory review | Critical | TODO |
 | AC-PERM-09 | Approval UI показывает command/path/url/risk | High | TODO |
 | AC-PERM-10 | Approval timeout = deny | High | TODO |
+| AC-PERM-11 | Network + shell одновременно только через отдельный approval | High | TODO |
 
 ## 4. Code review
 
@@ -174,6 +180,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-RT-06 | Есть skill poisoning test | Medium/High | TODO |
 | AC-RT-07 | Есть shell command abuse test | High | TODO |
 | AC-RT-08 | High-risk regression blocks release | High | TODO |
+| AC-RT-09 | Есть clean-repo / DNS-payload injection test (без рабочего shell) | High | TODO |
 
 ## 12. Incident response
 

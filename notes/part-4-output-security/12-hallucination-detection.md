@@ -10,6 +10,10 @@ tags: [ai-security, hallucination-detection, fact-checking, evals, output-securi
 
 *Кратко: галлюцинация — это не просто “модель ошиблась”. В агенте галлюцинация может привести к неправильному tool call, ложному отчёту, фальшивой ссылке, неверному решению или опасной автоматизации. Поэтому фактические утверждения нужно проверять по источникам и наблюдениям tools.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-4/12-hallucination-detection.py) ·
+> [TypeScript](../../examples/typescript/part-4/12-hallucination-detection.ts)
+
 ## Суть
 
 **Hallucination Detection** — это проверка фактических утверждений модели на поддержку в доступных источниках.
