@@ -47,7 +47,7 @@ AI-агенты перестают быть «чатом с моделью»: о
 - Все источники: [notes/literature.md](notes/literature.md).
 - Карта стандартов: [notes/mapping.md](notes/mapping.md).
 - Глоссарий: [notes/glossary.md](notes/glossary.md).
-- Рабочие шаблоны (threat model, risk register, tool/MCP review, incident report): [templates/](templates/).
+- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, incident report): [templates/](templates/).
 
 ## Версионирование разделов
 
