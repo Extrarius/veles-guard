@@ -2,6 +2,8 @@
 tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 21 — Compliance и Standards

@@ -2,6 +2,8 @@
 tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 05 — Rate Limiting, Quotas и Token Bombing

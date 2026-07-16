@@ -2,6 +2,8 @@
 tags: [ai-security, output-validation, fact-checking, guardrails, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 11 — Output Validation и Fact-Checking
