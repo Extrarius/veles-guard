@@ -2,6 +2,8 @@
 tags: [ai-security, agents, human-in-the-loop, approval]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Добавлен подраздел Source→Sink: sensitive sinks → HITL; примеры не требуют обновления."
 ---
 
 # 14 — Human-in-the-Loop
@@ -104,6 +106,21 @@ flowchart LR
 | High | требовать approval |
 | Critical | требовать approval + second approver / manual execution |
 
+### Source→Sink: sensitive sink → обязательный approval
+
+Канон: [§03 Source→Sink](../part-2-input-security/03-prompt-injection-detection.md#sourcesink-от-влияния-к-действию). Egress-sinks: [§13](../part-4-output-security/13-egress-control-data-exfiltration.md).
+
+**Sensitive / dangerous sinks** не ставятся на auto-approval, даже если detector на входе сказал allow:
+
+| Sink | Почему HITL |
+|---|---|
+| secret read / использование credentials | утечка или misuse |
+| egress / email / webhook вне allowlist | exfiltration |
+| shell / command / install | RCE, supply chain |
+| изменение CI / prod path | путь к production |
+
+Injection и social engineering могут убедить модель «это легитимно». Approval gate — последний deterministic слой: человек видит **tool + args + risk**, а не пересказ модели.
+
 ### 2. Показывать человеку именно tool call
 
 Плохо:
@@ -158,6 +175,8 @@ UNTRUSTED_CONTENT_START
 ...
 UNTRUSTED_CONTENT_END
 ```
+
+В терминах Source→Sink: фрагмент из **source** в approval UI — это данные для человека, не инструкция агенту и не основание снять policy на **sink**.
 
 ## Пример (Go)
 
@@ -311,16 +330,20 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 - [ ] Для critical actions есть second approver или manual execution.
 - [ ] Недоверенный контент в approval request явно маркируется.
 - [ ] Auto-approval разрешён только для low-risk действий.
+- [ ] Sensitive sinks (secret / egress вне allowlist / shell / CI·prod) всегда требуют approval — не auto-approve.
+- [ ] Untrusted source в тексте approval не снимает policy на sink (Source→Sink).
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
 
 ## См. также
 
+- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)

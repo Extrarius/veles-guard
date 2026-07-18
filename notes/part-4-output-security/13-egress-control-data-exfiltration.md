@@ -2,6 +2,8 @@
 tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Добавлен подраздел Source→Sink: egress как sink; примеры не требуют обновления."
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
@@ -113,6 +115,25 @@ Destination + Data + Actor + Purpose проверяются вместе.
 | Over-sharing | агент отправляет весь документ вместо выдержки | Medium | data minimization |
 
 ## Подходы и контрмеры
+
+### Source→Sink: egress как sink
+
+Канон модели — [§03 Prompt Injection / Source→Sink](../part-2-input-security/03-prompt-injection-detection.md#sourcesink-от-влияния-к-действию).
+
+Исходящие каналы — типичные **sinks**: HTTP, email, webhook, browser navigate, загрузка файла наружу. Даже если injection на входе не пойман (social engineering), sink не должен «тихо» унести данные к третьей стороне.
+
+```text
+Untrusted source (+ conversation secrets) → agent wants outbound → egress policy / approval
+```
+
+| Sink | Контроль |
+|---|---|
+| HTTP / webhook к неизвестному host | deny-by-default + destination allowlist; иначе block |
+| Передача данных из разговора / tool на внешний URL | approval или block (mindset Safe Url: не silent transmit) |
+| Email / attachment наружу | recipient policy + approval для confidential/personal |
+| Browser navigate / bookmark | allowlist + consent при неожиданной передаче данных |
+
+Правило: **untrusted source + outbound transmission** → не выполнять молча: allowlist и/или human approval ([§14](../part-5-control-observability/14-human-in-the-loop.md)).
 
 ### 1. Destination allowlist
 
@@ -499,10 +520,13 @@ Egress Control запрещает отправить секрет наружу, 
 - [ ] Учитывается происхождение данных: tool, file, memory, user input, tenant.
 - [ ] Логи и traces считаются egress-каналом.
 - [ ] Все решения allow/block/review логируются.
+- [ ] Egress/navigate трактуются как sinks в Source→Sink ([§03](../part-2-input-security/03-prompt-injection-detection.md)).
+- [ ] Untrusted source + outbound к третьей стороне не silent: allowlist и/или approval.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OWASP LLM02:2025 Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)
 - [OWASP LLM05:2025 Improper Output Handling](https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -510,6 +534,7 @@ Egress Control запрещает отправить секрет наружу, 
 
 ## См. также
 
+- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)

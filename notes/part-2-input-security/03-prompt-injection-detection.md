@@ -2,6 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Добавлена модель Source→Sink (OpenAI); Go RequiresPolicy/RequiresApproval; sync Python/TS."
 ---
 
 # 03 — Prompt Injection Detection
@@ -81,6 +83,86 @@ Untrusted Input  →  Input Gateway  →  Trusted Agent Runtime
 - комментарий в issue;
 - ответ внешнего API;
 - вывод другого агента.
+
+## Source→Sink: от влияния к действию
+
+Детектор injection на входе недостаточен. Реальные атаки всё чаще похожи на social engineering: модель могут убедить, даже если строковый filter молчит. Нужно ограничивать **последствия**, если манипуляция всё же сработала.
+
+По framing OpenAI (source–sink analysis):
+
+- **source** — канал влияния (недоверенный контент: email, webpage, README, MCP/tool output, логи);
+- **sink** — capability, опасная в неверном контексте (отправка данных наружу, shell, navigate/link, вызов tool / internal API).
+
+```text
+Untrusted source → Model reasoning → Sensitive / dangerous sink
+```
+
+Атака обычно требует **и** source, **и** sink. Защита: detection + isolation + least privilege + **policy на sink** + approval + logging.
+
+### Примеры цепочек
+
+| Source (влияние) | Sink (действие) | Риск |
+|---|---|---|
+| email / document | `send_email` / webhook | exfiltration, misdelivery |
+| README / setup instructions | shell / install | RCE, supply-chain action |
+| MCP / tool output | internal API call | privilege abuse, data leak |
+| log content (SOC assistant) | ticket / block / escalate | wrong operational action |
+
+### Policy на sink
+
+| Класс sink | Контроль | Кто решает |
+|---|---|---|
+| **dangerous sink** (shell, payment, delete, write CI/prod) | deterministic **policy check** до исполнения | policy-код, не модель |
+| **sensitive sink** (secret read, egress вне allowlist, command) | **human approval** ([§14](../part-5-control-observability/14-human-in-the-loop.md)) | человек + policy |
+| egress / navigate / third-party URL | allowlist + approval ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)) | policy + HITL |
+
+Модель **не** решает сама, можно ли трогать secret / egress / command. Решение `allow / sanitize / block / approval` на входе (ниже) дополняется gate на sink: даже «чистый» по detector текст не открывает опасный tool без policy.
+
+### Go: классификация sink
+
+```go
+package sourcesink
+
+type SourceKind string
+
+const (
+	SourceUserPrompt SourceKind = "user_prompt"
+	SourceEmail      SourceKind = "email"
+	SourceWebPage    SourceKind = "webpage"
+	SourceRepoFile   SourceKind = "repo_file"
+	SourceMCPOutput  SourceKind = "mcp_output"
+	SourceLogContent SourceKind = "log_content"
+)
+
+type SinkKind string
+
+const (
+	SinkSendEmail    SinkKind = "send_email"
+	SinkHTTPEgress   SinkKind = "http_egress"
+	SinkShell        SinkKind = "shell"
+	SinkInternalAPI  SinkKind = "internal_api"
+	SinkSecretRead   SinkKind = "secret_read"
+	SinkSOCAction    SinkKind = "soc_action"
+)
+
+func RequiresPolicy(sink SinkKind) bool {
+	switch sink {
+	case SinkShell, SinkInternalAPI, SinkHTTPEgress, SinkSendEmail, SinkSecretRead, SinkSOCAction:
+		return true
+	default:
+		return false
+	}
+}
+
+func RequiresApproval(sink SinkKind) bool {
+	switch sink {
+	case SinkShell, SinkSecretRead, SinkSendEmail, SinkHTTPEgress, SinkSOCAction:
+		return true
+	default:
+		return false
+	}
+}
+```
 
 ## Подходы и контрмеры
 
@@ -305,10 +387,16 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [ ] High-risk input не попадает в memory.
 - [ ] Срабатывания логируются с trace id.
 - [ ] Detection не считается единственной защитой.
+- [ ] Threat model учитывает Source→Sink: недоверенный source + опасный sink.
+- [ ] Dangerous sinks проходят deterministic policy check (не решение модели).
+- [ ] Sensitive sinks (secret / egress / command) требуют human approval.
+- [ ] Типовые цепочки (email→send, README→shell, MCP→API, logs→SOC) покрыты controls.
+- [ ] Egress / navigate к третьей стороне не «тихие»: allowlist и/или approval ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)).
 
 ## Литература
 
 - [Список литературы](../literature.md#prompt-injection)
+- [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) — source–sink analysis, social engineering mindset
 - OWASP LLM01:2025 Prompt Injection — https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 - OWASP Top 10 for Large Language Model Applications — https://owasp.org/www-project-top-10-for-large-language-model-applications/
 - OWASP Gen AI Security Project — https://genai.owasp.org/
@@ -319,3 +407,6 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
+- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [27 — Repository instructions](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)

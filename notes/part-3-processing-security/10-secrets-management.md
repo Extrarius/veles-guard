@@ -2,6 +2,8 @@
 tags: [ai-security, secrets-management, credentials, least-privilege, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 10 — Secrets Management
