@@ -115,3 +115,46 @@ function buildAgentContext(
     },
   ];
 }
+
+type SinkKind =
+  | "send_email"
+  | "http_egress"
+  | "shell"
+  | "internal_api"
+  | "secret_read"
+  | "soc_action";
+
+function requiresPolicy(sink: SinkKind): boolean {
+  switch (sink) {
+    case "shell":
+    case "internal_api":
+    case "http_egress":
+    case "send_email":
+    case "secret_read":
+    case "soc_action":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function requiresApproval(sink: SinkKind): boolean {
+  switch (sink) {
+    case "shell":
+    case "secret_read":
+    case "send_email":
+    case "http_egress":
+    case "soc_action":
+      return true;
+    default:
+      return false;
+  }
+}
+
+export {
+  detectPromptInjection,
+  buildAgentContext,
+  requiresPolicy,
+  requiresApproval,
+};
+export type { SinkKind, DetectionResult, ContextBlock };

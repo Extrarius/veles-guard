@@ -3,7 +3,7 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 часть: "Часть IV — Защита на выходе"
 статус: готово
 обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+изменения: "Уточнена граница с §07: structured output ответа vs параметры tool call"
 ---
 
 # 11 — Output Validation и Fact-Checking
@@ -58,6 +58,8 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 | Tool result summary | искажение результата tool | compare with raw observation |
 | Citation / source | выдуманная ссылка, неверная цитата | source verification |
 | Business decision | ошибочное approve/reject | human-in-the-loop, threshold |
+
+**Граница с Parameter Validation (§07).** Аргументы tool call / function-calling JSON проверяются в [§07](../part-3-processing-security/07-parameter-validation-schema.md) — до executor. Здесь (§11) — ответ модели как выход: текст, `structured_json` для UI/API, HTML/Markdown, citations. Schema на входе в tool не заменяет schema на выходе к пользователю или downstream.
 
 ## DFD: output validation layer
 

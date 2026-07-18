@@ -3,7 +3,7 @@ tags: [ai-security, schema-validation, parameter-validation, tool-safety, proces
 часть: "Часть III — Защита обработки"
 статус: готово
 обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+изменения: "Уточнена граница с §11: tool/function-calling args vs structured output ответа"
 ---
 
 # 07 — Parameter Validation и Schema Enforcement
@@ -42,6 +42,20 @@ Tool вроде read-only, но параметр ведёт к утечке се
 ```text
 Разрешённый tool ≠ безопасный tool call.
 Безопасность проверяется на уровне параметров.
+```
+
+## Граница с Output Validation (§11)
+
+| Что | Где проверять |
+|---|---|
+| Аргументы tool call / function-calling JSON → executor | **этот раздел (§07)** |
+| Ответ модели пользователю / downstream API / `structured_json` как выход | [§11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md) |
+
+Schema на входе в tool и schema на выходе к пользователю/API — **разные trust boundaries**. Оба слоя нужны; один не заменяет другой.
+
+```text
+function-calling args → §07 (processing)
+model answer / structured output → §11 (output)
 ```
 
 ## Что валидировать
@@ -291,4 +305,5 @@ func ValidateReadCustomer(userID string, args ReadCustomerArgs, access ResourceA
 
 - [06 — RBAC и Tool Permissions](06-rbac-tool-permissions.md)
 - [08 — Sandboxing](08-sandboxing.md)
+- [11 — Output Validation и Fact-Checking](../part-4-output-security/11-output-validation-fact-checking.md) — structured output ответа модели (не tool args)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
