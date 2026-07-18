@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлена врезка Localhost trust gap (AutoJack) в MCP threat model; примеры не требуют обновления"
+обновлено: 2026-07-18
+изменения: "Добавлена градация Skill Security (prototype→regulated), Go RequiredControls; sync Python/TS."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -150,6 +150,82 @@ Dev-машина coding agent хранит secrets, tokens, SSH keys и част
 | Instruction override | skill просит игнорировать security policy | High |
 | Unreviewed sharing | skill принесён из внешнего источника | Medium/High |
 
+## Skill Security: уровни контроля
+
+Формула:
+
+```text
+Skill Security = не «ставим всё», а «выбираем уровень контроля под риск».
+```
+
+Не всем нужен enterprise-контур. Нужен осознанный уровень под среду и последствия ошибки.
+
+| Уровень | Когда | Минимум контролей |
+|---|---|---|
+| **prototype** | локальный эксперимент | понимание skills как attack surface; не ставить third-party без осознанного риска |
+| **startup** | команда / доступ к файлам · shell · API | trusted source; review manifest/instructions; запрет секретов в skill; approval на опасные действия |
+| **production** | регулярное использование | sandbox для scripts; audit log; version pinning; egress control; review scripts; update/diff review (rug pull) |
+| **regulated** | sensitive / compliance | formal policy; allowlist skills; threat model; обязательный human approval |
+
+### На что смотреть на каждом уровне
+
+**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§34 MCP / Skill Review Workshop](../part-10-course-appendix/34-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
+
+**Sandbox** для skill-скриптов: не запускать install/postinstall и произвольный shell от имени разработчика без изоляции. См. [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md).
+
+**Provenance + pin**: фиксированная версия (pin), не `latest`; известный источник и ответственный (owner). При обновлении — **diff review** (rug pull): что изменилось в instructions/scripts/permissions. См. [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md), [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md).
+
+Skills и инструкции в репозитории пересекаются с [27 — Repository instructions](27-repository-instructions-attack-surface.md). Операционный минимум: [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md).
+
+### Go snippet: минимум контролей по уровню
+
+```go
+package skillsecurity
+
+type Level string
+
+const (
+	LevelPrototype  Level = "prototype"
+	LevelStartup    Level = "startup"
+	LevelProduction Level = "production"
+	LevelRegulated  Level = "regulated"
+)
+
+// RequiredControls — минимальный набор имён контролей для уровня (иллюстративно).
+func RequiredControls(level Level) []string {
+	switch level {
+	case LevelPrototype:
+		return []string{"attack_surface_awareness"}
+	case LevelStartup:
+		return []string{
+			"trusted_source", "manifest_review", "no_secrets_in_skill", "approval_dangerous",
+		}
+	case LevelProduction:
+		return []string{
+			"trusted_source", "manifest_review", "no_secrets_in_skill", "approval_dangerous",
+			"sandbox_scripts", "audit_log", "version_pin", "egress_control", "update_diff_review",
+		}
+	case LevelRegulated:
+		return []string{
+			"trusted_source", "manifest_review", "no_secrets_in_skill", "approval_dangerous",
+			"sandbox_scripts", "audit_log", "version_pin", "egress_control", "update_diff_review",
+			"formal_policy", "skill_allowlist", "threat_model", "mandatory_hitl",
+		}
+	default:
+		return nil
+	}
+}
+
+func MeetsMinimum(level Level, enabled map[string]bool) bool {
+	for _, c := range RequiredControls(level) {
+		if !enabled[c] {
+			return false
+		}
+	}
+	return true
+}
+```
+
 ## Production path controls
 
 | Контроль | Для чего |
@@ -268,6 +344,12 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Agent-generated artifacts имеют provenance.
 - [ ] Есть audit по PR, CI, deploy.
 - [ ] Локальные MCP/WebSocket в dev-среде требуют auth; browser tools не доверяют localhost.
+- [ ] Для среды зафиксирован уровень Skill Security (prototype / startup / production / regulated).
+- [ ] Контроли соответствуют выбранному уровню (не «всем всё», а минимум под риск).
+- [ ] Description skill не считается policy; body/scripts проходят отдельный review.
+- [ ] Для production+: pin версий, sandbox scripts, egress control, audit, diff review при обновлении.
+- [ ] Для regulated: allowlist skills, formal policy / threat model, обязательный human approval.
+- [ ] Third-party skill не ставится без trusted source и review (даже на startup).
 
 ## Литература
 
@@ -281,7 +363,10 @@ func CanEnterProductionPath(pr PR) bool {
 
 ## См. также
 
+- [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
+- [34 — MCP / Skill Review Workshop](../part-10-course-appendix/34-mcp-skill-review-workshop.md)
