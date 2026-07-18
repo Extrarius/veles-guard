@@ -2,13 +2,13 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлены пункты Clean Repo Attack: AC-RI-09, AC-PERM-11, AC-RT-09."
+обновлено: 2026-07-16
+изменения: "Навигация «Вперёд» → §33 (Часть X — Учебное приложение)."
 ---
 
 # 32 — AI Coding Security Checklist
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../../README.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../part-10-course-appendix/33-course-appendix-agentic-security.md)
 
 *Кратко: итоговый checklist для безопасной работы с AI-coding agents: repo instructions, permissions, sandbox, review, supply chain, CI/CD, MCP, skills, secrets и incident response.*
 
