@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-07-18
+изменения: "Добавлен сценарий Agentic Threat Actor / JADEPUFFER; примеры не требуют обновления."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -70,8 +70,52 @@ tags: [ai-security, конспект]
 | Компрометированный tool / MCP server | подменяет описание инструмента, схему или результат |
 | Другой агент | передаёт вредное сообщение в multi-agent workflow |
 | AI-driven attacker | использует автономного агента для разведки, генерации эксплойтов, перебора учётных данных и lateral movement на скорости машины |
+| Agentic Threat Actor (ATA) | capability атаки доставляется AI-агентом end-to-end (не human-driven toolkit): recon → credentials → pivot → destructive playbook |
 
 Задокументирован первый масштабный AI-оркестрированный взлом (кампания GTG-1002, 2025): агент выполнял ~80–90% операций, человек вмешивался в 4–6 точках. Защитный вывод для threat model: открытый или доступный исходный код упрощает автоматическую разведку — assume adversary с доступом к исходникам. Подробнее — в [literature.md](../literature.md).
+
+### Agentic Threat Actor / Agentic Ransomware (JADEPUFFER)
+
+**Agentic Threat Actor (ATA)** — оператор, чья атакующая capability реализуется AI-агентом от initial access до цели, а не классическим human-driven ransomware toolkit.
+
+**JADEPUFFER** (Sysdig Threat Research, 2026) — задокументированный случай **agentic ransomware**: LLM-driven кампания с автоматическим вымогательством через destructive действия против production database. Ниже — threat narrative для модели угроз, **без** offensive payloads и PoC эксплуатации.
+
+#### Сценарий
+
+```text
+Exposed AI/agent framework (e.g. Langflow)
+  + known CVE / missing auth on control plane
+  → RCE on internet-facing host with API keys / cloud creds in env
+  → automated recon + credential sweep (.env, keys, wallets, DB/config)
+  → lateral / pivot to production DB / config services
+  → destructive database extortion playbook
+```
+
+Типичные предпосылки:
+
+- internet-facing agent builder / workflow UI без жёсткой auth/network segmentation;
+- provider API keys и cloud credentials в environment на том же хосте;
+- default/weak credentials на внутренних сервисах, доступных с хоста агента;
+- production DB или config plane достижимы из скомпрометированного AI-adjacent host.
+
+#### Detection signals
+
+| Сигнал | Почему характерен для ATA |
+|---|---|
+| Verbose self-narrating scripts / LLM-style annotations в payloads | LLM часто «комментирует» шаги и приоритеты так, как люди редко пишут |
+| Rapid retries / plan–act–observe–adjust | fail → fix за секунды (адаптация параметров, повтор) |
+| Массовый параллельный поиск secrets | `.env`, API keys, wallets, cloud/DB credentials сразу несколькими категориями |
+| Быстрый переход recon → destructive | после сбора кредов — сразу destructive/extortion на DB, без долгой «тихой» фазы |
+
+#### STRIDE (на что смотреть в DFD)
+
+| STRIDE | В сценарии ATA |
+|---|---|
+| Elevation of Privilege | RCE на agent control plane → права хоста / доступ к env secrets |
+| Information Disclosure | credential sweep, dump config/DB, exfil staging |
+| Tampering | destructive DB / config changes как рычаг вымогательства |
+
+Threat model должен учитывать **не только** защиту *своего* агента, но и то, что противник может применять agentic capability **против** вашей инфраструктуры (особенно exposed AI frameworks). IR — [§23](../part-7-testing-compliance/23-incident-response-recovery.md).
 
 ## DFD Level 1 — агент с границами доверия
 
@@ -176,6 +220,7 @@ STRIDE — это способ пройтись по компонентам си
 | Agent Loop | Denial of Service | Бесконечные шаги, дорогие вызовы, bill spike | Medium | max steps, timeouts, quotas, circuit breaker |
 | Audit Logger | Repudiation | Нельзя восстановить, почему агент выполнил действие | Medium | immutable logs, correlation ID, tool call reason |
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
+| Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
 
 ## Risk Rating
 
@@ -205,6 +250,7 @@ STRIDE — это способ пройтись по компонентам си
 | Контроль | отсутствие approval, плохие логи, отсутствие мониторинга, нет kill-switch | 14, 15, 16, 17 |
 | Мультиагентность | spoofing агента, insecure delegation, poisoned inter-agent messages | 18, 19 |
 | Практика / compliance | отсутствие red teaming, supply chain, incident response | 20, 21, 22, 23, 24, 25 |
+| Инфраструктура агента | exposed control plane, ATA / agentic ransomware | 02 (ATA), 10, 17, 23 |
 
 ## Маппинг на OWASP ASI Top 10
 
@@ -392,7 +438,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 ## Чек-лист threat modeling
 
 - [ ] Определены активы: данные, инструменты, память, credentials, внешние системы.
-- [ ] Определены акторы: пользователь, внешний документ, внешний сервис, другой агент, инсайдер.
+- [ ] Определены акторы: пользователь, внешний документ, внешний сервис, другой агент, инсайдер, AI-driven / ATA.
 - [ ] Нарисован DFD Level 1.
 - [ ] Отмечены trust boundaries.
 - [ ] Для каждого внешнего входа указано, почему он недоверенный.
@@ -405,10 +451,15 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Для agent loop есть лимиты шагов, времени, стоимости и токенов.
 - [ ] Логи не содержат секреты без redaction.
 - [ ] Есть связь угроз с разделами конспекта.
+- [ ] Учтены exposed AI/agent control planes как initial access для ATA.
+- [ ] Есть detection signals для agentic ransomware (self-narrating payloads, rapid retries, credential sweep → destructive).
+- [ ] Secrets не предполагаются в env на internet-facing agent hosts.
+- [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
 
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [Microsoft Learn — Data-flow diagram elements](https://learn.microsoft.com/en-us/training/modules/tm-create-a-threat-model-using-foundational-data-flow-diagram-elements/)
@@ -420,4 +471,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
+- [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
+- [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
+- [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
