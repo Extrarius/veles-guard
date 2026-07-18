@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injection]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлен раздел о repository instructions как attack surface."
+обновлено: 2026-07-12
+изменения: "Добавлен кейс Clean Repo Attack (repository-as-instructions + сетевой payload)."
 ---
 
 # 27 — Репозиторий как источник инструкций
@@ -11,6 +11,10 @@ tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injec
 > Навигация: [Оглавление](../../README.md) · [← Назад](26-ai-coding-agent-threat-model.md) · [Вперёд →](28-coding-agent-permissions-sandbox-approval.md)
 
 *Кратко: для AI-coding agent репозиторий — это не только код, но и источник инструкций. `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, issues, PR comments, README и test fixtures могут влиять на поведение агента.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/27-repository-instructions-attack-surface.py) ·
+> [TypeScript](../../examples/typescript/part-9/27-repository-instructions-attack-surface.ts)
 
 ## Суть
 
@@ -121,6 +125,32 @@ flowchart LR
 | Instruction laundering | недоверенный файл подаётся как “project policy” | High |
 | Security bypass by docs | агент следует устаревшему doc вместо policy | Medium |
 | Hidden instructions | HTML comments / markdown tricks | Medium |
+| Clean repo attack | «чистый» репо без вредного кода: setup-инструкции → shell + network → payload из сети (DNS TXT) | Critical |
+
+## Clean Repo Attack (репозиторий как источник инструкций)
+
+Кейс Mozilla 0DIN: репозиторий не содержит вредного кода, но AI-coding agent компрометирует хост, следуя обычным setup-инструкциям из README, `AGENTS.md` или docs.
+
+```text
+1. Developer клонирует «чистый» репозиторий
+2. AI-coding agent читает README / AGENTS.md / setup instructions
+3. Инструкция просит запустить shell и обратиться в сеть (например, «проверь DNS» / «скачай bootstrap script»)
+4. Payload приходит не из repo, а извне (DNS TXT record или другой сетевой канал)
+5. Агент выполняет полученный payload на машине разработчика
+6. Static scan репозитория ничего не видит — вредоносного кода в git нет
+```
+
+Почему это критично:
+
+> Атака использует репозиторий как **источник инструкций**, а не как носитель malware. Доверие к «чистому» repo и setup docs — ложное.
+
+Контрмеры (маппинг на конспект):
+
+- Setup-инструкции из README, CONTRIBUTING и docs — **untrusted context**, не trusted instruction (см. `ClassifyPath` выше).
+- Network off by default; **network + shell одновременно** — только через отдельный approval и явный risk review ([28 — Permissions, sandbox и approval](28-coding-agent-permissions-sandbox-approval.md)).
+- Egress и localhost/loopback — отдельная граница доверия; private network блокируется по умолчанию ([31 — CI/CD, MCP, Skills и production path](31-ci-cd-mcp-skills-production-path.md)).
+- Red-team eval: сценарий «clean repo + сетевой payload» **без рабочего reverse shell** — проверка, что policy блокирует цепочку до выполнения payload.
+- Операционный чек-лист: [32 — AI Coding Security Checklist](32-ai-coding-security-checklist.md) — `AC-RI-09`, `AC-PERM-11`, `AC-RT-09`.
 
 ## Принципы защиты
 
@@ -273,10 +303,13 @@ func ValidateInstructionText(text string) error {
 - [ ] Изменение instruction files блокирует auto-merge.
 - [ ] Есть тесты на malicious AGENTS.md.
 - [ ] Есть audit по загруженным instruction files.
+- [ ] Setup-инструкции из README/docs не считаются trusted.
+- [ ] Есть тест на clean-repo / сетевой payload (без рабочего reverse shell).
 
 ## Литература
 
 - [Список литературы](../literature.md#prompt-injection)
+- [0DIN — Clone This Repo and I Own Your Machine](https://0din.ai/blog/clone-this-repo-and-i-own-your-machine)
 - [AGENTS.md](https://agents.md/)
 - [OpenAI Codex — Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md)
 - [GitHub Copilot — custom instructions](https://docs.github.com/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot)

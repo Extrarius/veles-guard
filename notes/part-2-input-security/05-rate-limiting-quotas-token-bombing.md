@@ -2,6 +2,8 @@
 tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 05 — Rate Limiting, Quotas и Token Bombing
@@ -9,6 +11,10 @@ tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, кон
 > Навигация: [Оглавление](../../README.md) · [← Назад](04-pii-redaction-content-filtering.md) · [Вперёд →](../part-3-processing-security/06-rbac-tool-permissions.md)
 
 *Кратко: входной слой должен ограничивать частоту запросов, размер входа, стоимость обработки, количество tool calls и глубину агентного цикла.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-2/05-rate-limiting-quotas-token-bombing.py) ·
+> [TypeScript](../../examples/typescript/part-2/05-rate-limiting-quotas-token-bombing.ts)
 
 ## Суть
 

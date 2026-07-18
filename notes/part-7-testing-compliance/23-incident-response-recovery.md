@@ -2,6 +2,8 @@
 tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 23 — Incident Response и Recovery
@@ -9,6 +11,10 @@ tags: [ai-security, agents, incident-response, recovery, playbooks]
 > Навигация: [Оглавление](../../README.md) · [← Назад](22-supply-chain-security.md) · [Вперёд →](../part-8-practice/24-end-to-end-secure-agent-go.md)
 
 *Кратко: incident response для AI-агента — это процесс обнаружения, остановки, расследования и восстановления после prompt injection, tool misuse, data exfiltration, memory poisoning, supply chain compromise или unsafe automation.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-7/23-incident-response-recovery.py) ·
+> [TypeScript](../../examples/typescript/part-7/23-incident-response-recovery.ts)
 
 ## Суть
 

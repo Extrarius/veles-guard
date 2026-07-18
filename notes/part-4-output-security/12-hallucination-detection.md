@@ -2,6 +2,8 @@
 tags: [ai-security, hallucination-detection, fact-checking, evals, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 12 — Hallucination Detection
@@ -9,6 +11,10 @@ tags: [ai-security, hallucination-detection, fact-checking, evals, output-securi
 > Навигация: [Оглавление](../../README.md) · [← Назад](11-output-validation-fact-checking.md) · [Вперёд →](13-egress-control-data-exfiltration.md)
 
 *Кратко: галлюцинация — это не просто “модель ошиблась”. В агенте галлюцинация может привести к неправильному tool call, ложному отчёту, фальшивой ссылке, неверному решению или опасной автоматизации. Поэтому фактические утверждения нужно проверять по источникам и наблюдениям tools.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-4/12-hallucination-detection.py) ·
+> [TypeScript](../../examples/typescript/part-4/12-hallucination-detection.ts)
 
 ## Суть
 
