@@ -2,6 +2,8 @@
 tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
