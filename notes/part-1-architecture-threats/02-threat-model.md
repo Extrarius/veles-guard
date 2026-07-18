@@ -3,7 +3,7 @@ tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
 обновлено: 2026-07-18
-изменения: "Сценарий shared agent identity / ambiguous on-behalf-of; checklist identity."
+изменения: "JADEPUFFER ATA + сценарий shared identity / on-behalf-of; checklist identity."
 ---
 
 # 02 — Модель угроз (Threat Model)
