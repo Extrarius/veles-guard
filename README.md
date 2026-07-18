@@ -42,12 +42,13 @@ AI-агенты перестают быть «чатом с моделью»: о
 ## Как читать
 
 - Каждый раздел — отдельная заметка с единой структурой: Суть · Угроза и контекст · Подходы и контрмеры · Пример (Go) · Чек-лист · Литература · См. также.
-- Разделы 01–35: статус готово.
+- Разделы 01–36: статус готово.
 - Шаблон новой заметки: [notes/_template.md](notes/_template.md).
 - Все источники: [notes/literature.md](notes/literature.md).
 - Карта стандартов: [notes/mapping.md](notes/mapping.md).
 - Глоссарий: [notes/glossary.md](notes/glossary.md).
-- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, incident report): [templates/](templates/).
+- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, agent security finding, incident report): [templates/](templates/).
+- Практическая проверка агента после теории: [guides/ai-agent-security-testing-guide.md](guides/ai-agent-security-testing-guide.md) (Scope, RoE, Test Matrix, Findings, Report).
 
 ## Версионирование разделов
 
@@ -109,12 +110,13 @@ AI-агенты перестают быть «чатом с моделью»: о
 33. [Course Appendix: практикум MCP / Skills](notes/part-10-course-appendix/33-course-appendix-agentic-security.md)
 34. [MCP / Skill Review Workshop](notes/part-10-course-appendix/34-mcp-skill-review-workshop.md)
 35. [Agentic Security Baseline Workshop](notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md)
+36. [AI Agent Security Testing Workshop](notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md)
 
 ### Учебное приложение
 
 Отдельный прикладной блок для курсов, воркшопов и внутренних разборов.
 Содержит шаблоны, baseline-подходы и безопасные учебные примеры для ревью MCP,
-agent skills и AI-coding workflow. См. также [templates/course/](templates/course/) и [examples/course/](examples/course/).
+agent skills и AI-coding workflow. См. также [templates/course/](templates/course/), [examples/course/](examples/course/) и [guides/ai-agent-security-testing-guide.md](guides/ai-agent-security-testing-guide.md).
 
 ## Литература
 
