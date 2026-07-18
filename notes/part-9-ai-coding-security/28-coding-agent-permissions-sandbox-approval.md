@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, sandbox, permissions, approval, shell]
 
 *Кратко: coding agent должен работать в ограниченном режиме: read-only или workspace-write, network off по умолчанию, shell и внешние действия — через approval, опасные изменения — через review.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/28-coding-agent-permissions-sandbox-approval.py) ·
+> [TypeScript](../../examples/typescript/part-9/28-coding-agent-permissions-sandbox-approval.ts)
+
 ## Суть
 
 Coding agent почти всегда хочет больше прав:

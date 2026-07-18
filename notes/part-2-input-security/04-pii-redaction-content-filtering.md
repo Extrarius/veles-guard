@@ -2,6 +2,8 @@
 tags: [ai-security, pii, redaction, content-filtering, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 04 — PII Redaction и Content Filtering

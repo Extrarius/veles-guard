@@ -2,6 +2,8 @@
 tags: [ai-security, agents, human-in-the-loop, approval]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 14 — Human-in-the-Loop
@@ -9,6 +11,10 @@ tags: [ai-security, agents, human-in-the-loop, approval]
 > Навигация: [Оглавление](../../README.md) · [← Назад](../part-4-output-security/13-egress-control-data-exfiltration.md) · [Вперёд →](15-observability-tracing.md)
 
 *Кратко: Human-in-the-Loop — это контрольная точка перед опасным действием агента. Человек не “чинит LLM”, а утверждает или отклоняет конкретное действие с понятным контекстом, риском и audit trail.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/14-human-in-the-loop.py) ·
+> [TypeScript](../../examples/typescript/part-5/14-human-in-the-loop.ts)
 
 ## Суть
 

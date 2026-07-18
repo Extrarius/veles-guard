@@ -2,6 +2,8 @@
 tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 17 — Circuit Breaker и Kill-Switch
@@ -9,6 +11,10 @@ tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 > Навигация: [Оглавление](../../README.md) · [← Назад](16-monitoring-alerting.md) · [Вперёд →](../part-6-multi-agent-security/18-inter-agent-security.md)
 
 *Кратко: circuit breaker временно ограничивает опасное или нестабильное поведение, а kill-switch аварийно отключает агента, tool или egress. Это последний слой защиты, когда prevention и detection уже недостаточны.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-5/17-circuit-breaker-kill-switch.py) ·
+> [TypeScript](../../examples/typescript/part-5/17-circuit-breaker-kill-switch.ts)
 
 ## Суть
 

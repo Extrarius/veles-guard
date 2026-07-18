@@ -2,6 +2,8 @@
 tags: [ai-security, output-validation, fact-checking, guardrails, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Уточнена граница с §07: structured output ответа vs параметры tool call"
 ---
 
 # 11 — Output Validation и Fact-Checking
@@ -9,6 +11,10 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 > Навигация: [Оглавление](../../README.md) · [← Назад](../part-3-processing-security/10-secrets-management.md) · [Вперёд →](12-hallucination-detection.md)
 
 *Кратко: выход модели нельзя считать доверенным. Перед показом пользователю или передачей в другой компонент ответ нужно проверить: формат, безопасность, ссылки на источники, отсутствие секретов, корректность действий и соответствие политике.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-4/11-output-validation-fact-checking.py) ·
+> [TypeScript](../../examples/typescript/part-4/11-output-validation-fact-checking.ts)
 
 ## Суть
 
@@ -52,6 +58,8 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 | Tool result summary | искажение результата tool | compare with raw observation |
 | Citation / source | выдуманная ссылка, неверная цитата | source verification |
 | Business decision | ошибочное approve/reject | human-in-the-loop, threshold |
+
+**Граница с Parameter Validation (§07).** Аргументы tool call / function-calling JSON проверяются в [§07](../part-3-processing-security/07-parameter-validation-schema.md) — до executor. Здесь (§11) — ответ модели как выход: текст, `structured_json` для UI/API, HTML/Markdown, citations. Schema на входе в tool не заменяет schema на выходе к пользователю или downstream.
 
 ## DFD: output validation layer
 

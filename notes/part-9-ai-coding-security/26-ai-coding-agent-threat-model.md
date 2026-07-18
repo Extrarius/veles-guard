@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, coding-agent, threat-model, dfd]
 
 *Кратко: AI-coding agent — это AI-агент, который работает с репозиторием, файлами, shell, Git, зависимостями, тестами, CI/CD и pull request workflow. Это не отдельная от AI Security тема, а отдельный прикладной профиль с повышенным blast radius.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/26-ai-coding-agent-threat-model.py) ·
+> [TypeScript](../../examples/typescript/part-9/26-ai-coding-agent-threat-model.ts)
+
 ## Суть
 
 AI-coding agent отличается от обычного чат-ассистента тем, что он не просто отвечает на вопрос о коде.
