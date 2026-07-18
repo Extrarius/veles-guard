@@ -42,16 +42,16 @@ AI-агенты перестают быть «чатом с моделью»: о
 ## Как читать
 
 - Каждый раздел — отдельная заметка с единой структурой: Суть · Угроза и контекст · Подходы и контрмеры · Пример (Go) · Чек-лист · Литература · См. также.
-- Разделы 01–32: статус готово.
+- Разделы 01–35: статус готово.
 - Шаблон новой заметки: [notes/_template.md](notes/_template.md).
 - Все источники: [notes/literature.md](notes/literature.md).
 - Карта стандартов: [notes/mapping.md](notes/mapping.md).
 - Глоссарий: [notes/glossary.md](notes/glossary.md).
-- Рабочие шаблоны (threat model, risk register, tool/MCP review, incident report): [templates/](templates/).
+- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, incident report): [templates/](templates/).
 
 ## Версионирование разделов
 
-Часть разделов несёт в frontmatter поля `обновлено` (дата) и `изменения` (краткое описание правки) — для отслеживания эволюции при чтении в Obsidian без git log.
+Разделы несут в frontmatter поля `обновлено` (дата) и `изменения` (краткое описание правки) — для отслеживания эволюции при чтении в Obsidian без git log. При правке раздела обновляйте оба поля; в новых заметках — по [notes/_template.md](notes/_template.md).
 
 ## Оглавление
 
@@ -104,6 +104,17 @@ AI-агенты перестают быть «чатом с моделью»: о
 30. [AI Coding Supply Chain](notes/part-9-ai-coding-security/30-ai-coding-supply-chain.md)
 31. [CI/CD, MCP, Skills и production path](notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
 32. [AI Coding Security Checklist](notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
+
+### Часть X. Учебное приложение
+33. [Course Appendix: практикум MCP / Skills](notes/part-10-course-appendix/33-course-appendix-agentic-security.md)
+34. [MCP / Skill Review Workshop](notes/part-10-course-appendix/34-mcp-skill-review-workshop.md)
+35. [Agentic Security Baseline Workshop](notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md)
+
+### Учебное приложение
+
+Отдельный прикладной блок для курсов, воркшопов и внутренних разборов.
+Содержит шаблоны, baseline-подходы и безопасные учебные примеры для ревью MCP,
+agent skills и AI-coding workflow. См. также [templates/course/](templates/course/) и [examples/course/](examples/course/).
 
 ## Литература
 

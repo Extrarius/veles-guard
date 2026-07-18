@@ -2,6 +2,8 @@
 tags: [ai-security, rbac, tool-permissions, excessive-agency, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 06 — RBAC и Tool Permissions

@@ -2,6 +2,8 @@
 tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 18 — Inter-Agent Security
@@ -9,6 +11,10 @@ tags: [ai-security, agents, multi-agent, handoff, delegation]
 > Навигация: [Оглавление](../../README.md) · [← Назад](../part-5-control-observability/17-circuit-breaker-kill-switch.md) · [Вперёд →](19-mcp-security.md)
 
 *Кратко: inter-agent security — это безопасность взаимодействия между агентами: handoff, delegation, shared memory, message passing, delegated tools и ответственность за действия.*
+
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-6/18-inter-agent-security.py) ·
+> [TypeScript](../../examples/typescript/part-6/18-inter-agent-security.ts)
 
 ## Суть
 

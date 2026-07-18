@@ -12,6 +12,10 @@ tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 
 *Кратко: AI-generated code нельзя автоматически принимать. Безопасный workflow: spec → plan → tasks → diff → tests → human review → PR → merge gate.*
 
+> Примеры в разделе — на Go. Те же примеры на других языках:
+> [Python](../../examples/python/part-9/29-ai-generated-code-review-spec-driven.py) ·
+> [TypeScript](../../examples/typescript/part-9/29-ai-generated-code-review-spec-driven.ts)
+
 ## Суть
 
 AI-coding agent генерирует не просто текст.

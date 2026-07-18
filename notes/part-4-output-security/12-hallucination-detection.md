@@ -2,6 +2,8 @@
 tags: [ai-security, hallucination-detection, fact-checking, evals, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
+обновлено: 2026-07-16
+изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
 ---
 
 # 12 — Hallucination Detection
