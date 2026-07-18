@@ -116,3 +116,33 @@ def build_agent_context(
             instruction=False,
         ),
     ]
+
+
+class SinkKind(str, Enum):
+    SEND_EMAIL = "send_email"
+    HTTP_EGRESS = "http_egress"
+    SHELL = "shell"
+    INTERNAL_API = "internal_api"
+    SECRET_READ = "secret_read"
+    SOC_ACTION = "soc_action"
+
+
+def requires_policy(sink: SinkKind) -> bool:
+    return sink in {
+        SinkKind.SHELL,
+        SinkKind.INTERNAL_API,
+        SinkKind.HTTP_EGRESS,
+        SinkKind.SEND_EMAIL,
+        SinkKind.SECRET_READ,
+        SinkKind.SOC_ACTION,
+    }
+
+
+def requires_approval(sink: SinkKind) -> bool:
+    return sink in {
+        SinkKind.SHELL,
+        SinkKind.SECRET_READ,
+        SinkKind.SEND_EMAIL,
+        SinkKind.HTTP_EGRESS,
+        SinkKind.SOC_ACTION,
+    }
