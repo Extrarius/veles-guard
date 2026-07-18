@@ -36,6 +36,7 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
+- **Microsoft — Least privilege for AI agents: Identity, access, and tool binding** — <https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/> — dedicated agent identity, task-scoped RBAC, safe tool binding, JIT elevation, downstream re-auth, end-to-end audit fields, credential revocation.
 
 ## Threat intelligence (отчёты вендоров)
 
