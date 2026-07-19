@@ -2,8 +2,8 @@
 tags: [ai-security, agents, checklist, security-by-design, review]
 часть: "Часть VIII — Практика"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлена ссылка на §20 Layered security evals в §15 Testing; примеры не требуют обновления"
+обновлено: 2026-07-19
+изменения: "C-08/C-09: verified CTI/MCP + machine-readable OSCAL evidence; ссылка на §21."
 ---
 
 # 25 — Security-by-Design чек-лист
@@ -289,6 +289,8 @@ Design Review → Pre-Release Review → Production Review
 | C-05 | Privacy risks рассмотрены отдельно | High | TODO |
 | C-06 | Logs/traces достаточны для расследования | High | TODO |
 | C-07 | Risk register обновляется перед release | High | TODO |
+| C-08 | Vuln/CTI claims для compliance не из «памяти модели» — только verified tool/MCP + schema/policy ([§21](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)) | High | TODO |
+| C-09 | Audit evidence machine-readable (OSCAL SSP/SAR или эквивалент), где применимо; extraction из NL docs — human review | Medium | TODO |
 
 ## 18. Incident response
 
@@ -462,5 +464,6 @@ func Export(items []Item) ([]byte, error) {
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [21 — Compliance: MCP → OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)
 - [24 — End-to-End: безопасный агент на Go](24-end-to-end-secure-agent-go.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
