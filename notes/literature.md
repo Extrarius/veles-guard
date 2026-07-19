@@ -16,6 +16,7 @@ tags: [ai-security, конспект, литература]
 - **Security Debt in LLM Agent Applications** (ASE 2025, Fudan University) — 221 уязвимость в 50 приложениях, средний CVSS 7.89; 76.5% уязвимостей — из-за LLM2Tool.
 - **Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection** — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
 
 ## Стандарты и фреймворки
 
@@ -41,11 +42,13 @@ tags: [ai-security, конспект, литература]
 
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
+- **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
 
 ## Prompt Injection
 
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
 - Детекторы: **Lakera Guard**, **Rebuff**, **Prompt Security**, **Meta Prompt Guard**, **LLM Guard Prompt Injection scanner**, **Pangea AI Guard**, **NeMo Guardrails** input/output rails.
 
@@ -55,7 +58,15 @@ tags: [ai-security, конспект, литература]
 - **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan>
 - **OWASP — Practical Guide for Securely Using Third-Party MCP Servers** — <https://genai.owasp.org/resource/cheatsheet-a-practical-guide-for-securely-using-third-party-mcp-servers-1-0/>
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
-- **mcpscan.ai**, **Snyk Agent Scan**, **Snyk MCP Server**.
+- **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
+
+## Agent skills / MCP scanning tools
+
+- **OWASP Agentic Skills Top 10** — <https://owasp.org/www-project-agentic-skills-top-10/> — риски agent skills (registry / installation / runtime / governance).
+- **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan> — сканер MCP (tool poisoning, rug pull и др.); см. также секцию MCP выше.
+- **Snyk Agent Scan** — <https://github.com/snyk/agent-scan> — inventory и scan agent components (MCP servers, skills).
+- **promptfoo — LLM red teaming** — <https://www.promptfoo.dev/docs/red-team/> — практики red teaming для LLM / agents.
+- **Bumblebee** — <https://github.com/perplexityai/bumblebee> — read-only inventory collector (package / extension / developer-tool metadata); не обязательный workflow.
 
 ## Инструменты
 

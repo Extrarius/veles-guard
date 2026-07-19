@@ -2,6 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
+обновлено: 2026-07-19
+изменения: "ADI-якорь: id/uri/author в tool output не trusted by format; ссылка на §03. AutoJack сохранён."
 ---
 
 # 19 — MCP Security
@@ -160,6 +162,59 @@ flowchart LR
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
+
+## Runtime Trust Gap (connect-time review ≠ runtime output)
+
+Allowlist, consent и security review обычно происходят **при подключении** MCP server: проверяют origin, tool list, metadata, risk level. Но в runtime агент получает новые данные, которые **не проходили** тот же review:
+
+- `tool output` после execution;
+- `resource content` (файлы, документы, записи БД);
+- `prompt provider output` (шаблоны и инструкции от сервера).
+
+Это и есть **Runtime Trust Gap**: connect-time review не гарантирует безопасность runtime output.
+
+> **Правило:** tool metadata, tool output, resource content и prompt provider output — **untrusted context**. Tool output — это **данные**, а не команда для следующего tool call.
+
+**Agent Data Injection (ADI):** валидный JSON / «правильная» форма resource не делает поля `id`, `uri`, `author`, provenance trusted. Tool/resource output **не** назначает себе trust level. Resource IDs и URL из output → deterministic policy validation (allowlist / registry), канон — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi) и [§07](../part-3-processing-security/07-parameter-validation-schema.md). Это не MCP03 (poisoned description при connect), а trust полей в runtime data.
+
+| Connect-time контроль | Runtime gap | Контрмера |
+|---|---|---|
+| Server allowlist + review | Tool output содержит скрытые инструкции | Output validation: размер, формат, reject control phrases |
+| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions |
+| Schema validation args | Output трактуется как «вызови tool X» | Tool output ≠ команда; planner решает только по user task + policy |
+| Single server policy | Cross-server chaining через output | Separate internal vs external MCP; no chaining без policy |
+| Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
+
+См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
+
+## Localhost is not a trust boundary (AutoJack)
+
+**AutoJack** — кейс, когда вредная веб-страница управляет browser tool агента, а тот обращается к **локальному** привилегированному MCP/WebSocket на `127.0.0.1` / `localhost` **без auth** → выполнение команд → RCE на хосте разработчика.
+
+Это не SSRF «наружу» (см. [§13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)). Здесь уязвимость в **ложном доверии к loopback**: сервис считают «внутренним и безопасным», хотя до него может дотянуться browser automation агента.
+
+```mermaid
+flowchart LR
+    Page[External: Malicious Web Page]
+    Browser[Process: Agent Browser Tool]
+    Local["Local MCP / WebSocket loopback no auth"]
+    Host[External System: Shell / OS]
+    Page -->|"drives agent"| Browser
+    Browser -->|"127.0.0.1:port"| Local
+    Local -->|"tool exec"| Host
+```
+
+> **Правило:** `localhost`, loopback, private IP и link-local адреса — **не** trust boundary. Локальный MCP/WebSocket требует **auth+authz**; origin/referer check недостаточен.
+
+| Ложное допущение | Реальность | Контрмера |
+|---|---|---|
+| Loopback = безопасно | Browser tool агента / DNS rebinding достигают local service | Auth+authz на локальном сервере; не полагаться на bind address |
+| Origin check достаточно | Подделывается; non-browser клиент обходит | Token + authz per request |
+| Bind `0.0.0.0` для удобства | Сервис доступен из сети | Bind loopback + token; firewall |
+| Egress только «наружу» | Агент ходит на `127.0.0.1` / private ranges | Egress блокирует loopback/private/link-local по умолчанию (§13) |
+| Dev MCP «временный» | Dev-машина хранит secrets и tokens | Experimental frameworks — в sandbox/devbox (§08) |
+
+См. [isLoopbackOrPrivateHost](#блокировка-loopbackprivate-адресов-autojack) в примере ниже.
 
 ## Подходы и контрмеры
 
@@ -483,6 +538,59 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 }
 ```
 
+### Валидация tool output (Runtime Trust Gap)
+
+Tool output — данные для контекста, не управляющие инструкции. Перед попаданием в model context проверяем размер и отклоняем free-text control phrases.
+
+```go
+var controlPhrases = []string{
+	"ignore previous",
+	"call tool",
+	"run command",
+	"execute",
+	"system:",
+}
+
+func ValidateToolOutput(raw string, maxLen int) (string, error) {
+	if len(raw) > maxLen {
+		return "", fmt.Errorf("tool output exceeds max length: %d", maxLen)
+	}
+
+	lower := strings.ToLower(raw)
+	for _, phrase := range controlPhrases {
+		if strings.Contains(lower, phrase) {
+			return "", fmt.Errorf("tool output contains control instruction: %q", phrase)
+		}
+	}
+
+	return raw, nil
+}
+```
+
+### Блокировка loopback/private адресов (AutoJack)
+
+Перед MCP egress или HTTP tool call отклоняем loopback, private и link-local адреса, если policy не разрешает явно.
+
+```go
+import (
+	"net"
+	"strings"
+)
+
+func isLoopbackOrPrivateHost(host string) bool {
+	h := strings.ToLower(strings.TrimSpace(host))
+	if h == "localhost" || strings.HasSuffix(h, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(h)
+	if ip == nil {
+		return false // hostname: резолвить и проверять отдельно per policy
+	}
+	return ip.IsLoopback() || ip.IsPrivate() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+```
+
 ## STRIDE для MCP
 
 | STRIDE | Угроза |
@@ -515,6 +623,14 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [ ] Версии MCP server/packages фиксируются и обновляются контролируемо.
 - [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
 - [ ] Tool output не трактуется как инструкция вызвать другой tool.
+- [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
+- [ ] Поля `id` / `uri` / `author` / provenance из tool/resource output не trusted by format (ADI; [§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
+- [ ] Internal и external MCP servers разделены.
+- [ ] Cross-server tool chaining запрещён без явной policy.
+- [ ] Local MCP/WebSocket требует auth+authz (loopback не считается защитой).
+- [ ] Origin/referer check не считается достаточной защитой local MCP.
+- [ ] Egress агента блокирует loopback/private/link-local по умолчанию.
+- [ ] Experimental agent frameworks и local privileged services — в sandbox/devbox.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
 
 ## Когда отключать MCP server
@@ -535,11 +651,14 @@ func (e Executor) Call(ctx context.Context, call MCPToolCall) (any, error) {
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
+- [OWASP MCP Tool Poisoning](https://owasp.org/www-community/attacks/MCP_Tool_Poisoning)
+- [Microsoft — AutoJack: single-page RCE on host running AI agent](https://www.microsoft.com/en-us/security/blog/2026/06/18/autojack-single-page-rce-host-running-ai-agent/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 
 ## См. также
 
+- [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)

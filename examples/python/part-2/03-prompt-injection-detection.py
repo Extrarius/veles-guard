@@ -116,3 +116,57 @@ def build_agent_context(
             instruction=False,
         ),
     ]
+
+
+class SinkKind(str, Enum):
+    SEND_EMAIL = "send_email"
+    HTTP_EGRESS = "http_egress"
+    SHELL = "shell"
+    INTERNAL_API = "internal_api"
+    SECRET_READ = "secret_read"
+    SOC_ACTION = "soc_action"
+
+
+def requires_policy(sink: SinkKind) -> bool:
+    return sink in {
+        SinkKind.SHELL,
+        SinkKind.INTERNAL_API,
+        SinkKind.HTTP_EGRESS,
+        SinkKind.SEND_EMAIL,
+        SinkKind.SECRET_READ,
+        SinkKind.SOC_ACTION,
+    }
+
+
+def requires_approval(sink: SinkKind) -> bool:
+    return sink in {
+        SinkKind.SHELL,
+        SinkKind.SECRET_READ,
+        SinkKind.SEND_EMAIL,
+        SinkKind.HTTP_EGRESS,
+        SinkKind.SOC_ACTION,
+    }
+
+
+_DOC_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+_ALLOWED_SOURCES = frozenset({"kb-internal", "tickets"})
+
+
+@dataclass(frozen=True)
+class DocumentRef:
+    document_id: str
+    source: str
+
+
+def validate_document_ref(raw: bytes | str) -> DocumentRef:
+    """ADI: structured tool JSON is untrusted until policy validation."""
+    import json
+
+    data = json.loads(raw)
+    document_id = str(data.get("document_id", ""))
+    source = str(data.get("source", ""))
+    if not _DOC_ID_RE.fullmatch(document_id):
+        raise ValueError("document_id rejected by policy")
+    if source not in _ALLOWED_SOURCES:
+        raise ValueError(f"source {source!r} not in allowlist")
+    return DocumentRef(document_id=document_id, source=source)

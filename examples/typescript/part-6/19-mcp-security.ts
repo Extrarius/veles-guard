@@ -200,3 +200,58 @@ class Executor {
     return this.client.callTool(call.serverId, call.tool, call.args);
   }
 }
+
+const CONTROL_PHRASES = [
+  "ignore previous",
+  "call tool",
+  "run command",
+  "execute",
+  "system:",
+];
+
+function validateToolOutput(raw: string, maxLen: number): string {
+  if (raw.length > maxLen) {
+    throw new Error(`tool output exceeds max length: ${maxLen}`);
+  }
+
+  const lower = raw.toLowerCase();
+  for (const phrase of CONTROL_PHRASES) {
+    if (lower.includes(phrase)) {
+      throw new Error(`tool output contains control instruction: ${JSON.stringify(phrase)}`);
+    }
+  }
+
+  return raw;
+}
+
+function isLoopbackOrPrivateHost(host: string): boolean {
+  const h = host.trim().toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost")) {
+    return true;
+  }
+
+  // IPv6 loopback
+  if (h === "::1" || h === "[::1]") {
+    return true;
+  }
+
+  // IPv4 loopback / private / link-local (illustrative; production: use ip library)
+  const ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipv4.test(h)) {
+    return false; // hostname: резолвить и проверять отдельно per policy
+  }
+
+  const parts = h.split(".").map((p) => Number(p));
+  if (parts.some((p) => p > 255)) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  if (a === 127 || a === 0) return true; // loopback, unspecified
+  if (a === 10) return true; // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  if (a === 169 && b === 254) return true; // link-local
+
+  return false;
+}

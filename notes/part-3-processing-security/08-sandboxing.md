@@ -2,6 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлена врезка Localhost is not a trust boundary (AutoJack); примеры не требуют обновления"
 ---
 
 # 08 — Sandboxing
@@ -93,6 +95,13 @@ flowchart LR
 | DoS | процесс зависает | Medium | timeout, process kill |
 | Output flooding | tool возвращает гигабайты текста | Medium | output cap |
 | Persistence | вредный файл остаётся после запуска | Medium | disposable sandbox |
+| Localhost RCE | локальный MCP/framework доступен со страницы browser tool агента | High | sandbox/devbox, auth на локальных сервисах |
+
+## Localhost is not a trust boundary
+
+Experimental agent frameworks и локальные привилегированные сервисы (MCP, WebSocket, dev API) часто слушают loopback «для удобства». **Loopback — не изоляция:** browser automation агента может обратиться к `127.0.0.1` / `localhost` так же, как к внешнему URL.
+
+Sandbox/devbox для таких фреймворков — обязательный контроль: ограничить blast radius, если локальный сервис скомпрометирован или доступен без auth. Полный кейс и контрмеры — в [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack).
 
 ## Уровни sandbox
 
@@ -258,6 +267,7 @@ var Tools = map[string]ToolSpec{
 | разрешить весь интернет | SSRF / exfiltration | egress allowlist |
 | не ограничивать stdout | token/cost bomb | max output bytes |
 | не удалять временные файлы | persistence | disposable workspace |
+| полагаться на loopback как границу | browser tool агента дотянется до local service | auth+authz + sandbox/devbox |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -281,6 +291,7 @@ var Tools = map[string]ToolSpec{
 - [ ] Доступ к сети запрещён или ограничен allowlist.
 - [ ] Файловая система read-only, где возможно.
 - [ ] Sandbox disposable: после задачи очищается.
+- [ ] Experimental frameworks и локальные привилегированные сервисы выполняются в sandbox/devbox.
 
 ## Литература
 
