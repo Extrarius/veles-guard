@@ -2,6 +2,8 @@
 tags: [ai-security, agents, checklist, security-by-design, review]
 часть: "Часть VIII — Практика"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлена ссылка на §20 Layered security evals в §15 Testing; примеры не требуют обновления"
 ---
 
 # 25 — Security-by-Design чек-лист
@@ -256,6 +258,8 @@ Design Review → Pre-Release Review → Production Review
 | RT-08 | Tests проверяют tool calls, а не только final answer | High | TODO |
 | RT-09 | Red team findings превращаются в regression tests | High | TODO |
 | RT-10 | High-risk regression failure блокирует release | High | TODO |
+
+Слои security evals (code-based / LLM-as-judge / human / online) и правило «критичное — до релиза» — в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
 
 ## 16. Supply chain
 

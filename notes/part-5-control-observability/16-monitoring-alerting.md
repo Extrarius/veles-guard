@@ -2,6 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-12
+изменения: "Добавлена ссылка на §20 Layered security evals в чек-лист; примеры не требуют обновления"
 ---
 
 # 16 — Monitoring и Alerting
@@ -367,6 +369,7 @@ var Rules = []Rule{
 - [ ] Есть правила для auto-response.
 - [ ] Есть защита от alert fatigue.
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
+- [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
 
 ## Литература
 

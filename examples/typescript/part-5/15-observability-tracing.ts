@@ -13,10 +13,19 @@ enum Severity {
 interface AuditEvent {
   time?: Date;
   runId: string;
+  correlationId?: string;
   event: string;
   severity: Severity;
   component: string;
+  agentId?: string;
+  agentOwner?: string;
+  onBehalfOf?: string;
+  role?: string;
+  effectiveScope?: string;
   tool?: string;
+  operation?: string;
+  resource?: string;
+  approvalId?: string;
   risk?: string;
   decision?: string;
   reason?: string;

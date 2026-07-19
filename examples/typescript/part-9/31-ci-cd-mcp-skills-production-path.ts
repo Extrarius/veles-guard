@@ -61,4 +61,63 @@ function canEnterProductionPath(pr: PR): boolean {
   return true;
 }
 
-export {};
+type SkillLevel = "prototype" | "startup" | "production" | "regulated";
+
+/** Minimum control names for a Skill Security level (illustrative). */
+function requiredControls(level: SkillLevel): string[] {
+  switch (level) {
+    case "prototype":
+      return ["attack_surface_awareness"];
+    case "startup":
+      return [
+        "trusted_source",
+        "manifest_review",
+        "no_secrets_in_skill",
+        "approval_dangerous",
+      ];
+    case "production":
+      return [
+        "trusted_source",
+        "manifest_review",
+        "no_secrets_in_skill",
+        "approval_dangerous",
+        "sandbox_scripts",
+        "audit_log",
+        "version_pin",
+        "egress_control",
+        "update_diff_review",
+      ];
+    case "regulated":
+      return [
+        "trusted_source",
+        "manifest_review",
+        "no_secrets_in_skill",
+        "approval_dangerous",
+        "sandbox_scripts",
+        "audit_log",
+        "version_pin",
+        "egress_control",
+        "update_diff_review",
+        "formal_policy",
+        "skill_allowlist",
+        "threat_model",
+        "mandatory_hitl",
+      ];
+  }
+}
+
+function meetsMinimum(
+  level: SkillLevel,
+  enabled: Record<string, boolean>,
+): boolean {
+  return requiredControls(level).every((c) => enabled[c] === true);
+}
+
+export {
+  isProductionPath,
+  needsProductionReview,
+  canEnterProductionPath,
+  requiredControls,
+  meetsMinimum,
+};
+export type { PR, SkillLevel };

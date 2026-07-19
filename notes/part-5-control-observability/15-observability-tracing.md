@@ -2,6 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Audit fields для agent identity / tool binding; связь с §06."
 ---
 
 # 15 — Observability и Tracing
@@ -141,6 +143,23 @@ Audit log отличается от обычного debug log.
 кто → что → когда → через какой tool → с какими правами → с каким решением policy → с каким результатом
 ```
 
+Для agent identity и safe tool binding ([§06](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding)) high-risk tool call должен нести минимум:
+
+| Поле | Назначение |
+|---|---|
+| `agent_id` | какая agent identity выполнила действие |
+| `agent_owner` | human owner identity |
+| `on_behalf_of` | пользователь при delegated mode (или пусто) |
+| `role` | baseline / elevated role на момент вызова |
+| `effective_scope` | фактический scope |
+| `tool` | имя tool |
+| `operation` | read / write / delete / send / … |
+| `resource` | целевой ресурс |
+| `approval_id` | id approval, если был HITL |
+| `correlation_id` | связь orchestrator → tool → downstream (часто = `run_id` + span) |
+
+Без этих полей лог «есть», но нельзя ответить: под чьей authority и в каком scope прошло действие.
+
 ## Угроза / контекст
 
 | Угроза | Пример | Risk |
@@ -151,6 +170,7 @@ Audit log отличается от обычного debug log.
 | Нет correlation id | невозможно связать ответ, tool call и approval | Medium |
 | Overlogging | в traces сохраняются полные документы и PII | High |
 | Underlogging | фиксируется только финальный ответ, но не policy decisions | Medium |
+| Нет identity fields | tool call есть, но неизвестны agent_id / on_behalf_of / role | High |
 | Недостаточный retention | следы инцидента исчезли раньше расследования | Medium |
 
 ## Подходы и контрмеры
@@ -239,16 +259,25 @@ const (
 )
 
 type AuditEvent struct {
-    Time      time.Time      `json:"time"`
-    RunID     string         `json:"run_id"`
-    Event     string         `json:"event"`
-    Severity  Severity       `json:"severity"`
-    Component string         `json:"component"`
-    Tool      string         `json:"tool,omitempty"`
-    Risk      string         `json:"risk,omitempty"`
-    Decision  string         `json:"decision,omitempty"`
-    Reason    string         `json:"reason,omitempty"`
-    Attrs     map[string]any `json:"attrs,omitempty"`
+    Time           time.Time      `json:"time"`
+    RunID          string         `json:"run_id"`
+    CorrelationID  string         `json:"correlation_id,omitempty"`
+    Event          string         `json:"event"`
+    Severity       Severity       `json:"severity"`
+    Component      string         `json:"component"`
+    AgentID        string         `json:"agent_id,omitempty"`
+    AgentOwner     string         `json:"agent_owner,omitempty"`
+    OnBehalfOf     string         `json:"on_behalf_of,omitempty"`
+    Role           string         `json:"role,omitempty"`
+    EffectiveScope string         `json:"effective_scope,omitempty"`
+    Tool           string         `json:"tool,omitempty"`
+    Operation      string         `json:"operation,omitempty"`
+    Resource       string         `json:"resource,omitempty"`
+    ApprovalID     string         `json:"approval_id,omitempty"`
+    Risk           string         `json:"risk,omitempty"`
+    Decision       string         `json:"decision,omitempty"`
+    Reason         string         `json:"reason,omitempty"`
+    Attrs          map[string]any `json:"attrs,omitempty"`
 }
 ```
 
@@ -351,6 +380,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Секреты и PII редактируются до записи в логи.
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
+- [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
 - [ ] Есть retention policy для security logs.
 - [ ] Логи нельзя менять обычным пользователям агента.
 - [ ] В trace видно версию prompt / policy / tool schema.
@@ -368,6 +398,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 ## См. также
 
+- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [14 — Human-in-the-Loop](14-human-in-the-loop.md)
 - [16 — Monitoring и Alerting](16-monitoring-alerting.md)
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)

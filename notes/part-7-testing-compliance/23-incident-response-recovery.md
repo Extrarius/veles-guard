@@ -2,6 +2,8 @@
 tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Добавлен playbook Agentic Threat Actor / Agentic Ransomware (JADEPUFFER); примеры не требуют обновления."
 ---
 
 # 23 — Incident Response и Recovery
@@ -110,6 +112,7 @@ flowchart LR
 | Hallucinated harmful output | агент дал опасную неподтверждённую инструкцию | Medium |
 | Cross-tenant leakage | данные одного tenant видны другому | Critical |
 | Approval failure | человек подтвердил опасное действие из-за плохого UI | High |
+| Agentic Threat Actor / Agentic ransomware | AI-агент атакующего: exposed control plane → secrets → pivot → destructive DB/extortion | Critical |
 
 ## Incident lifecycle
 
@@ -410,6 +413,35 @@ func ExportIncident(i Incident) ([]byte, error) {
 10. Провести postmortem.
 ```
 
+## Playbook: Agentic Threat Actor / Agentic Ransomware
+
+Threat context и detection signals — [§02 Agentic Threat Actor / JADEPUFFER](../part-1-architecture-threats/02-threat-model.md#agentic-threat-actor--agentic-ransomware-jadepuffer). Без offensive payloads: только ответные шаги.
+
+```text
+Detect
+1. Сигналы ATA: self-narrating payloads, rapid retries, массовый credential sweep,
+   быстрый переход recon → destructive на DB/config.
+2. Anomalous activity на AI control plane / workflow host (Langflow и аналоги).
+3. Unexpected egress / beacon с agent host; staging файлов с credentials.
+
+Contain
+4. Kill-switch / остановить agent runs на затронутом хосте ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+5. Isolate agent host (network); отключить internet-facing agent frameworks / UIs.
+6. Block known C2 / beacon destinations, если видны в логах.
+
+Eradicate / Recover
+7. Rotate provider API keys, cloud credentials, DB и service accounts с хоста и связанных систем.
+8. Audit Langflow / workflow / agent control-plane servers: auth, patch level, exposure.
+9. Проверить другие exposed agent UIs и default credentials на внутренних сервисах.
+10. Если destructive DB: restore from known-clean backup; проверить integrity.
+11. Удалить persistence (cron/beacon) на скомпрометированных хостах.
+
+Learn
+12. Secrets не хранить в env на internet-facing agent hosts ([§10](../part-3-processing-security/10-secrets-management.md)).
+13. Patch + обязательная auth + network controls на agent frameworks.
+14. Обновить threat model (§02) и monitoring rules; postmortem с owner/due dates.
+```
+
 ## Чек-лист
 
 - [ ] Есть severity matrix.
@@ -423,15 +455,18 @@ func ExportIncident(i Incident) ([]byte, error) {
 - [ ] Есть playbook для prompt injection.
 - [ ] Есть playbook для secret exposure.
 - [ ] Есть playbook для MCP compromise.
+- [ ] Есть playbook для Agentic Threat Actor / agentic ransomware.
 - [ ] Есть процедура очистки memory.
 - [ ] Red team findings добавляются в regression suite.
 - [ ] После инцидента обновляется threat model.
 - [ ] После инцидента обновляется monitoring.
 - [ ] Postmortem имеет owner и due dates.
+- [ ] Inventory internet-facing agent control planes и процедура их изоляции.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [NIST Computer Security Incident Handling Guide SP 800-61](https://csrc.nist.gov/pubs/sp/800/61/r2/final)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -440,6 +475,8 @@ func ExportIncident(i Incident) ([]byte, error) {
 
 ## См. также
 
+- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [16 — Monitoring и Alerting](../part-5-control-observability/16-monitoring-alerting.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)

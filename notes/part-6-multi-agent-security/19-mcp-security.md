@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлен подраздел Runtime Trust Gap + Go-сниппет ValidateToolOutput; подраздел Localhost is not a trust boundary (AutoJack) + Go-сниппет isLoopbackOrPrivateHost"
+обновлено: 2026-07-19
+изменения: "ADI-якорь: id/uri/author в tool output не trusted by format; ссылка на §03. AutoJack сохранён."
 ---
 
 # 19 — MCP Security
@@ -174,6 +174,8 @@ Allowlist, consent и security review обычно происходят **при
 Это и есть **Runtime Trust Gap**: connect-time review не гарантирует безопасность runtime output.
 
 > **Правило:** tool metadata, tool output, resource content и prompt provider output — **untrusted context**. Tool output — это **данные**, а не команда для следующего tool call.
+
+**Agent Data Injection (ADI):** валидный JSON / «правильная» форма resource не делает поля `id`, `uri`, `author`, provenance trusted. Tool/resource output **не** назначает себе trust level. Resource IDs и URL из output → deterministic policy validation (allowlist / registry), канон — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi) и [§07](../part-3-processing-security/07-parameter-validation-schema.md). Это не MCP03 (poisoned description при connect), а trust полей в runtime data.
 
 | Connect-time контроль | Runtime gap | Контрмера |
 |---|---|---|
@@ -622,6 +624,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
 - [ ] Tool output не трактуется как инструкция вызвать другой tool.
 - [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
+- [ ] Поля `id` / `uri` / `author` / provenance из tool/resource output не trusted by format (ADI; [§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 - [ ] Internal и external MCP servers разделены.
 - [ ] Cross-server tool chaining запрещён без явной policy.
 - [ ] Local MCP/WebSocket требует auth+authz (loopback не считается защитой).
@@ -655,6 +658,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 
 ## См. также
 
+- [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)

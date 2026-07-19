@@ -2,6 +2,8 @@
 tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
+обновлено: 2026-07-18
+изменения: "Kill-switch отзывает credentials/tokens агента; связь с §06 identity."
 ---
 
 # 17 — Circuit Breaker и Kill-Switch
@@ -122,6 +124,18 @@ Kill-switch должен быть:
 - в feature flag;
 - в защищённом storage;
 - доступен только оператору / CI / incident response.
+
+Отключение «флагом tool=off» недостаточно, если credentials агента остаются валидными. Полный путь:
+
+```text
+kill-switch
+  → disable agent identity / suspend principal
+  → revoke / rotate tokens и API keys
+  → disable tools / egress
+  → stop in-flight runs
+```
+
+Identity lifecycle и запрет shared SA — в [§06 Agent Identity](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding). Revoke нужно **отрабатывать drill'ом**, как feature reliability.
 
 ### 2. Circuit breaker per tool
 
@@ -256,6 +270,7 @@ func (b *CircuitBreaker) Failure() {
 ```go
 type KillSwitch interface {
     Enabled(ctx context.Context, scope string) (bool, error)
+    Activate(scope string)
 }
 
 type MemoryKillSwitch struct {
@@ -269,10 +284,21 @@ func NewMemoryKillSwitch() *MemoryKillSwitch {
     }
 }
 
+// Activate marks scope closed. Pair with revokeCredentials for agent-level kill.
 func (k *MemoryKillSwitch) Activate(scope string) {
     k.mu.Lock()
     defer k.mu.Unlock()
     k.closed[scope] = true
+}
+
+// TripAgentKillSwitch disables agent (+ tools) and signals credential revocation.
+func TripAgentKillSwitch(k KillSwitch, agentID string, revokeCredentials bool) {
+    k.Activate("agent:" + agentID)
+    k.Activate("tool:*")
+    if revokeCredentials {
+        // revoke/rotate tokens for agentID in identity provider / secret store
+        _ = agentID
+    }
 }
 
 func (k *MemoryKillSwitch) Deactivate(scope string) {
@@ -388,7 +414,8 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 | token runaway | stop run |
 | compromised tool | disable tool via kill-switch |
 | guardrail unavailable | fail closed for high-risk actions |
-| incident confirmed | global read-only mode / full shutdown |
+| incident confirmed | global read-only mode / full shutdown + revoke credentials |
+| compromised agent identity | suspend principal + revoke/rotate tokens |
 
 ## Чек-лист
 
@@ -398,6 +425,8 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 - [ ] Circuit breaker работает per tool.
 - [ ] Kill-switch находится вне контроля LLM.
 - [ ] Kill-switch может отключить tool, egress, agent, tenant.
+- [ ] Kill-switch отзывает / ротирует credentials и tokens агента (не только disable tool).
+- [ ] Есть drill: practice disable identity + revoke + rollback compensating actions.
 - [ ] При недоступности policy/guardrail используется fail closed.
 - [ ] Breaker events логируются.
 - [ ] Kill-switch activation логируется и алертится.
@@ -416,6 +445,7 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 ## См. также
 
 - [05 — Rate Limiting, Quotas и Token Bombing](../part-2-input-security/05-rate-limiting-quotas-token-bombing.md)
+- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [16 — Monitoring и Alerting](16-monitoring-alerting.md)
