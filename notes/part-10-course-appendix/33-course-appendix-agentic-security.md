@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-18
-изменения: "Добавлены ссылки на примеры TypeScript, C++ и Java (part-10)."
+изменения: "Практический набор и навигация: §36 Testing Workshop + guides/."
 ---
 
 # 33 — Course Appendix: практикум по безопасности AI-агентов, MCP и Skills
@@ -85,6 +85,7 @@ tags: [ai-security, course-appendix, mcp, skills, workshop]
 | 6 | Учебные «плохо / хорошо» (bad vs good) | [examples/course/](../../examples/course/) |
 | 7 | Воркшоп проверки (review) | [§34](34-mcp-skill-review-workshop.md) |
 | 8 | Воркшоп минимальных правил (baseline) | [§35](35-agentic-security-baseline-workshop.md) |
+| 9 | Гайд проверки агента + воркшоп findings | [guides/ai-agent-security-testing-guide.md](../../guides/ai-agent-security-testing-guide.md) → [§36](36-ai-agent-security-testing-workshop.md) |
 
 ## План воркшопа (outline), 30 мин
 
@@ -97,7 +98,7 @@ tags: [ai-security, course-appendix, mcp, skills, workshop]
 | 20–25 | CI и перечень компонентов (inventory) | Пример workflow + bash; ориентиры: mcp-scan, promptfoo, сканеры вендоров (не обязательны) |
 | 25–30 | Один набор минимальных правил (baseline) | Заполнить 8 правил из [agentic-security-baseline.md](../../templates/agentic-security-baseline.md) |
 
-Дальше — углубление в [§34](34-mcp-skill-review-workshop.md) и [§35](35-agentic-security-baseline-workshop.md).
+Дальше — углубление в [§34](34-mcp-skill-review-workshop.md), [§35](35-agentic-security-baseline-workshop.md) и [§36](36-ai-agent-security-testing-workshop.md).
 
 ## Подходы и контрмеры
 
@@ -139,7 +140,7 @@ func Authorize(tool string) error {
 - [ ] Есть ссылки на `templates/course` и рабочие артефакты: минимальные правила (baseline), проверка (review), CI, bash
 - [ ] План воркшопа (outline) на 30 мин можно провести без внешних слайдов
 - [ ] Примеры «плохо / хорошо» (bad/good) открыты из `examples/course/`
-- [ ] Следующий шаг — §34 (проверка / review) или §35 (минимальные правила / baseline)
+- [ ] Следующий шаг — §34 (review), §35 (baseline) или §36 (testing / findings)
 
 ## Литература
 
@@ -151,6 +152,8 @@ func Authorize(tool string) error {
 
 - [34 — MCP / Skill Review Workshop](34-mcp-skill-review-workshop.md)
 - [35 — Agentic Security Baseline Workshop](35-agentic-security-baseline-workshop.md)
+- [36 — AI Agent Security Testing Workshop](36-ai-agent-security-testing-workshop.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [31 — CI/CD, MCP, Skills](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
