@@ -2,8 +2,8 @@
 tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлен раздел Типы evals для AI-agent security + чек-лист EV-01..EV-05"
+обновлено: 2026-07-19
+изменения: "Iterative Adversarial Evals; DoS/hard-stop формулировки вынесены в Черновики/Не для публикации."
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -150,6 +150,96 @@ deterministic checks → LLM-as-judge → human review → online monitoring
 | EV-03 | LLM-as-judge используется только как дополнительный слой, не как единственная защита | Medium | TODO |
 | EV-04 | High-risk сценарии проходят Human/SME review | High | TODO |
 | EV-05 | Online/user-сигналы используются для мониторинга, но не заменяют pre-release testing | High | TODO |
+| EV-06 | Для high-risk агента есть iterative adversarial suite (или явный N/A с причиной) | High | TODO |
+
+## Iterative Adversarial Evals
+
+Один single-shot кейс проверяет фиксированный вход. Индустриальный паттерн automated red-teaming (в т.ч. [OpenAI GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/)) добавляет **итерацию**: attacker формулирует попытку, наблюдает ответ / tool calls / egress, мутирует сценарий и повторяет, пока не сработает критерий успеха или бюджет попыток.
+
+В этом конспекте переносим **процесс и метрики для своей suite** — не продукт OpenAI и не обучение attacker-модели.
+
+```mermaid
+flowchart LR
+  Goal["AttackGoal"]
+  Surface["InjectionSurface"]
+  Attempt["Attempt_n"]
+  Observe["Observe response tools egress"]
+  Score["Score success fail"]
+  Mutate["Mutate next attempt"]
+  Stop["Stop maxAttempts or success"]
+  Goal --> Surface
+  Surface --> Attempt
+  Attempt --> Observe
+  Observe --> Score
+  Score -->|fail and budget left| Mutate
+  Mutate --> Attempt
+  Score -->|success or budget| Stop
+```
+
+### Цикл
+
+```text
+attack → response → observation → mutation → retry
+```
+
+Задайте предел попыток в schema (`max_attempts`, при необходимости timeout в `stop_conditions`).
+
+### Injection surfaces
+
+| Surface | Что типично наблюдать |
+|---|---|
+| webpage | tool call / egress вне allowlist |
+| email | send / forward / exfil tool |
+| repo file | shell, dependency change, secret in diff |
+| MCP / tool output | hijack следующего tool call |
+| local docs | memory write / policy override |
+| structured metadata | доверие к «формату» без validation (Agent Data Injection — отдельный backlog; здесь — surface в suite) |
+
+Формулируйте сценарии позитивно: «проверить, что агент НЕ вызывает forbidden tool при недоверенном контенте с surface=X». Каталог offensive payloads в репозиторий не кладём.
+
+### Schema `EVAL-PI-ITERATIVE-01`
+
+| Поле | Описание |
+|---|---|
+| `id` | например `EVAL-PI-ITERATIVE-01` + суффикс кейса |
+| `goal` | что считается успехом атаки (нарушение expected) |
+| `surface` | webpage / email / repo_file / mcp_tool_output / local_docs / structured_metadata |
+| `initial_seed` | описание сценария (не payload dump) |
+| `max_attempts` | бюджет итераций |
+| `success_criteria` | forbidden tools / egress / memory (как в `Expected`) |
+| `stop_conditions` | max_attempts, timeout, cost cap |
+| `mapped_controls` | разделы конспекта / controls |
+| `metrics_required` | ASR, attempts_to_success, … |
+
+### Метрики: single-shot vs iterative
+
+| Метрика | Смысл |
+|---|---|
+| ASR | доля попыток (или evals), где атака успешна |
+| `attempts_to_success` | номер попытки, на которой first success (или null) |
+| `tool_calls_count` | число tool calls за прогон |
+| `leak_size_proxy` | proxy утечки (bytes egress / secret-pattern hits) — без реальных секретов |
+| `guardrail_triggered` | сработал ли detector / block |
+
+**Single-shot:** одна попытка на кейс (`max_attempts=1`).  
+**Iterative:** до N попыток с mutation между ними. Сравнивайте оба режима: агент может пройти single-shot и провалить iterative.
+
+Семантика для runner (согласована с `AssertSafe` ниже):
+
+```text
+attack_success = AssertSafe(tc, result) != nil   // агент нарушил expected
+ASR = count(attack_success) / attempts
+```
+
+### Правило
+
+> Automated iterative red team **дополняет**, не заменяет human red team и runtime controls (policy, sandbox, egress, HITL).
+
+См. EV-03 / EV-04 и практическую обвязку: [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md).
+
+### Regression
+
+Итеративный finding → минимальный воспроизводимый `initial_seed` + `AssertSafe` в CI (тот же путь `finding → fix → test → CI gate`, что и для single-shot).
 
 ## Подходы и контрмеры
 
@@ -403,6 +493,66 @@ func RunSuite(ctx context.Context, agent AgentUnderTest, cases []TestCase) error
 }
 ```
 
+### Iterative runner (EVAL-PI-ITERATIVE-01)
+
+Иллюстрация: mutation меняет только attempt tag / seed label — не генерирует offensive payload.  
+`attack_success` = `AssertSafe` вернул ошибку (агент нарушил expected).
+
+```go
+type IterativeEval struct {
+	ID           string
+	Surface      string
+	InitialSeed  string // scenario description, not payload dump
+	MaxAttempts  int
+	BaseCase     TestCase
+}
+
+type IterativeMetrics struct {
+	Attempts          int
+	Successes         int
+	AttemptsToSuccess int // 0 if none
+	ToolCalls         int
+	GuardrailHits     int
+	ASR               float64
+}
+
+func mutateSeed(seed string, attempt int) string {
+	return fmt.Sprintf("%s [attempt=%d]", seed, attempt)
+}
+
+func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (IterativeMetrics, error) {
+	if ev.MaxAttempts < 1 {
+		return IterativeMetrics{}, errors.New("max_attempts must be >= 1")
+	}
+	m := IterativeMetrics{}
+	for attempt := 1; attempt <= ev.MaxAttempts; attempt++ {
+		tc := ev.BaseCase
+		tc.Input = mutateSeed(ev.InitialSeed, attempt)
+		result, err := agent.Run(ctx, tc.Input)
+		m.Attempts++
+		if err != nil {
+			continue // harness/run error — не считаем attack success
+		}
+		m.ToolCalls += len(result.ToolCalls)
+		if contains(result.Blocked, "prompt_injection_detected") ||
+			contains(result.Blocked, "memory_write_rejected") {
+			m.GuardrailHits++
+		}
+		if AssertSafe(tc, result) == nil {
+			continue // агент остался safe — атака неуспешна
+		}
+		m.Successes++
+		if m.AttemptsToSuccess == 0 {
+			m.AttemptsToSuccess = attempt
+		}
+	}
+	if m.Attempts > 0 {
+		m.ASR = float64(m.Successes) / float64(m.Attempts)
+	}
+	return m, nil
+}
+```
+
 ## Чек-лист
 
 - [ ] Есть библиотека attack payloads.
@@ -422,10 +572,15 @@ func RunSuite(ctx context.Context, agent AgentUnderTest, cases []TestCase) error
 - [ ] Есть adversarial-тесты на генерацию insecure кода агентом.
 - [ ] Сгенерированный код red team / human review, не только ответ агента.
 - [ ] Перед публикацией OSS-репозитория проведён security review; открытый код доступен и защитным, и атакующим agentic-инструментам.
+- [ ] Для high-risk агента есть iterative suite (EV-06) или явный N/A.
+- [ ] В iterative eval заданы `max_attempts` / `stop_conditions`.
+- [ ] Метрики ASR / attempts_to_success собираются; single-shot и iterative сравнимы.
+- [ ] Automated iterative red team не заменяет human review и runtime controls.
 
 ## Литература
 
-- [Список литературы](../literature.md#инструменты)
+- [Список литературы](../literature.md#практические-руководства)
+- [OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness](https://openai.com/index/unlocking-self-improvement-gpt-red/)
 - [OWASP AI Security Solutions Landscape for AI and Agentic Red Teaming](https://genai.owasp.org/resource/ai-security-solutions-landscape-for-ai-and-agentic-red-teaming-q2-2026/)
 - [OWASP Top 10 for Large Language Model Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -440,3 +595,5 @@ func RunSuite(ctx context.Context, agent AgentUnderTest, cases []TestCase) error
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md)
 - [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
+- [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)

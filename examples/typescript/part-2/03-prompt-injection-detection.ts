@@ -151,10 +151,33 @@ function requiresApproval(sink: SinkKind): boolean {
   }
 }
 
+const DOC_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+const ALLOWED_SOURCES = new Set(["kb-internal", "tickets"]);
+
+interface DocumentRef {
+  documentId: string;
+  source: string;
+}
+
+/** ADI: structured tool JSON is untrusted until policy validation. */
+function validateDocumentRef(raw: string): DocumentRef {
+  const data = JSON.parse(raw) as Record<string, unknown>;
+  const documentId = String(data.document_id ?? "");
+  const source = String(data.source ?? "");
+  if (!DOC_ID_RE.test(documentId)) {
+    throw new Error("document_id rejected by policy");
+  }
+  if (!ALLOWED_SOURCES.has(source)) {
+    throw new Error(`source ${JSON.stringify(source)} not in allowlist`);
+  }
+  return { documentId, source };
+}
+
 export {
   detectPromptInjection,
   buildAgentContext,
   requiresPolicy,
   requiresApproval,
+  validateDocumentRef,
 };
-export type { SinkKind, DetectionResult, ContextBlock };
+export type { SinkKind, DetectionResult, ContextBlock, DocumentRef };
