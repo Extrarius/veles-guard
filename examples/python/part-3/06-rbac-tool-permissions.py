@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any, Protocol
 
@@ -107,3 +109,37 @@ class Runtime:
             return tool.call(call.args)
 
         raise ValueError("unknown policy decision")
+
+
+# --- Agent Identity + Safe Tool Binding (see §06) ---
+
+
+class ActingMode(str, Enum):
+    OWN = "own_identity"
+    ON_BEHALF = "on_behalf_of"
+
+
+@dataclass
+class AgentPrincipal:
+    id: str
+    owner: str
+    acting_mode: ActingMode
+    baseline_role: str
+    on_behalf_of: str = ""
+    elevated_until: datetime | None = None
+    allowed_tools: dict[str, bool] = field(default_factory=dict)
+
+    def effective_role(self, now: datetime) -> str:
+        if self.elevated_until is not None and now < self.elevated_until:
+            return f"{self.baseline_role}:elevated"
+        return self.baseline_role
+
+
+def authorize_tool(agent: AgentPrincipal, tool: str, now: datetime) -> None:
+    """Deny without identity/owner, delegated mode without user, or tool outside allowlist."""
+    if not agent.id or not agent.owner:
+        raise PermissionError("agent identity and human owner required")
+    if agent.acting_mode == ActingMode.ON_BEHALF and not agent.on_behalf_of:
+        raise PermissionError("on_behalf_of required for delegated acting mode")
+    if not agent.allowed_tools.get(tool):
+        raise PermissionError(f'tool "{tool}" not in agent allowlist')

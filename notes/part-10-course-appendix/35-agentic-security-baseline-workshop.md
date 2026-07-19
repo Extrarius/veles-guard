@@ -3,12 +3,12 @@ tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-18
-изменения: "Добавлены ссылки на примеры TypeScript, C++ и Java (part-10)."
+изменения: "Навигация «Вперёд» → §36 (AI Agent Security Testing Workshop)."
 ---
 
 # 35 — Agentic Security Baseline Workshop
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](34-mcp-skill-review-workshop.md) · [Вперёд →](../../README.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](34-mcp-skill-review-workshop.md) · [Вперёд →](36-ai-agent-security-testing-workshop.md)
 
 *Кратко: пройти 8 правил минимального набора безопасности (baseline) для агента / MCP / навыков (skills), связать с политикой разрешённых инструментов (allowed-tools policy), проверками в CI и bash, зафиксировать ответственного (Owner).*
 
@@ -125,6 +125,7 @@ func RejectFloating(version string) error {
 
 - [33 — Course Appendix](33-course-appendix-agentic-security.md)
 - [34 — MCP / Skill Review Workshop](34-mcp-skill-review-workshop.md)
+- [36 — AI Agent Security Testing Workshop](36-ai-agent-security-testing-workshop.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [28 — Permissions, sandbox, approval](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)
 - [25 — Security-by-Design чек-лист](../part-8-practice/25-security-by-design-checklist.md)
