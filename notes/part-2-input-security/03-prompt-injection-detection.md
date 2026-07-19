@@ -2,8 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлена модель Source→Sink (OpenAI); Go RequiresPolicy/RequiresApproval; sync Python/TS."
+обновлено: 2026-07-19
+изменения: "Agent Data Injection (ADI): trusted format ≠ trusted data; ValidateDocumentRef; sync py/ts."
 ---
 
 # 03 — Prompt Injection Detection
@@ -163,6 +163,78 @@ func RequiresApproval(sink SinkKind) bool {
 	}
 }
 ```
+
+## Agent Data Injection (ADI)
+
+Instruction injection заставляет модель принять недоверенный текст **как инструкцию**.  
+**Agent Data Injection (ADI)** — смежная категория IPI ([arXiv:2607.05120](https://arxiv.org/abs/2607.05120)): недоверенные данные маскируются под **trusted metadata / agent context** (resource ID, provenance/origin, author, поля tool response), и агент действует так, будто эти поля уже проверены.
+
+```text
+Trusted format does not imply trusted data
+```
+
+JSON / DOM / Markdown «выглядит правильно» ≠ данные trusted. LLM интерпретирует структуру **вероятностно**, поэтому security-critical поля нельзя оставлять на «понимание модели» — нужен deterministic policy.
+
+### Чем ADI не является
+
+| Не путать с | Почему |
+|---|---|
+| Instruction injection | там цель — «ignore previous…» / чужая инструкция |
+| Source→Sink | ADI уточняет trust **внутри** agent data; sink policy всё равно нужна |
+| MCP03 tool poisoning ([§19](../part-6-multi-agent-security/19-mcp-security.md)) | там в фокусе description/schema tool при connect; ADI — trust полей в runtime data |
+
+Не публикуем delimiter-injection PoC: защита — isolation trusted/untrusted data + policy на ID/URL/path, не каталог атак.
+
+### Checklist ADI
+
+- [ ] Provenance / origin хранится и проверяется **отдельно** от content body.
+- [ ] Resource ID, account, path, URL — решение **policy-кода** (allowlist / regex / registry), не модели.
+- [ ] Tool response **не** назначает себе trust level / «trusted: true».
+- [ ] Security-critical fields проходят deterministic validation до sink.
+- [ ] Structured JSON извне = untrusted до validation.
+
+### Go: validation `document_id` / `source` из tool JSON
+
+Безопасный паттерн: разобрать ответ tool и проверить ссылку на документ **до** любого действия.
+
+```go
+package adi
+
+import (
+	"encoding/json"
+	"fmt"
+	"regexp"
+)
+
+var docIDRe = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
+
+var allowedSources = map[string]bool{
+	"kb-internal": true,
+	"tickets":     true,
+}
+
+type DocumentRef struct {
+	DocumentID string `json:"document_id"`
+	Source     string `json:"source"`
+	// Trust / Author из payload игнорируем — не источник истины
+}
+
+func ValidateDocumentRef(raw []byte) (DocumentRef, error) {
+	var ref DocumentRef
+	if err := json.Unmarshal(raw, &ref); err != nil {
+		return DocumentRef{}, fmt.Errorf("invalid tool json: %w", err)
+	}
+	if !docIDRe.MatchString(ref.DocumentID) {
+		return DocumentRef{}, fmt.Errorf("document_id rejected by policy")
+	}
+	if !allowedSources[ref.Source] {
+		return DocumentRef{}, fmt.Errorf("source %q not in allowlist", ref.Source)
+	}
+	return ref, nil
+}
+```
+
+Правило сниппета: даже валидный JSON без allowlisted `source` / корректного `document_id` → deny. Поля вроде `author` / `trusted` из того же JSON в policy не используются.
 
 ## Подходы и контрмеры
 
@@ -392,10 +464,13 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [ ] Sensitive sinks (secret / egress / command) требуют human approval.
 - [ ] Типовые цепочки (email→send, README→shell, MCP→API, logs→SOC) покрыты controls.
 - [ ] Egress / navigate к третьей стороне не «тихие»: allowlist и/или approval ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)).
+- [ ] Учтена ADI: trusted format ≠ trusted data; resource ID / provenance — policy, не модель.
+- [ ] Tool response не задаёт себе trust; structured JSON untrusted до validation.
 
 ## Литература
 
 - [Список литературы](../literature.md#prompt-injection)
+- [Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents](https://arxiv.org/abs/2607.05120) — ADI vs instruction injection; isolation trusted/untrusted data
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) — source–sink analysis, social engineering mindset
 - OWASP LLM01:2025 Prompt Injection — https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 - OWASP Top 10 for Large Language Model Applications — https://owasp.org/www-project-top-10-for-large-language-model-applications/
@@ -409,4 +484,6 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [27 — Repository instructions](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)
+- [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
