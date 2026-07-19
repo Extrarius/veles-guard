@@ -16,6 +16,7 @@ tags: [ai-security, шаблон, mcp-review, skills]
 - **Source:** `<registry / git URL / vendor>`
 - **Version / commit / hash:** `<pinned>`
 - **Owner:** `<...>`
+- **Agent identity (если production):** `<dedicated principal — не shared SA/API key across agents>`
 - **Reviewed by:** `<...>`
 - **Date:** `<YYYY-MM-DD>`
 
@@ -39,16 +40,19 @@ tags: [ai-security, шаблон, mcp-review, skills]
 | Has path traversal risk | | |
 | Has egress destinations (list below) | | |
 | Requires secrets | | |
+| Would share credentials with other agents | | |
 
 **Egress destinations (если есть):** `<list or none>`
 
 ## Decision
 
 - **Verdict:** `<Allow / Reject / Sandbox only>`
-- **Required restrictions:** `<allowed-tools, egress, sandbox, human approval, …>`
+- **Required restrictions:** `<allowed-tools, egress, sandbox, human approval, dedicated agent identity, …>`
 - **Next review date:** `<YYYY-MM-DD>`
 
 ## См. также
 
 - [mcp-server-review-template.md](mcp-server-review-template.md) — расширенный review MCP-сервера
 - [agentic-security-baseline.md](agentic-security-baseline.md) — минимальный baseline
+- [06 — RBAC / Agent Identity](../notes/part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding)
+

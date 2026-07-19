@@ -34,8 +34,10 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Designing AI agents to resist prompt injection** — <https://openai.com/index/designing-agents-to-resist-prompt-injection/>
 - **OpenAI — Keeping your data safe when an AI agent clicks a link** — <https://openai.com/index/ai-agent-link-safety/>
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
+- **OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness** — <https://openai.com/index/unlocking-self-improvement-gpt-red/> — iterative automated red-teaming (attack → observe → mutate → retry), ASR / self-play; дополняет human red team и runtime safeguards.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
+- **Microsoft — Least privilege for AI agents: Identity, access, and tool binding** — <https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/> — dedicated agent identity, task-scoped RBAC, safe tool binding, JIT elevation, downstream re-auth, end-to-end audit fields, credential revocation.
 
 ## Threat intelligence (отчёты вендоров)
 
