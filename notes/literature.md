@@ -16,6 +16,7 @@ tags: [ai-security, конспект, литература]
 - **Security Debt in LLM Agent Applications** (ASE 2025, Fudan University) — 221 уязвимость в 50 приложениях, средний CVSS 7.89; 76.5% уязвимостей — из-за LLM2Tool.
 - **Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection** — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
 
 ## Стандарты и фреймворки
 
@@ -47,6 +48,7 @@ tags: [ai-security, конспект, литература]
 
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
 - Детекторы: **Lakera Guard**, **Rebuff**, **Prompt Security**, **Meta Prompt Guard**, **LLM Guard Prompt Injection scanner**, **Pangea AI Guard**, **NeMo Guardrails** input/output rails.
 
