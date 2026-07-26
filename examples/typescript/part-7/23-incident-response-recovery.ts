@@ -41,14 +41,21 @@ function classify(signal: Signal): Severity {
     case "secret_exfiltrated":
     case "cross_tenant_leakage":
     case "production_shell_executed":
+    case "credential_use_after_revoke":
       return Severity.Critical;
     case "egress_with_secret_blocked":
     case "mcp_server_compromised":
     case "unsafe_tool_executed":
+    case "egress_destination_out_of_policy":
+    case "undeclared_tool_call":
+    case "audit_gap":
+    case "score_spike_after_network":
       return Severity.High;
     case "prompt_injection_detected":
     case "tool_denied_repeated":
     case "budget_exceeded":
+    case "tool_retry_after_deny":
+    case "eval_probe_suspected":
       return Severity.Medium;
     default:
       return Severity.Low;
@@ -91,6 +98,21 @@ function buildContainmentPlan(signal: Signal): ContainmentAction[] {
     default:
       return [ContainmentAction.StopRun];
   }
+}
+
+/** Ordered IR path for containment / pivot (see §23 playbook). */
+function autonomousContainmentSteps(): string[] {
+  return [
+    "stop_agent",
+    "revoke_credentials",
+    "block_egress",
+    "save_tool_trace",
+    "ignore_user_facing_summary",
+    "pivot_check",
+    "rotate_secrets",
+    "notify_affected",
+    "regression_eval",
+  ];
 }
 
 function validateIncident(incident: Incident): void {
