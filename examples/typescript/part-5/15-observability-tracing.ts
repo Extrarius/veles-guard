@@ -32,6 +32,18 @@ interface AuditEvent {
   attrs?: Record<string, unknown>;
 }
 
+/** Fields for investigating Evaluation Gaming (see §20). */
+interface EvalRunAudit {
+  agentGoal?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  externalHosts?: string[];
+  credentialAccess?: boolean;
+  evaluationScore?: number;
+  scoreDelta?: number;
+  policyViolations?: string[];
+}
+
 const SECRET_PATTERNS = [
   /(api[_-]?key|token|secret|password)\s*[:=]\s*['"]?[^'"\s]+/i,
   /bearer\s+[a-z0-9._\-]+/i,
