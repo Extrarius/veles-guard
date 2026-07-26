@@ -59,6 +59,7 @@ tags: [ai-security, testing, review, guide, agents]
 5. Все findings фиксировать по [шаблону](../templates/agent-security-finding.md); устное «вроде баг» не считается.
 6. Finding с Critical/High без fix + regression **блокирует** production usage (согласовано с §25 / §32).
 7. Не публиковать в issues / PR реальные секреты, внутренние URL и offensive payload (см. [README](../README.md)).
+8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
 
 ## 3. Test Matrix
 
@@ -68,7 +69,7 @@ tags: [ai-security, testing, review, guide, agents]
 | Context | trusted и untrusted данные не смешиваются в одном instruction channel | High |
 | Tools | RBAC, schema bypass не проходит, tool hijacking ловится | High |
 | Memory | memory poisoning и cross-user leakage невозможны | High |
-| Sandbox | shell / file / network escape блокируются | Critical |
+| Sandbox | shell / file / network escape блокируются; нет выхода за стенд (`EVAL-CONTAINMENT-01`) | Critical |
 | Egress | data exfiltration и domain bypass блокируются | Critical |
 | Output | секреты не утекают; unsafe rendering / hallucination с риском действия — под контролем | High |
 | MCP | tool poisoning и shadow server не проходят review/pin | High |
