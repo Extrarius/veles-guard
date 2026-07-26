@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, mcp, skills, review, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлены ссылки на примеры TypeScript, C++ и Java (part-10)."
+обновлено: 2026-07-26
+изменения: "Rug pull: pin+hash+re-review по событиям → mcp-skill-review triggers."
 ---
 
 # 34 — MCP / Skill Review Workshop
@@ -39,8 +39,10 @@ tags: [ai-security, course-appendix, mcp, skills, review, workshop]
 | Вектор | Симптом | Контроль |
 |---|---|---|
 | Отравление описания инструмента / навыка (tool / skill description poisoning) | Скрытые инструкции в описании (description) | Проверка (review) текста + недоверие к метаданным (metadata) ([§19](../part-6-multi-agent-security/19-mcp-security.md)) |
-| Цепочка поставок / «подмена после доверия» (supply chain / rug pull) | `latest`, смена поведения (behavior) без фиксации версии (pin) | Фиксация версии (pin) + хеш (hash) + повторная проверка (re-review) |
+| Цепочка поставок / «подмена после доверия» (supply chain / rug pull) | `latest`, смена поведения (behavior) без фиксации версии (pin) | Pin + hash + re-review **по событиям** ([шаблон](../../templates/mcp-skill-review.md#re-review-triggers)) |
 | Установка с лишними правами (over-privileged install) | postinstall / curl\|bash | Запрет необъяснённых скриптов (scripts); песочница (sandbox) |
+
+Pin и hash без re-review по событию rug pull не закрывают: при bump version/hash, drift tools/description/scripts, смене source или `latest` — **block auto-apply**, тот же review form, Allow только после ревью. Канон событий — [Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers).
 | Разрастание возможностей (capability creep) | Файлы / сеть / shell «на всякий случай» | Минимальные права (least privilege) + [политика разрешённых инструментов (allowed-tools policy)](../../templates/course/allowed-tools-policy.md) |
 | Нет владельца | неизвестный ответственный (unknown owner) | Отклонить (Reject), пока не назначен ответственный (Owner) |
 
