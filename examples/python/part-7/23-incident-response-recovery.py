@@ -52,18 +52,25 @@ def classify(signal: Signal) -> Severity:
         "secret_exfiltrated",
         "cross_tenant_leakage",
         "production_shell_executed",
+        "credential_use_after_revoke",
     ):
         return Severity.CRITICAL
     if signal.event in (
         "egress_with_secret_blocked",
         "mcp_server_compromised",
         "unsafe_tool_executed",
+        "egress_destination_out_of_policy",
+        "undeclared_tool_call",
+        "audit_gap",
+        "score_spike_after_network",
     ):
         return Severity.HIGH
     if signal.event in (
         "prompt_injection_detected",
         "tool_denied_repeated",
         "budget_exceeded",
+        "tool_retry_after_deny",
+        "eval_probe_suspected",
     ):
         return Severity.MEDIUM
     return Severity.LOW
@@ -102,6 +109,21 @@ def build_containment_plan(signal: Signal) -> List[ContainmentAction]:
             ContainmentAction.READ_ONLY_MODE,
         ]
     return [ContainmentAction.STOP_RUN]
+
+
+def autonomous_containment_steps() -> List[str]:
+    """Ordered IR path for containment / pivot (see §23 playbook)."""
+    return [
+        "stop_agent",
+        "revoke_credentials",
+        "block_egress",
+        "save_tool_trace",
+        "ignore_user_facing_summary",
+        "pivot_check",
+        "rotate_secrets",
+        "notify_affected",
+        "regression_eval",
+    ]
 
 
 def validate_incident(incident: Incident) -> None:
