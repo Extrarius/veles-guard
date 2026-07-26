@@ -3,7 +3,7 @@ tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
 обновлено: 2026-07-19
-изменения: "ADI-якорь: id/uri/author в tool output не trusted by format; ссылка на §03. AutoJack сохранён."
+изменения: "Якорь MCP-CTI → OSCAL case study (§21); ADI/AutoJack сохранены."
 ---
 
 # 19 — MCP Security
@@ -186,6 +186,8 @@ Allowlist, consent и security review обычно происходят **при
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
 
 См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
+
+**MCP как канал verified CTI (compliance):** deterministic MCP tool-use к authoritative sources (NVD/KEV/…) может питать knowledge graph и [NIST OSCAL](https://pages.nist.gov/OSCAL/) artifacts — это **не** делает MCP «безопасным протоколом» и не отменяет Runtime Trust Gap / ADI: output остаётся untrusted context до policy validation. Case study и human-review extraction — [§21 MCP → OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal).
 
 ## Localhost is not a trust boundary (AutoJack)
 
@@ -632,6 +634,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Egress агента блокирует loopback/private/link-local по умолчанию.
 - [ ] Experimental agent frameworks и local privileged services — в sandbox/devbox.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
+- [ ] CTI/vuln claims через MCP не подменяют human review extraction и policy на output ([§21 OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)).
 
 ## Когда отключать MCP server
 
@@ -665,4 +668,5 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [21 — Compliance: MCP → OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)
 - [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
