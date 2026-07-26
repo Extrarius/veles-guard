@@ -2,8 +2,8 @@
 tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-07-19
+изменения: "Case study MCP→KG→NIST OSCAL (arXiv 2607.08288); checklist + lit."
 ---
 
 # 21 — Compliance и Standards
@@ -39,6 +39,7 @@ tags: [ai-security, agents, compliance, standards, nist, owasp, mitre]
 | OWASP MCP Security | безопасность MCP-серверов и tools |
 | MITRE ATLAS | тактики и техники атак на AI-системы |
 | NIST AI RMF | управление AI-рисками на уровне процесса |
+| NIST OSCAL | machine-readable SSP/SAR и обмен assessment evidence |
 | NIST SSDF / secure SDLC | supply chain и secure development |
 | ISO/IEC 42001 | AI management system |
 | SOC2 / ISO 27001 | организационные security controls |
@@ -298,6 +299,37 @@ func ExportJSON(controls []Control) ([]byte, error) {
 }
 ```
 
+## Case study: MCP → knowledge graph → NIST OSCAL
+
+В critical infrastructure / OT часто нельзя делать active scan, а на входе — **неструктурированные** описания инфраструктуры (legacy docs, summary от оператора). Нужны audit-ready артефакты, а не «модель нашла CVE по памяти».
+
+Case study ([arXiv:2607.08288](https://arxiv.org/abs/2607.08288)): multi-agent pipeline на MCP превращает NL-описание в knowledge graph и machine-readable [NIST OSCAL](https://pages.nist.gov/OSCAL/) — System Security Plan (SSP) и Security Assessment Report (SAR).
+
+```mermaid
+flowchart LR
+  NL["Untrusted NL docs"]
+  Extract["LLM entity extract"]
+  Review["Human review"]
+  MCP["Deterministic MCP CTI"]
+  KG["Knowledge graph"]
+  OSCAL["OSCAL SSP and SAR"]
+  NL --> Extract --> Review --> MCP --> KG --> OSCAL
+```
+
+### Урок для AI-агентов
+
+| Паттерн | Почему |
+|---|---|
+| LLM reasoning **отделён** от deterministic retrieval | CVE/CVSS/KEV не «вспоминаются» — приходят из MCP tool call к authoritative source |
+| MCP tool-use ≠ RAG similarity | binary exists/not vs probabilistic association; ошибки класса «нет данных», не «выдуманная связь» |
+| Schema-valid OSCAL | evidence пригоден для audit workflow, не только markdown-отчёт |
+
+### Ограничение (главное)
+
+MCP grounding **сдвигает** ошибки, не устраняет их. В paper: factual hallucination на deterministically sourced KG nodes ≈ 0%, но semantic errors на **Phase 0 (entity extraction)** дают contextual false positives дальше по пайплайну. Контрольная точка — **human review extraction** (версии ОС, asset IDs, границы системы), а не «модель уже с MCP = trust».
+
+Связь с конспектом: evidence в этом разделе; MCP trust / Runtime Trust Gap — [§19](../part-6-multi-agent-security/19-mcp-security.md); operational checklist — [§25](../part-8-practice/25-security-by-design-checklist.md) (C-08/C-09).
+
 ## Чек-лист
 
 - [ ] Есть DFD и trust boundaries.
@@ -312,10 +344,14 @@ func ExportJSON(controls []Control) ([]byte, error) {
 - [ ] Logs/traces достаточны для расследования.
 - [ ] Compliance mapping не заменяет threat model.
 - [ ] Есть периодический review.
+- [ ] Где нужен audit: machine-readable artifacts (OSCAL SSP/SAR или эквивалент), не только prose.
+- [ ] CTI/vuln claims только из verified tool/MCP sources; extraction из NL docs проходит human review.
 
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Muth & Margraf — From Legacy Documentation to OSCAL](https://arxiv.org/abs/2607.08288) — MCP-grounded pipeline → KG → OSCAL SSP/SAR
+- [NIST OSCAL](https://pages.nist.gov/OSCAL/) — machine-readable security assessment exchange
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
 - [NIST AI RMF Playbook](https://airc.nist.gov/airmf-resources/playbook/)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
@@ -326,6 +362,8 @@ func ExportJSON(controls []Control) ([]byte, error) {
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
+- [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md)
 - [22 — Supply Chain Security](22-supply-chain-security.md)
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md)
+- [25 — Security-by-Design чек-лист](../part-8-practice/25-security-by-design-checklist.md)

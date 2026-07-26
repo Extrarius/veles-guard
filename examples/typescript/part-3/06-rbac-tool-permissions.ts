@@ -99,6 +99,43 @@ class Runtime {
   }
 }
 
+// --- Agent Identity + Safe Tool Binding (see §06) ---
+
+enum ActingMode {
+  Own = "own_identity",
+  OnBehalf = "on_behalf_of",
+}
+
+interface AgentPrincipal {
+  id: string;
+  owner: string;
+  actingMode: ActingMode;
+  baselineRole: string;
+  onBehalfOf?: string;
+  elevatedUntil?: Date;
+  allowedTools: Record<string, boolean>;
+}
+
+function effectiveRole(agent: AgentPrincipal, now: Date): string {
+  if (agent.elevatedUntil && now < agent.elevatedUntil) {
+    return `${agent.baselineRole}:elevated`;
+  }
+  return agent.baselineRole;
+}
+
+/** Deny without identity/owner, delegated mode without user, or tool outside allowlist. */
+function authorizeTool(agent: AgentPrincipal, tool: string, _now: Date): void {
+  if (!agent.id || !agent.owner) {
+    throw new Error("agent identity and human owner required");
+  }
+  if (agent.actingMode === ActingMode.OnBehalf && !agent.onBehalfOf) {
+    throw new Error("on_behalf_of required for delegated acting mode");
+  }
+  if (!agent.allowedTools[tool]) {
+    throw new Error(`tool "${tool}" not in agent allowlist`);
+  }
+}
+
 export {
   Risk,
   ToolAction,
@@ -106,6 +143,9 @@ export {
   SimplePolicy,
   Runtime,
   hasScope,
+  ActingMode,
+  effectiveRole,
+  authorizeTool,
 };
 
-export type { Actor, ToolCall, Policy, Tool, AuditLogger };
+export type { Actor, ToolCall, Policy, Tool, AuditLogger, AgentPrincipal };

@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлен сценарий Agentic Threat Actor / JADEPUFFER; примеры не требуют обновления."
+обновлено: 2026-07-19
+изменения: "ADI: spoofed trusted metadata (STRIDE + короткий сценарий); ссылка на §03."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -195,8 +195,8 @@ STRIDE — это способ пройтись по компонентам си
 
 | STRIDE | Вопрос для агента | Пример |
 |---|---|---|
-| Spoofing | Кто-то выдаёт себя за пользователя, tool или агента? | внешний агент отправляет сообщение от имени доверенного агента |
-| Tampering | Можно ли изменить вход, память, tool output или policy? | документ содержит скрытую инструкцию, меняющую цель агента |
+| Spoofing | Кто-то выдаёт себя за пользователя, tool или агента? | внешний агент отправляет сообщение от имени доверенного агента; tool response подставляет fake `author` / provenance |
+| Tampering | Можно ли изменить вход, память, tool output или policy? | документ содержит скрытую инструкцию; поля `id`/`uri` в JSON выглядят «trusted», но не проверены policy |
 | Repudiation | Можно ли отрицать выполнение действия? | агент отправил письмо, но нет audit log с причиной вызова tool |
 | Information Disclosure | Может ли агент раскрыть данные? | секрет из памяти попал в ответ или внешний API |
 | Denial of Service | Можно ли перегрузить агента или ресурсы? | token bombing, бесконечный loop, дорогие API calls |
@@ -208,6 +208,7 @@ STRIDE — это способ пройтись по компонентам си
 |---|---|---|---|---|
 | User Input | Tampering | Prompt injection меняет цель или ограничения задачи | High | input validation, prompt injection detection, context isolation |
 | Uploaded Docs / Web / Email | Tampering | Indirect prompt injection в документе влияет на план агента | High | treat content as data, sanitization, retrieval filtering |
+| Uploaded Docs / Tool Output | Spoofing / Tampering | Agent Data Injection: untrusted поля маскируются под trusted metadata (resource ID, provenance, author) | High | trusted format ≠ trusted data; deterministic validation ID/URL ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)) |
 | Context Builder | Information Disclosure | В контекст попадают секреты или лишние данные | High | data minimization, PII redaction, need-to-know context |
 | LLM Planner | Tampering | Модель принимает tool output как новую инструкцию | High | instruction/data separation, tool output labeling |
 | Policy Engine | Elevation of Privilege | Ошибка политики разрешает опасный tool call | High | deny by default, RBAC, scopes, tests |
@@ -221,6 +222,18 @@ STRIDE — это способ пройтись по компонентам си
 | Audit Logger | Repudiation | Нельзя восстановить, почему агент выполнил действие | Medium | immutable logs, correlation ID, tool call reason |
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
 | Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
+
+## Сценарий: Agent Data Injection (spoofed trusted metadata)
+
+Атакующий не пишет «ignore previous instructions». В tool response / документе / issue появляются поля, которые агент привык считать служебными: `document_id`, `source`, `author`, `trusted: true`. Формат валидный JSON → planner или downstream tool использует ID как будто он уже проверен.
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Untrusted surface отдаёт structured data с «доверенными» полями |
+| 2 | Агент трактует format как trust (или копирует `author`/provenance в audit) |
+| 3 | Опасный sink вызывается с подставным resource ID / account / path |
+
+Контрмера на уровне threat model: в DFD пометить **metadata fields внутри untrusted data** как отдельный Tampering/Spoofing путь; controls — policy validation, не «модель разберётся». Канон и checklist — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi).
 
 ## Risk Rating
 
@@ -455,6 +468,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Есть detection signals для agentic ransomware (self-narrating payloads, rapid retries, credential sweep → destructive).
 - [ ] Secrets не предполагаются в env на internet-facing agent hosts.
 - [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
+- [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 
 ## Литература
 
