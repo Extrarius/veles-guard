@@ -37,6 +37,8 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Designing AI agents to resist prompt injection** — <https://openai.com/index/designing-agents-to-resist-prompt-injection/>
 - **OpenAI — Keeping your data safe when an AI agent clicks a link** — <https://openai.com/index/ai-agent-link-safety/>
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
+- **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — containment escape / evaluation integrity из eval harness.
+- **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
 
@@ -45,7 +47,6 @@ tags: [ai-security, конспект, литература]
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
 - **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
-- **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — agent containment escape из eval harness (сеть / внешняя infra при ослабленных guardrails); уроки isolation и pre-eval controls.
 
 ## Prompt Injection
 
