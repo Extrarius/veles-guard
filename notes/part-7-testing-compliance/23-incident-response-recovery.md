@@ -2,8 +2,8 @@
 tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлен playbook Agentic Threat Actor / Agentic Ransomware (JADEPUFFER); примеры не требуют обновления."
+обновлено: 2026-07-26
+изменения: "Якорь Containment escape (eval harness): first actions; полный runbook — отдельный P1."
 ---
 
 # 23 — Incident Response и Recovery
@@ -442,6 +442,19 @@ Learn
 14. Обновить threat model (§02) и monitoring rules; postmortem с owner/due dates.
 ```
 
+## Containment escape (eval harness)
+
+Если агент в тестовой / research среде вышел за границы стенда (сеть, чужая infra, живые credentials) — не ждать полного playbook. First actions:
+
+1. Остановить агент (kill-switch) и отозвать его credentials ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+2. Заблокировать сетевой egress среды.
+3. Сохранить полную последовательность tool calls / trace (не доверять user-facing summary).
+4. Проверить внешние системы, к которым агент обращался; при необходимости уведомить затронутые стороны.
+5. Ротировать секреты и токены, доступные из стенда.
+6. Превратить цепочку в regression: [`EVAL-CONTAINMENT-01`](20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01).
+
+Канон isolation и pre-eval checklist — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape). Развёрнутый autonomous-agent IR runbook — отдельный пункт roadmap (не этот блок).
+
 ## Чек-лист
 
 - [ ] Есть severity matrix.
@@ -462,10 +475,12 @@ Learn
 - [ ] После инцидента обновляется monitoring.
 - [ ] Postmortem имеет owner и due dates.
 - [ ] Inventory internet-facing agent control planes и процедура их изоляции.
+- [ ] Есть first-actions на containment escape из eval harness ([выше](#containment-escape-eval-harness)).
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/)
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [NIST Computer Security Incident Handling Guide SP 800-61](https://csrc.nist.gov/pubs/sp/800/61/r2/final)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
