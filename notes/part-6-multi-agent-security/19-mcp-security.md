@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-19
-изменения: "ADI-якорь: id/uri/author в tool output не trusted by format; ссылка на §03. AutoJack сохранён."
+обновлено: 2026-07-26
+изменения: "Якорь re-review triggers → mcp-skill-review; ADI/AutoJack сохранены."
 ---
 
 # 19 — MCP Security
@@ -158,7 +158,7 @@ flowchart LR
 - **Не доверять tool metadata** (п. 3) — поведение задаётся локальной policy, не описанием сервера.
 - **Strict schema validation** (п. 4) — args, paths, URLs проверяются до execution.
 - **Sandboxing MCP tools** (п. 8) — shell, filesystem, network в изоляции.
-- Pin tool definitions (version/hash); при изменении metadata — re-review и alert.
+- Pin tool definitions (version/hash); при изменении metadata — re-review и alert. События re-review — [mcp-skill-review — Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers).
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
@@ -180,7 +180,7 @@ Allowlist, consent и security review обычно происходят **при
 | Connect-time контроль | Runtime gap | Контрмера |
 |---|---|---|
 | Server allowlist + review | Tool output содержит скрытые инструкции | Output validation: размер, формат, reject control phrases |
-| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions |
+| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions ([triggers](../../templates/mcp-skill-review.md#re-review-triggers)) |
 | Schema validation args | Output трактуется как «вызови tool X» | Tool output ≠ команда; planner решает только по user task + policy |
 | Single server policy | Cross-server chaining через output | Separate internal vs external MCP; no chaining без policy |
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
@@ -621,7 +621,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Есть monitoring по MCP failures, denied calls и egress.
 - [ ] Есть kill-switch per MCP server.
 - [ ] Версии MCP server/packages фиксируются и обновляются контролируемо.
-- [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
+- [ ] Tool definitions pinned; metadata drift детектируется и требует re-review (см. [triggers](../../templates/mcp-skill-review.md#re-review-triggers)).
 - [ ] Tool output не трактуется как инструкция вызвать другой tool.
 - [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
 - [ ] Поля `id` / `uri` / `author` / provenance из tool/resource output не trusted by format (ADI; [§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).

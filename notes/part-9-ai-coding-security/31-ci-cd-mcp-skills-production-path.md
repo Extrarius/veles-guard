@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлена градация Skill Security (prototype→regulated), Go RequiredControls; sync Python/TS."
+обновлено: 2026-07-26
+изменения: "Якорь re-review triggers (rug pull) → templates/mcp-skill-review."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -173,7 +173,7 @@ Skill Security = не «ставим всё», а «выбираем урове�
 
 **Sandbox** для skill-скриптов: не запускать install/postinstall и произвольный shell от имени разработчика без изоляции. См. [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md).
 
-**Provenance + pin**: фиксированная версия (pin), не `latest`; известный источник и ответственный (owner). При обновлении — **diff review** (rug pull): что изменилось в instructions/scripts/permissions. См. [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md), [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md).
+**Provenance + pin**: фиксированная версия (pin), не `latest`; известный источник и ответственный (owner). При обновлении — **diff review** (rug pull): что изменилось в instructions/scripts/permissions. События, когда обязателен re-review (version/hash, drift tools/description/scripts, смена source, unpin, Next review date) — [templates/mcp-skill-review.md — Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers). Auto-apply до нового Allow запрещён. См. [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md), [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md).
 
 Skills и инструкции в репозитории пересекаются с [27 — Repository instructions](27-repository-instructions-attack-surface.md). Операционный минимум: [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md).
 
@@ -348,6 +348,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Контроли соответствуют выбранному уровню (не «всем всё», а минимум под риск).
 - [ ] Description skill не считается policy; body/scripts проходят отдельный review.
 - [ ] Для production+: pin версий, sandbox scripts, egress control, audit, diff review при обновлении.
+- [ ] Обновление skill/MCP без trigger-based re-review запрещено (события — [mcp-skill-review](../../templates/mcp-skill-review.md#re-review-triggers)).
 - [ ] Для regulated: allowlist skills, formal policy / threat model, обязательный human approval.
 - [ ] Third-party skill не ставится без trusted source и review (даже на startup).
 
