@@ -25,7 +25,16 @@ class AuditEvent:
     severity: Severity
     component: str
     time: Optional[datetime] = None
+    correlation_id: str = ""
+    agent_id: str = ""
+    agent_owner: str = ""
+    on_behalf_of: str = ""
+    role: str = ""
+    effective_scope: str = ""
     tool: str = ""
+    operation: str = ""
+    resource: str = ""
+    approval_id: str = ""
     risk: str = ""
     decision: str = ""
     reason: str = ""

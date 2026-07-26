@@ -16,6 +16,8 @@ tags: [ai-security, конспект, литература]
 - **Security Debt in LLM Agent Applications** (ASE 2025, Fudan University) — 221 уязвимость в 50 приложениях, средний CVSS 7.89; 76.5% уязвимостей — из-за LLM2Tool.
 - **Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection** — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
+- **Muth & Margraf — From Legacy Documentation to OSCAL: An MCP-Based Agent Pipeline for Threat-Informed Continuous Compliance** — <https://arxiv.org/abs/2607.08288> — MCP-grounded multi-agent pipeline: NL infra docs → knowledge graph → NIST OSCAL SSP/SAR; errors shift to entity extraction (human review).
 
 ## Стандарты и фреймворки
 
@@ -24,6 +26,7 @@ tags: [ai-security, конспект, литература]
 - **OWASP — Securing Agentic Applications Guide 1.0** — <https://genai.owasp.org/resource/securing-agentic-applications-guide-1-0/>
 - **OWASP — Multi-Agentic System Threat Modeling Guide v1.0** — <https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/>
 - **NIST AI Risk Management Framework: Generative AI Profile** — <https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence>
+- **NIST OSCAL** — <https://pages.nist.gov/OSCAL/> — Open Security Controls Assessment Language; machine-readable SSP/SAR и обмен assessment evidence.
 - **MITRE ATLAS** — <https://atlas.mitre.org/>
 - **Google SAIF — Secure AI Framework** — <https://safety.google/intl/en_us/safety/saif/>
 - **MAESTRO Framework**, **Databricks DASF** — дополнительные фреймворки управления рисками.
@@ -41,11 +44,13 @@ tags: [ai-security, конспект, литература]
 
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
+- **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
 
 ## Prompt Injection
 
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
 - Детекторы: **Lakera Guard**, **Rebuff**, **Prompt Security**, **Meta Prompt Guard**, **LLM Guard Prompt Injection scanner**, **Pangea AI Guard**, **NeMo Guardrails** input/output rails.
 

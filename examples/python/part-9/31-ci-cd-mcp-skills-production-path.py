@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from enum import Enum
 
 
 def normalize_path(path: str) -> str:
@@ -55,3 +56,56 @@ def can_enter_production_path(pr: PR) -> bool:
     if needs_production_review(pr) and not pr.security_approved:
         return False
     return True
+
+
+class SkillLevel(str, Enum):
+    PROTOTYPE = "prototype"
+    STARTUP = "startup"
+    PRODUCTION = "production"
+    REGULATED = "regulated"
+
+
+def required_controls(level: SkillLevel) -> list[str]:
+    """Minimum control names for a Skill Security level (illustrative)."""
+    if level == SkillLevel.PROTOTYPE:
+        return ["attack_surface_awareness"]
+    if level == SkillLevel.STARTUP:
+        return [
+            "trusted_source",
+            "manifest_review",
+            "no_secrets_in_skill",
+            "approval_dangerous",
+        ]
+    if level == SkillLevel.PRODUCTION:
+        return [
+            "trusted_source",
+            "manifest_review",
+            "no_secrets_in_skill",
+            "approval_dangerous",
+            "sandbox_scripts",
+            "audit_log",
+            "version_pin",
+            "egress_control",
+            "update_diff_review",
+        ]
+    if level == SkillLevel.REGULATED:
+        return [
+            "trusted_source",
+            "manifest_review",
+            "no_secrets_in_skill",
+            "approval_dangerous",
+            "sandbox_scripts",
+            "audit_log",
+            "version_pin",
+            "egress_control",
+            "update_diff_review",
+            "formal_policy",
+            "skill_allowlist",
+            "threat_model",
+            "mandatory_hitl",
+        ]
+    return []
+
+
+def meets_minimum(level: SkillLevel, enabled: dict[str, bool]) -> bool:
+    return all(enabled.get(c, False) for c in required_controls(level))

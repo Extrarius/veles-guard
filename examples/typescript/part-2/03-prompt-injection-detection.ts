@@ -115,3 +115,69 @@ function buildAgentContext(
     },
   ];
 }
+
+type SinkKind =
+  | "send_email"
+  | "http_egress"
+  | "shell"
+  | "internal_api"
+  | "secret_read"
+  | "soc_action";
+
+function requiresPolicy(sink: SinkKind): boolean {
+  switch (sink) {
+    case "shell":
+    case "internal_api":
+    case "http_egress":
+    case "send_email":
+    case "secret_read":
+    case "soc_action":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function requiresApproval(sink: SinkKind): boolean {
+  switch (sink) {
+    case "shell":
+    case "secret_read":
+    case "send_email":
+    case "http_egress":
+    case "soc_action":
+      return true;
+    default:
+      return false;
+  }
+}
+
+const DOC_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+const ALLOWED_SOURCES = new Set(["kb-internal", "tickets"]);
+
+interface DocumentRef {
+  documentId: string;
+  source: string;
+}
+
+/** ADI: structured tool JSON is untrusted until policy validation. */
+function validateDocumentRef(raw: string): DocumentRef {
+  const data = JSON.parse(raw) as Record<string, unknown>;
+  const documentId = String(data.document_id ?? "");
+  const source = String(data.source ?? "");
+  if (!DOC_ID_RE.test(documentId)) {
+    throw new Error("document_id rejected by policy");
+  }
+  if (!ALLOWED_SOURCES.has(source)) {
+    throw new Error(`source ${JSON.stringify(source)} not in allowlist`);
+  }
+  return { documentId, source };
+}
+
+export {
+  detectPromptInjection,
+  buildAgentContext,
+  requiresPolicy,
+  requiresApproval,
+  validateDocumentRef,
+};
+export type { SinkKind, DetectionResult, ContextBlock, DocumentRef };
