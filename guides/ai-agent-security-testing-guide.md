@@ -2,7 +2,7 @@
 tags: [ai-security, testing, review, guide, agents]
 статус: готово
 обновлено: 2026-07-26
-изменения: "§3.1 Iterative adversarial (GPT-Red pattern): метрики ASR / EV-06; якорь на §20."
+изменения: "RoE: Trusted defender access → §23; checklist."
 ---
 
 # AI Agent Security Testing Guide
@@ -60,6 +60,7 @@ tags: [ai-security, testing, review, guide, agents]
 6. Finding с Critical/High без fix + regression **блокирует** production usage (согласовано с §25 / §32).
 7. Не публиковать в issues / PR реальные секреты, внутренние URL и offensive payload (см. [README](../README.md)).
 8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
+9. **Trusted defender access:** elevated доступ к tooling / attack materials — только по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access) (verified role, isolated env, audit, TTL, no auto-export, kill access). Не смешивать с обычным sandbox testing по пунктам 1–8.
 
 ## 3. Test Matrix
 
@@ -174,6 +175,7 @@ Critical / High без Fix и Regression test → production usage запрещ�
 - [ ] Scope и RoE согласованы письменно (хотя бы в отчёте)
 - [ ] Пройдены выбранные строки Test Matrix
 - [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR в Report
+- [ ] Elevated / defender access (если нужен) — по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access), не ad-hoc в prod
 - [ ] Все findings в шаблоне; Critical/High имеют Fix + Regression
 - [ ] Report содержит Blocked и Checklist / Red team updates
 - [ ] Mapping на разделы конспекта проставлен (хотя бы для High+)
@@ -182,7 +184,7 @@ Critical / High без Fix и Regression test → production usage запрещ�
 
 - [20 — Red Teaming (Iterative Adversarial Evals)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals)
 - [OpenAI — GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/) — индустриальный паттерн iterative red team
-- [23 — Incident Response и Recovery](../notes/part-7-testing-compliance/23-incident-response-recovery.md)
+- [23 — Incident Response (Trusted defender access)](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access)
 - [25 — Security-by-Design чек-лист](../notes/part-8-practice/25-security-by-design-checklist.md)
 - [32 — AI Coding Security Checklist](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 - [33–36 — Учебное приложение](../notes/part-10-course-appendix/33-course-appendix-agentic-security.md)
