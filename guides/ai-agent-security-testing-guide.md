@@ -1,8 +1,8 @@
 ---
 tags: [ai-security, testing, review, guide, agents]
 статус: готово
-обновлено: 2026-07-18
-изменения: "Первая версия: Scope, RoE, Test Matrix, Severity, Findings, Report, mapping."
+обновлено: 2026-07-26
+изменения: "§3.1 Iterative adversarial (GPT-Red pattern): метрики ASR / EV-06; якорь на §20."
 ---
 
 # AI Agent Security Testing Guide
@@ -59,6 +59,7 @@ tags: [ai-security, testing, review, guide, agents]
 5. Все findings фиксировать по [шаблону](../templates/agent-security-finding.md); устное «вроде баг» не считается.
 6. Finding с Critical/High без fix + regression **блокирует** production usage (согласовано с §25 / §32).
 7. Не публиковать в issues / PR реальные секреты, внутренние URL и offensive payload (см. [README](../README.md)).
+8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
 
 ## 3. Test Matrix
 
@@ -68,13 +69,29 @@ tags: [ai-security, testing, review, guide, agents]
 | Context | trusted и untrusted данные не смешиваются в одном instruction channel | High |
 | Tools | RBAC, schema bypass не проходит, tool hijacking ловится | High |
 | Memory | memory poisoning и cross-user leakage невозможны | High |
-| Sandbox | shell / file / network escape блокируются | Critical |
+| Sandbox | shell / file / network escape блокируются; нет выхода за стенд (`EVAL-CONTAINMENT-01`) | Critical |
 | Egress | data exfiltration и domain bypass блокируются | Critical |
 | Output | секреты не утекают; unsafe rendering / hallucination с риском действия — под контролем | High |
 | MCP | tool poisoning и shadow server не проходят review/pin | High |
 | AI-coding | AGENTS.md / repo instructions, CI/CD, dependency changes под review | High |
 
 Минимум для первого прохода: взять **3–4** строки matrix, релевантные вашему агенту, и довести каждую до Expected / Actual / Evidence.
+
+### 3.1 Iterative adversarial (GPT-Red pattern)
+
+Single-shot кейс проверяет один вход. Агент может пройти single-shot и провалить **итеративный** прогон: попытка → наблюдение (ответ / tools / egress) → мутация → повтор до success или бюджета. Индустриальный паттерн (в т.ч. [OpenAI GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/)) — про процесс, не про продукт OpenAI.
+
+Канон цикла, surfaces, schema и runner — [§20 Iterative Adversarial Evals](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals). Здесь только что зафиксировать в отчёте проверки.
+
+| Метрика / поле | Зачем в Report |
+|---|---|
+| `max_attempts` / stop budget | предел итераций (timeout / cost) |
+| `ASR` | доля успешных атак (attack success rate) |
+| `attempts_to_success` | на какой попытке first success (или null) |
+
+> **Правило:** automated iterative red team **дополняет** human review и runtime controls (EV-03 / EV-04 / EV-06). Не единственный release gate.
+
+Для high-risk агента: iterative suite **или** явный N/A с причиной ([EV-06](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md)).
 
 ## 4. Severity
 
@@ -156,13 +173,15 @@ Critical / High без Fix и Regression test → production usage запрещ�
 
 - [ ] Scope и RoE согласованы письменно (хотя бы в отчёте)
 - [ ] Пройдены выбранные строки Test Matrix
+- [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR в Report
 - [ ] Все findings в шаблоне; Critical/High имеют Fix + Regression
 - [ ] Report содержит Blocked и Checklist / Red team updates
 - [ ] Mapping на разделы конспекта проставлен (хотя бы для High+)
 
 ## См. также
 
-- [20 — Red Teaming и Adversarial Testing](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming (Iterative Adversarial Evals)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals)
+- [OpenAI — GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/) — индустриальный паттерн iterative red team
 - [23 — Incident Response и Recovery](../notes/part-7-testing-compliance/23-incident-response-recovery.md)
 - [25 — Security-by-Design чек-лист](../notes/part-8-practice/25-security-by-design-checklist.md)
 - [32 — AI Coding Security Checklist](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)

@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, coding-agent, threat-model, dfd]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлена модель угроз AI-coding agent, сравнительные показатели и DFD."
+обновлено: 2026-07-26
+изменения: "Evaluation Gaming якорь: AC-009 tests/CI/golden; ссылка на §20."
 ---
 
 # 26 — AI-coding agent: модель угроз
@@ -207,6 +207,17 @@ flowchart LR
 | AC-006 | Generated test скрывает баг или удаляет проверку | Medium | human review, test diff review |
 | AC-007 | Агент чинит CI удалением security gate | High | protected workflows, CODEOWNERS |
 | AC-008 | Секрет попадает в prompt/log/diff | Critical | secret redaction, scanning, rotation |
+| AC-009 | Evaluation Gaming: агент правит tests, отключает CI checks или читает golden answers / dataset hosts из CI artifacts | High | test/CI diff review; isolate golden; score integrity ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
+
+### Сценарий: coding Evaluation Gaming
+
+Агент «улучшает» метрику покрытия или CI green не задачей, а shortcut:
+
+1. правит или ослабляет tests / assertions;
+2. отключает security checks в workflow;
+3. читает golden files / answer keys из CI artifacts или dataset hosts.
+
+Это локальный случай [Evaluation Gaming (§20)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking): score/CI green недостоверны. AC-006/AC-007 — смежные; AC-009 явно фиксирует **integrity оценки** в coding loop.
 
 ## Go snippet: риск-профиль coding task
 
@@ -263,6 +274,8 @@ func ClassifyTask(t CodingTask) RiskLevel {
 - [ ] Есть audit по tool calls, commands, file changes, PR.
 - [ ] Есть red team tests для repo poisoning.
 - [ ] Есть incident playbook для compromised coding agent.
+- [ ] Diff по tests / CI workflows ревьюится отдельно (AC-006 / AC-007 / AC-009).
+- [ ] Golden answers / dataset hosts недоступны coding agent; CI green после shortcut ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 
 ## Литература
 
@@ -280,4 +293,5 @@ func ClassifyTask(t CodingTask) RiskLevel {
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
+- [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
