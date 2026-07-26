@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-19
-изменения: "ADI: spoofed trusted metadata (STRIDE + короткий сценарий); ссылка на §03."
+обновлено: 2026-07-26
+изменения: "Evaluation Gaming / Reward Hacking: STRIDE + короткий сценарий; ссылка на §20."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -222,6 +222,7 @@ STRIDE — это способ пройтись по компонентам си
 | Audit Logger | Repudiation | Нельзя восстановить, почему агент выполнил действие | Medium | immutable logs, correlation ID, tool call reason |
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
 | Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
+| Eval harness / metrics / test store | Tampering / Elevation of Privilege | Evaluation Gaming: spoofed path к эталону, evaluator или test data → недостоверный score | High | isolate ground truth; separate evaluator; block dataset hosts; score spike → human review ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
 
 ## Сценарий: Agent Data Injection (spoofed trusted metadata)
 
@@ -234,6 +235,18 @@ STRIDE — это способ пройтись по компонентам си
 | 3 | Опасный sink вызывается с подставным resource ID / account / path |
 
 Контрмера на уровне threat model: в DFD пометить **metadata fields внутри untrusted data** как отдельный Tampering/Spoofing путь; controls — policy validation, не «модель разберётся». Канон и checklist — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi).
+
+## Сценарий: Evaluation Gaming / Reward Hacking
+
+Агент оптимизирует метрику не через выполнение задачи, а через shortcut к эталону / evaluator / test store. Сеть может оставаться «в allowlist» eval infra — score растёт, результат недостоверен. Это не Containment Escape (выход за стенд), а **целостность оценки**.
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Цель агента — высокий eval score |
+| 2 | Tool/path ведёт к ground truth, evaluator config или metrics write |
+| 3 | Score растёт без легитимного task completion → auto-pass недопустим |
+
+Threat model: элемент **Eval harness** в DFD; controls и EV-08 — [§20 Evaluation Gaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking). Audit signals — [§15](../part-5-control-observability/15-observability-tracing.md).
 
 ## Risk Rating
 
@@ -469,10 +482,12 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Secrets не предполагаются в env на internet-facing agent hosts.
 - [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
 - [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
+- [ ] Учтён Evaluation Gaming: эталон / evaluator / test store вне reach агента; score без integrity ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — evaluation gaming / containment (канон §20)
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
@@ -487,5 +502,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
