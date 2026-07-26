@@ -41,6 +41,20 @@ class AuditEvent:
     attrs: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class EvalRunAudit:
+    """Fields for investigating Evaluation Gaming (see §20)."""
+
+    agent_goal: str = ""
+    declared_plan: str = ""
+    actual_actions: list[str] = field(default_factory=list)
+    external_hosts: list[str] = field(default_factory=list)
+    credential_access: bool = False
+    evaluation_score: float = 0.0
+    score_delta: float = 0.0
+    policy_violations: list[str] = field(default_factory=list)
+
+
 SECRET_PATTERNS = [
     re.compile(
         r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"

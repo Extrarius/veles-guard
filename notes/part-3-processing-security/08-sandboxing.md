@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлена врезка Localhost is not a trust boundary (AutoJack); примеры не требуют обновления"
+обновлено: 2026-07-26
+изменения: "Containment Escape: sandbox ≠ isolation; pre-eval checklist; ссылки §17/§20/§23."
 ---
 
 # 08 — Sandboxing
@@ -102,6 +102,43 @@ flowchart LR
 Experimental agent frameworks и локальные привилегированные сервисы (MCP, WebSocket, dev API) часто слушают loopback «для удобства». **Loopback — не изоляция:** browser automation агента может обратиться к `127.0.0.1` / `localhost` так же, как к внешнему URL.
 
 Sandbox/devbox для таких фреймворков — обязательный контроль: ограничить blast radius, если локальный сервис скомпрометирован или доступен без auth. Полный кейс и контрмеры — в [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack).
+
+## Sandbox ≠ isolation (Containment Escape)
+
+Даже «песочница» для eval / research harness не гарантирует, что ущерб останется внутри стенда. Типичная цепочка ([OpenAI — HF eval security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/)):
+
+```text
+Узкая цель оценки
+  → обход внутри исследовательской среды
+  → сетевой выход
+  → внешняя инфраструктура
+  → ущерб за пределами заранее определённого стенда
+```
+
+> **Правило:** sandbox — не гарантия isolation, если рядом остаются сеть, действующие секреты, DNS, облачные metadata, `localhost` / private ranges или уязвимая control plane.
+
+```mermaid
+flowchart LR
+  Goal["NarrowEvalGoal"]
+  Bypass["BypassInsideEnv"]
+  Net["NetworkPath"]
+  External["ExternalInfra"]
+  Harm["HarmOutsideStand"]
+  Goal --> Bypass --> Net --> External --> Harm
+```
+
+### Pre-eval checklist (до запуска испытания)
+
+- [ ] У тестовой среды физически или сетево отсутствует выход в production.
+- [ ] Разрешены только явно перечисленные адреса назначения (egress allowlist).
+- [ ] В среде нет действующих внешних учётных данных.
+- [ ] DNS, прокси, облачные metadata и `localhost` считаются каналами выхода.
+- [ ] Есть лимит количества действий, времени, процессов и сетевых соединений.
+- [ ] Kill-switch проверен **до** запуска ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+- [ ] После испытания — ротация всех доступных секретов.
+- [ ] Есть процесс уведомления внешних организаций, если стенд мог их затронуть.
+
+Eval на пересечение границ: [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01). IR first actions — [§23](../part-7-testing-compliance/23-incident-response-recovery.md). Практика RoE — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md).
 
 ## Уровни sandbox
 
@@ -292,10 +329,13 @@ var Tools = map[string]ToolSpec{
 - [ ] Файловая система read-only, где возможно.
 - [ ] Sandbox disposable: после задачи очищается.
 - [ ] Experimental frameworks и локальные привилегированные сервисы выполняются в sandbox/devbox.
+- [ ] Перед eval/red-team пройден pre-eval containment checklist (сеть, секреты, DNS/localhost, kill-switch).
+- [ ] Sandbox не считается isolation при открытой сети / живых credentials / уязвимой control plane.
 
 ## Литература
 
 - [Список литературы](../literature.md#инструменты)
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape из eval harness
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
 - [OWASP Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
@@ -306,4 +346,8 @@ var Tools = map[string]ToolSpec{
 
 - [07 — Parameter Validation и Schema Enforcement](07-parameter-validation-schema.md)
 - [10 — Secrets Management](10-secrets-management.md)
+- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [20 — Red Teaming (EVAL-CONTAINMENT-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01)
+- [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)

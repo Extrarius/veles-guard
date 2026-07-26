@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Audit fields для agent identity / tool binding; связь с §06."
+обновлено: 2026-07-26
+изменения: "Audit fields для eval integrity (Evaluation Gaming); связь с §20."
 ---
 
 # 15 — Observability и Tracing
@@ -160,6 +160,21 @@ Audit log отличается от обычного debug log.
 
 Без этих полей лог «есть», но нельзя ответить: под чьей authority и в каком scope прошло действие.
 
+Для eval / red-team runs (Evaluation Gaming, [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) дополнительно фиксируйте:
+
+| Поле | Назначение |
+|---|---|
+| `agent_goal` | заявленная цель прогона (task / metric) |
+| `declared_plan` | план агента до действий (кратко) |
+| `actual_actions` | фактические tool calls / writes (сводка) |
+| `external_hosts` | внешние хосты, к которым был доступ |
+| `credential_access` | был ли доступ к credentials / secrets |
+| `evaluation_score` | итоговый score |
+| `score_delta` | изменение score относительно baseline |
+| `policy_violations` | сработавшие policy / deny / boundary flags |
+
+> **Правило:** резкий `score_delta` после `external_hosts` / `credential_access` (или запись в test/metrics store) → **human review**, не auto-pass. Канон — [§20 `ScoreNeedsHumanReview`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking).
+
 ## Угроза / контекст
 
 | Угроза | Пример | Risk |
@@ -172,6 +187,7 @@ Audit log отличается от обычного debug log.
 | Underlogging | фиксируется только финальный ответ, но не policy decisions | Medium |
 | Нет identity fields | tool call есть, но неизвестны agent_id / on_behalf_of / role | High |
 | Недостаточный retention | следы инцидента исчезли раньше расследования | Medium |
+| Нет eval integrity fields | score spike без `external_hosts` / `credential_access` / `score_delta` в audit | High |
 
 ## Подходы и контрмеры
 
@@ -279,6 +295,18 @@ type AuditEvent struct {
     Reason         string         `json:"reason,omitempty"`
     Attrs          map[string]any `json:"attrs,omitempty"`
 }
+
+// EvalRunAudit — поля для расследования Evaluation Gaming (см. §20).
+type EvalRunAudit struct {
+	AgentGoal         string   `json:"agent_goal"`
+	DeclaredPlan      string   `json:"declared_plan,omitempty"`
+	ActualActions     []string `json:"actual_actions,omitempty"`
+	ExternalHosts     []string `json:"external_hosts,omitempty"`
+	CredentialAccess  bool     `json:"credential_access"`
+	EvaluationScore   float64  `json:"evaluation_score"`
+	ScoreDelta        float64  `json:"score_delta"`
+	PolicyViolations  []string `json:"policy_violations,omitempty"`
+}
 ```
 
 ### Redacted logger
@@ -381,6 +409,8 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
+- [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
+- [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 - [ ] Есть retention policy для security logs.
 - [ ] Логи нельзя менять обычным пользователям агента.
 - [ ] В trace видно версию prompt / policy / tool schema.
