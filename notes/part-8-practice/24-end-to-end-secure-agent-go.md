@@ -2,8 +2,8 @@
 tags: [ai-security, agents, go, end-to-end, secure-runtime]
 часть: "Часть VIII — Практика"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-07-19
+изменения: "См. также → §21 MCP→OSCAL case study."
 ---
 
 # 24 — End-to-End: безопасный агент на Go
@@ -894,5 +894,6 @@ Spec-driven = контрольная точка до tool execution агенто
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [21 — Compliance: MCP → OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)
 - [25 — Security-by-Design чек-лист](25-security-by-design-checklist.md)
 - [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)

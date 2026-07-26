@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Навигация «Вперёд» → §33 (Часть X — Учебное приложение)."
+обновлено: 2026-07-26
+изменения: "AC-SK-07: re-review по событиям из mcp-skill-review."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -144,6 +144,8 @@ High-risk пункт со статусом No блокирует production usag
 | AC-MCP-06 | MCP egress ограничен | High | TODO |
 | AC-MCP-07 | Есть kill-switch per MCP server | High | TODO |
 | AC-MCP-08 | MCP calls логируются | Medium | TODO |
+| AC-ADI-01 | Resource IDs / provenance из tool / issue / PR не trusted без deterministic validation ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)) | High | TODO |
+| AC-ADI-02 | Agent не принимает self-asserted trust из tool response / structured metadata | High | TODO |
 
 ## 9. Skills / plugins
 
@@ -155,7 +157,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-SK-04 | Optional scripts требуют sandbox | High | TODO |
 | AC-SK-05 | Skills не могут override security policy | High | TODO |
 | AC-SK-06 | Есть kill-switch per skill/plugin | Medium | TODO |
-| AC-SK-07 | Skill updates требуют re-review | High | TODO |
+| AC-SK-07 | Skill updates требуют re-review по событиям из [mcp-skill-review](../../templates/mcp-skill-review.md#re-review-triggers) | High | TODO |
 
 ## 10. Secrets and privacy
 
@@ -303,6 +305,7 @@ AI-coding agent можно считать минимально безопасн�
 
 ## См. также
 
+- [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
 - [25 — Security-by-Design чек-лист](../part-8-practice/25-security-by-design-checklist.md)
 - [26 — AI-coding agent: модель угроз](26-ai-coding-agent-threat-model.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
