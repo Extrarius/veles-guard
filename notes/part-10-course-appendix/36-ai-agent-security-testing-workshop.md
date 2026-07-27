@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, testing, review, workshop, findings]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Первая версия воркшопа: Testing Guide, finding template, валидация полей."
+обновлено: 2026-07-26
+изменения: "Якорь Iterative Adversarial Evals (GPT-Red pattern) / EV-06; ссылка на §20."
 ---
 
 # 36 — AI Agent Security Testing Workshop
@@ -32,7 +32,7 @@ tags: [ai-security, course-appendix, testing, review, workshop, findings]
 - Обёртка для воркшопа: [templates/course/agent-security-finding.md](../../templates/course/agent-security-finding.md)
 - Основная карточка finding: [templates/agent-security-finding.md](../../templates/agent-security-finding.md)
 
-Связь с теорией: [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) (adversarial testing), [§23](../part-7-testing-compliance/23-incident-response-recovery.md) (если finding = инцидент), [§25](../part-8-practice/25-security-by-design-checklist.md) / [§32](../part-9-ai-coding-security/32-ai-coding-security-checklist.md) (чеклисты).
+Связь с теорией: [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) (adversarial testing), в т.ч. [Iterative Adversarial Evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals) (паттерн GPT-Red — процесс, не продукт), [§23](../part-7-testing-compliance/23-incident-response-recovery.md) (если finding = инцидент), [§25](../part-8-practice/25-security-by-design-checklist.md) / [§32](../part-9-ai-coding-security/32-ai-coding-security-checklist.md) (чеклисты).
 
 ## Для кого
 
@@ -72,7 +72,7 @@ tags: [ai-security, course-appendix, testing, review, workshop, findings]
 | Мин | Тема | Что сделать |
 |---|---|---|
 | 0–5 | Scope + RoE | Прочитать §1–2 гайда; зафиксировать out-of-scope |
-| 5–15 | Test Matrix | Выбрать 3–4 строки под свой агент; для каждой — Expected |
+| 5–15 | Test Matrix | Выбрать 3–4 строки под свой агент; для каждой — Expected; для high-risk — single-shot vs iterative (или N/A) |
 | 15–30 | Findings | Заполнить 1–2 карточки; Critical/High → Fix + Regression |
 | 30–40 | Report | Summary, high-risk, blocked, checklist / red-team updates |
 | 40–45 | Mapping | Привязать findings к §20 / §23 / §25 / §32 (и узким разделам) |
@@ -84,8 +84,9 @@ tags: [ai-security, course-appendix, testing, review, workshop, findings]
 1. Согласовать Scope (что тестируем) и RoE (чего не делаем).
 2. Взять строки matrix: например Tools, Egress, MCP, AI-coding — или релевантные вашему агенту.
 3. Формулировки только вида: «проверить, что агент НЕ… / что контроль блокирует…».
-4. Evidence без секретов; destructive — только mock tools.
-5. Не закрывать Critical/High без Regression test (правило §20).
+4. Для high-risk агента: отметить single-shot vs **iterative** (или явный N/A / EV-06). Если iterative — зафиксировать `max_attempts` и при возможности ASR ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals); шпаргалка в [Testing Guide §3.1](../../guides/ai-agent-security-testing-guide.md)).
+5. Evidence без секретов; destructive — только mock tools.
+6. Не закрывать Critical/High без Regression test (правило §20).
 
 ### Severity (шпаргалка)
 
@@ -166,6 +167,7 @@ func Validate(f Finding) error {
 
 - [ ] Scope и RoE понятны участникам
 - [ ] Выбраны 3–4 строки Test Matrix
+- [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR отмечены
 - [ ] Заполнены 1–2 finding по шаблону
 - [ ] Critical/High имеют Fix и Regression test
 - [ ] Есть краткий Report (summary + blocked + updates)
@@ -174,8 +176,9 @@ func Validate(f Finding) error {
 ## Литература
 
 - [Список литературы](../literature.md)
-- Процесс: [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
-- Конспект: [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [§23](../part-7-testing-compliance/23-incident-response-recovery.md), [§25](../part-8-practice/25-security-by-design-checklist.md), [§32](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
+- Процесс: [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) (§3.1 Iterative)
+- [OpenAI — GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/) — паттерн iterative red team (канон §20)
+- Конспект: [§20 Iterative Adversarial Evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals), [§23](../part-7-testing-compliance/23-incident-response-recovery.md), [§25](../part-8-practice/25-security-by-design-checklist.md), [§32](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 
 ## См. также
 

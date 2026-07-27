@@ -32,6 +32,33 @@ interface AuditEvent {
   attrs?: Record<string, unknown>;
 }
 
+/** Fields for investigating Evaluation Gaming (see §20). */
+interface EvalRunAudit {
+  agentGoal?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  externalHosts?: string[];
+  credentialAccess?: boolean;
+  evaluationScore?: number;
+  scoreDelta?: number;
+  policyViolations?: string[];
+}
+
+/** Layers for Reasoning vs actions (see §15). */
+interface ActionIntegrityView {
+  userFacingSummary?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  reasoningAvailable?: boolean; // CoT optional; never sole SoT
+  summaryActionsGap?: boolean;
+  planActionsGap?: boolean;
+  l2Mismatch?: boolean;
+}
+
+function needsHumanReview(v: ActionIntegrityView): boolean {
+  return Boolean(v.l2Mismatch || v.summaryActionsGap || v.planActionsGap);
+}
+
 const SECRET_PATTERNS = [
   /(api[_-]?key|token|secret|password)\s*[:=]\s*['"]?[^'"\s]+/i,
   /bearer\s+[a-z0-9._\-]+/i,

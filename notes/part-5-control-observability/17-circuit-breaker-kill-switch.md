@@ -2,8 +2,8 @@
 tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Kill-switch отзывает credentials/tokens агента; связь с §06 identity."
+обновлено: 2026-07-26
+изменения: "Pre-eval: kill-switch drill + лимиты до red-team/containment suite."
 ---
 
 # 17 — Circuit Breaker и Kill-Switch
@@ -417,6 +417,10 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 | incident confirmed | global read-only mode / full shutdown + revoke credentials |
 | compromised agent identity | suspend principal + revoke/rotate tokens |
 
+## Перед eval / red-team
+
+До containment suite или adversarial eval: **drill kill-switch** (stop agent + revoke creds) и зафиксировать лимиты steps / time / сетевых соединений. Sandbox ≠ isolation — [§08 pre-eval checklist](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); eval — [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01).
+
 ## Чек-лист
 
 - [ ] Есть max steps для agent loop.
@@ -433,6 +437,7 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 - [ ] Есть read-only / degraded mode.
 - [ ] Есть ручной операторский override.
 - [ ] Есть процедура восстановления после incident.
+- [ ] Перед eval/red-team kill-switch проверен drill'ом; лимиты действий и сети заданы.
 
 ## Литература
 
