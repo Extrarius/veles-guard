@@ -3,7 +3,7 @@ tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-07-26
-изменения: "Autonomous-agent detection signals; escalate IR → §23; см. также §23."
+изменения: "Якорь Reasoning vs actions → §15; audit_gap / user-facing mismatch."
 ---
 
 # 16 — Monitoring и Alerting
@@ -216,6 +216,8 @@ Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switc
 - score / metric spike сразу после network tool;
 - user-facing summary не совпадает с tool trace (audit gap).
 
+Канон слоёв (ответ / план / actions / reasoning / L2) и правило «reasoning ≠ source of truth» — [§15 Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions).
+
 ## Пример (Go)
 
 ### Security signal
@@ -407,7 +409,7 @@ var Rules = []Rule{
 
 ## См. также
 
-- [15 — Observability и Tracing](15-observability-tracing.md)
+- [15 — Observability и Tracing](15-observability-tracing.md) · [Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions)
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)

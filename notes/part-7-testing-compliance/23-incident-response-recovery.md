@@ -3,7 +3,7 @@ tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
 обновлено: 2026-07-26
-изменения: "Playbook Autonomous-agent IR (containment); Detect-сигналы; AutonomousContainmentSteps; sync py/ts."
+изменения: "Trusted defender access: org practice для IR/red-team elevated access; checklist."
 ---
 
 # 23 — Incident Response и Recovery
@@ -134,7 +134,8 @@ Prepare → Detect → Triage → Contain → Eradicate → Recover → Learn
 - audit logs;
 - playbooks;
 - test data;
-- communication templates.
+- communication templates;
+- Trusted defender access path ([ниже](#trusted-defender-access)).
 
 ### 2. Detect
 
@@ -388,6 +389,36 @@ func ExportIncident(i Incident) ([]byte, error) {
 }
 ```
 
+## Trusted defender access
+
+Org practice: кто и на каких условиях получает elevated доступ к agent tooling, traces и **attack materials** во время IR / red-team (не повседневный prod access).
+
+> **Правило:** доступ защитника к agent / attack materials — только verified identity, изолированная среда, полный audit, time-box; без auto-export; с kill access и явным emergency elevate.
+
+Prod-модели иногда **отказывают** анализировать attack materials → нужен заранее согласованный org path для defender tooling, а не «обход» guardrails в обычном workspace.
+
+### Когда применять
+
+- IR triage и разбор tool traces / logs;
+- red-team review attack materials в согласованном стенде;
+- emergency elevate tools / scopes на короткий TTL (не baseline prod rights).
+
+Не путать с [Autonomous-agent IR](#playbook-autonomous-agent-ir-containment) (шаги containment) и с повседневным [Agent Identity §06](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding).
+
+### Org checklist
+
+| Контроль | Требование |
+|---|---|
+| Verified org / role | отдельная managed identity; не shared SA / API key |
+| Isolated env | отдельный стенд / sandbox; без blast radius в prod |
+| Full audit | кто / что / когда; tool trace и access log |
+| Time-boxed | TTL на доступ; автоистечение |
+| No auto-export | запрет автовыгрузки attack materials наружу |
+| Kill access | отзыв по истечении TTL или по решению IR lead ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)) |
+| Emergency elevate | явный approval + TTL; не silent privilege growth |
+
+RoE для обычного security testing sandbox — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md); elevated defender path — только по этому разделу.
+
 ## Playbook: Prompt Injection Success
 
 ```text
@@ -550,6 +581,8 @@ Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-
 - [ ] Inventory internet-facing agent control planes и процедура их изоляции.
 - [ ] IR сохраняет tool trace и не опирается на user-facing summary.
 - [ ] Containment escape → regression `EVAL-CONTAINMENT-01` (и integrity evals при необходимости).
+- [ ] Есть Trusted defender access path ([выше](#trusted-defender-access)): verified role, isolated env, audit, TTL, no auto-export, kill access.
+- [ ] Emergency elevate — только с approval + TTL; не baseline prod rights.
 
 ## Литература
 
@@ -566,6 +599,7 @@ Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-
 ## См. также
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [06 — RBAC и Tool Permissions (Agent Identity)](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding)
 - [08 — Sandboxing (Containment Escape)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
@@ -573,3 +607,4 @@ Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [20 — Red Teaming (Containment + Evaluation Gaming)](20-red-teaming-adversarial-testing.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) — RoE; elevated access → этот раздел
