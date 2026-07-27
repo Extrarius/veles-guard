@@ -1,4 +1,4 @@
-// Illustrative examples for notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md
+// Illustrative examples for notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md
 // Not for production use. Licensed under MIT (see LICENSE-CODE).
 
 type Severity = "Critical" | "High" | "Medium" | "Low";
