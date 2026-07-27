@@ -2,8 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлена ссылка на §20 Layered security evals в чек-лист; примеры не требуют обновления"
+обновлено: 2026-07-26
+изменения: "Якорь Reasoning vs actions → §15; audit_gap / user-facing mismatch."
 ---
 
 # 16 — Monitoring и Alerting
@@ -93,6 +93,13 @@ flowchart LR
 | `approval_rejected` | человек отклонил действие |
 | `secret_detected` | найден секрет во входе, памяти или выходе |
 | `egress_blocked` | попытка отправить данные в запрещённый destination |
+| `egress_destination_out_of_policy` | host / DNS вне task allowlist (out-of-task hosts) |
+| `eval_probe_suspected` | попытки доступа к answers / evaluator / golden / label hosts |
+| `tool_retry_after_deny` | повтор tool call после `tool_denied` (тот же / похожий args) |
+| `credential_use_after_revoke` | использование отозванного / неожиданного credential |
+| `score_spike_after_network` | резкий рост eval score после network tool |
+| `undeclared_tool_call` | tool call вне declared plan / allowlist |
+| `audit_gap` | действие без span / audit (hidden action) |
 | `schema_validation_failed` | tool args не прошли строгую валидацию |
 | `budget_exceeded` | превышен лимит токенов, стоимости или шагов |
 | `circuit_breaker_opened` | tool/runtime временно остановлен |
@@ -127,6 +134,12 @@ agent_kill_switch_active
 | Budget runaway | стоимость / токены растут выше лимита | High |
 | Breaker open | circuit breaker открылся для critical tool | High |
 | Kill-switch active | активирован kill-switch | Critical |
+| Out-of-task host | `egress_destination_out_of_policy` | High |
+| Eval / answer probe | `eval_probe_suspected` | High |
+| Retry after deny | `tool_retry_after_deny` (sequence, не только volume) | Medium |
+| Stolen / revoked creds | `credential_use_after_revoke` | Critical |
+| Score spike after net | `score_spike_after_network` | High |
+| Hidden / undeclared action | `undeclared_tool_call` или `audit_gap` | High |
 
 ## Угроза / контекст
 
@@ -178,9 +191,17 @@ latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, app
 |---|---|
 | один denied tool call | log only |
 | 10 denied calls за 5 минут | alert |
+| `tool_retry_after_deny` | alert (sequence) + trace |
 | egress с secret | block + high alert |
+| `egress_destination_out_of_policy` | block + High; escalate IR |
+| `credential_use_after_revoke` | kill-switch + revoke ([§17](17-circuit-breaker-kill-switch.md)) + IR |
+| `score_spike_after_network` / `eval_probe_suspected` | human review score; escalate IR |
+| `undeclared_tool_call` / `audit_gap` | High alert + preserve trace |
 | token runaway | stop run |
 | compromised tool | disable tool |
+| confirmed containment / pivot | [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) |
+
+Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switch.md). Полный ordered playbook (trace, pivot, notify, regression) — [§23](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
 
 ### 4. Детектировать поведенческие аномалии
 
@@ -190,7 +211,12 @@ latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, app
 - read-only агент пытается выполнить write action;
 - tool, который обычно вызывается редко, внезапно стал массовым;
 - вырос процент blocked egress;
-- увеличился средний number of steps per run.
+- увеличился средний number of steps per run;
+- hosts вне task allowlist;
+- score / metric spike сразу после network tool;
+- user-facing summary не совпадает с tool trace (audit gap).
+
+Канон слоёв (ответ / план / actions / reasoning / L2) и правило «reasoning ≠ source of truth» — [§15 Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions).
 
 ## Пример (Go)
 
@@ -370,6 +396,8 @@ var Rules = []Rule{
 - [ ] Есть защита от alert fatigue.
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
 - [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
+- [ ] Есть алерты на out-of-task hosts, retry-after-deny, credential-after-revoke, score-after-net, undeclared/audit_gap.
+- [ ] Critical / confirmed containment → escalate [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
 
 ## Литература
 
@@ -381,7 +409,8 @@ var Rules = []Rule{
 
 ## См. также
 
-- [15 — Observability и Tracing](15-observability-tracing.md)
+- [15 — Observability и Tracing](15-observability-tracing.md) · [Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions)
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [23 — Incident Response (Autonomous-agent IR)](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment)

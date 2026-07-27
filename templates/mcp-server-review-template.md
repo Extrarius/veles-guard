@@ -31,6 +31,7 @@ tags: [ai-security, шаблон, mcp-review]
 - [ ] Описания tools не содержат скрытых инструкций для модели.
 - [ ] Описание соответствует фактическому поведению (нет capability lie).
 - [ ] Зафиксирована версия — защита от rug pull (подмены после одобрения).
+- [ ] Re-review по событиям (version/hash/metadata drift, смена source) — см. [mcp-skill-review.md — Re-review triggers](mcp-skill-review.md#re-review-triggers); auto-apply до Allow запрещён.
 - [ ] Tool output трактуется как данные, не как команды.
 - [ ] Нет cross-server влияния / shadow-сервера с тем же именем.
 
@@ -55,3 +56,5 @@ tags: [ai-security, шаблон, mcp-review]
 - **Ограничения / allowlist:** `<...>`
 - **Ревьюер / дата:** `<..., YYYY-MM-DD>`
 - **Дата пересмотра:** `<...>`
+
+События повторного ревью (version/hash drift, metadata, source) — канон: [mcp-skill-review.md — Re-review triggers](mcp-skill-review.md#re-review-triggers).
