@@ -9,7 +9,7 @@ tags: [ai-security, шаблон, course, finding, testing, workshop]
 
 > Учебная обёртка. Основная форма — [templates/agent-security-finding.md](../agent-security-finding.md).  
 > Канон процесса — [guides/ai-agent-security-testing-guide.md](../../guides/ai-agent-security-testing-guide.md).  
-> Воркшоп: [§36](../../notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md).
+> Воркшоп: [§37](../../notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md).
 
 ## Как использовать на занятии
 
