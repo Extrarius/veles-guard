@@ -7,7 +7,7 @@ tags: [ai-security, шаблон, course, allowed-tools, policy]
 
 [← Оглавление](../../README.md)
 
-> Политика минимальных прав для инструментов (tools) / MCP / навыков (skills). Контекст: [§06 RBAC](../../notes/part-3-processing-security/06-rbac-tool-permissions.md), [§28 Permissions](../../notes/part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md), [§35 Baseline workshop](../../notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md).
+> Политика минимальных прав для инструментов (tools) / MCP / навыков (skills). Контекст: [§06 RBAC](../../notes/part-3-processing-security/06-rbac-tool-permissions.md), [§28 Permissions](../../notes/part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md), [§36 Baseline workshop](../../notes/part-10-course-appendix/36-agentic-security-baseline-workshop.md).
 
 ## 1. Мета
 

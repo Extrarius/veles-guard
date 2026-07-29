@@ -8,7 +8,7 @@ tags: [ai-security, ai-coding, checklist, production-review]
 
 # 32 — AI Coding Security Checklist
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../part-10-course-appendix/33-course-appendix-agentic-security.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../part-10-course-appendix/33-course-ai-security-landscape.md)
 
 *Кратко: итоговый checklist для безопасной работы с AI-coding agents: repo instructions, permissions, sandbox, review, supply chain, CI/CD, MCP, skills, secrets и incident response.*
 
