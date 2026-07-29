@@ -169,7 +169,7 @@ Skill Security = не «ставим всё», а «выбираем урове�
 
 ### На что смотреть на каждом уровне
 
-**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§35 MCP / Skill Review Workshop](../part-10-course-appendix/35-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
+**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§36 MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
 
 **Sandbox** для skill-скриптов: не запускать install/postinstall и произвольный shell от имени разработчика без изоляции. См. [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md).
 
@@ -370,4 +370,4 @@ func CanEnterProductionPath(pr PR) bool {
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
-- [35 — MCP / Skill Review Workshop](../part-10-course-appendix/35-mcp-skill-review-workshop.md)
+- [36 — MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md)
