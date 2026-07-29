@@ -2,22 +2,22 @@
 tags: [ai-security, course-appendix, mcp, skills, review, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Rug pull: pin+hash+re-review по событиям → mcp-skill-review triggers."
+обновлено: 2026-07-29
+изменения: "Renumber B: review workshop = §36."
 ---
 
-# 35 — MCP / Skill Review Workshop
+# 36 — MCP / Skill Review Workshop
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](34-course-appendix-agentic-security.md) · [Вперёд →](36-agentic-security-baseline-workshop.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](35-course-appendix-agentic-security.md) · [Вперёд →](37-agentic-security-baseline-workshop.md)
 
 *Кратко: как за 15–20 минут провести проверку безопасности (security review) сервера MCP или навыка агента (agent skill) — поля формы, тревожные признаки (red flags), учебные «плохо / хорошо» (bad / good), вердикт: разрешить (Allow) / отклонить (Reject) / только в песочнице (Sandbox only).*
 
 > Примеры в разделе — на Go. Те же примеры на других языках:
-> [Python](../../examples/python/part-10/35-mcp-skill-review-workshop.py) ·
-> [Bash](../../examples/bash/part-10/35-mcp-skill-review-workshop.sh) ·
-> [TypeScript](../../examples/typescript/part-10/35-mcp-skill-review-workshop.ts) ·
-> [C++](../../examples/cpp/part-10/35-mcp-skill-review-workshop.cpp) ·
-> [Java](../../examples/java/part-10/35-mcp-skill-review-workshop.java)
+> [Python](../../examples/python/part-10/36-mcp-skill-review-workshop.py) ·
+> [Bash](../../examples/bash/part-10/36-mcp-skill-review-workshop.sh) ·
+> [TypeScript](../../examples/typescript/part-10/36-mcp-skill-review-workshop.ts) ·
+> [C++](../../examples/cpp/part-10/36-mcp-skill-review-workshop.cpp) ·
+> [Java](../../examples/java/part-10/36-mcp-skill-review-workshop.java)
 
 ## Суть
 
@@ -142,8 +142,9 @@ func DescriptionLooksHostile(desc string) bool {
 ## См. также
 
 - [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
-- [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
-- [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
+- [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
+- [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)

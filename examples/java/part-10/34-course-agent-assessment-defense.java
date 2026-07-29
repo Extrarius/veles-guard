@@ -1,4 +1,4 @@
-// Illustrative examples for notes/part-10-course-appendix/38-course-agent-assessment-defense.md
+// Illustrative examples for notes/part-10-course-appendix/34-course-agent-assessment-defense.md
 // Not for production use. Licensed under MIT (see LICENSE-CODE).
 
 import java.util.List;
@@ -13,7 +13,7 @@ final class CourseAgentAssessmentDefense {
           "output", List.of("§04", "§11"),
           "knowledge", List.of("§09", "§13"),
           "tools_mcp", List.of("§06", "§14", "§19"),
-          "assurance", List.of("§20", "§37"));
+          "assurance", List.of("§20", "§38"));
 
   /** Map assessment area to handbook section anchors. */
   static List<String> handbookRefs(String area) {

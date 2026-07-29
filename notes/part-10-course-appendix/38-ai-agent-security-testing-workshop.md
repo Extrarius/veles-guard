@@ -3,25 +3,25 @@ tags: [ai-security, course-appendix, testing, review, workshop, findings]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-29
-изменения: "Навигация → §38 Assessment and Defense."
+изменения: "Renumber B: testing workshop = §38 (хвост Части X)."
 ---
 
-# 37 — AI Agent Security Testing Workshop
+# 38 — AI Agent Security Testing Workshop
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](36-agentic-security-baseline-workshop.md) · [Вперёд →](38-course-agent-assessment-defense.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](37-agentic-security-baseline-workshop.md) · [Вперёд →](../../README.md)
 
 *Кратко: за 30–45 минут пройти порядок проверки своего агента — Scope и Rules of Engagement, 3–4 строки Test Matrix, 1–2 finding, краткий Report; без offensive payloads.*
 
 > Примеры в разделе — на Go. Те же примеры на других языках:
-> [Python](../../examples/python/part-10/37-ai-agent-security-testing-workshop.py) ·
-> [Bash](../../examples/bash/part-10/37-ai-agent-security-testing-workshop.sh) ·
-> [TypeScript](../../examples/typescript/part-10/37-ai-agent-security-testing-workshop.ts) ·
-> [C++](../../examples/cpp/part-10/37-ai-agent-security-testing-workshop.cpp) ·
-> [Java](../../examples/java/part-10/37-ai-agent-security-testing-workshop.java)
+> [Python](../../examples/python/part-10/38-ai-agent-security-testing-workshop.py) ·
+> [Bash](../../examples/bash/part-10/38-ai-agent-security-testing-workshop.sh) ·
+> [TypeScript](../../examples/typescript/part-10/38-ai-agent-security-testing-workshop.ts) ·
+> [C++](../../examples/cpp/part-10/38-ai-agent-security-testing-workshop.cpp) ·
+> [Java](../../examples/java/part-10/38-ai-agent-security-testing-workshop.java)
 
 ## Суть
 
-После review одного MCP/skill ([§35](35-mcp-skill-review-workshop.md)) и baseline среды ([§36](36-agentic-security-baseline-workshop.md)) нужен **порядок проверки агента целиком**: что входит в scope, какие границы, как фиксировать finding и куда положить regression.
+После review одного MCP/skill ([§36](36-mcp-skill-review-workshop.md)) и baseline среды ([§37](37-agentic-security-baseline-workshop.md)) нужен **порядок проверки агента целиком**: что входит в scope, какие границы, как фиксировать finding и куда положить regression.
 
 Канон процесса (не дублируем здесь):
 
@@ -153,7 +153,7 @@ func Validate(f Finding) error {
 }
 ```
 
-Полные порты — в `examples/*/part-10/37-ai-agent-security-testing-workshop.*`.
+Полные порты — в `examples/*/part-10/38-ai-agent-security-testing-workshop.*`.
 
 ### Упражнение (15 мин)
 
@@ -183,8 +183,8 @@ func Validate(f Finding) error {
 ## См. также
 
 - [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
-- [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
-- [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
-- [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
-- [38 — Course: Agent Assessment and Defense](38-course-agent-assessment-defense.md)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
+- [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
+- [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
+- [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [templates/agent-security-finding.md](../../templates/agent-security-finding.md)
