@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Якорь re-review triggers → mcp-skill-review; ADI/AutoJack сохранены."
+обновлено: 2026-07-29
+изменения: "Confused deputy: учебный сценарий + контрмеры; якорь курса §38."
 ---
 
 # 19 — MCP Security
@@ -136,6 +136,14 @@ flowchart LR
 | Missing audit | невозможно доказать, какой MCP tool что сделал | Medium |
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
+
+### Confused deputy (учебный сценарий)
+
+Классическая проблема confused deputy: агент действует **с эффективными правами пользователя** (или сервиса), а стимул к действию приходит из **недоверенного** канала.
+
+Пример (без offensive payload): письмо или тикет выглядит как «системное уведомление» и побуждает агента вызвать привилегированный tool (отправить почту, изменить ACL, вызвать admin API). Часть действия может выполниться, даже если модель «признаётся» в ответе пользователю.
+
+Контрмеры: least privilege на tools ([§06](../part-3-processing-security/06-rbac-tool-permissions.md)); HITL на high-risk ([§14](../part-5-control-observability/14-human-in-the-loop.md)); не трактовать внешний текст как authorization; audit tool calls. См. также OWASP Agentic / MCP threat guidance в [literature.md](../literature.md). Учебный маршрут assessment — [§38 Course: Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md).
 
 ## MCP03 — Tool Poisoning
 
@@ -666,3 +674,4 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
+- [38 — Course: Agent Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md)
