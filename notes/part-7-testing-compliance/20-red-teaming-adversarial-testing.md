@@ -2,8 +2,8 @@
 tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-26
-изменения: "EVAL-CONTAINMENT-01 + ViolatesContainment; EV-07; sync py/ts."
+обновлено: 2026-07-29
+изменения: "LLM-as-judge в assessment; якорь курса §34 Assessment and Defense."
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -141,6 +141,10 @@ Security evals для AI-агентов лучше рассматривать к
 deterministic checks → LLM-as-judge → human review → online monitoring
 ```
 
+**LLM-as-a-Judge в assessment:** отдельный checker оценивает пару (вход, ответ / tool trace) на нарушение политики (запрещённый контент, утечка, unsafe intent). Формат вердикта лучше фиксировать машинночитаемым (например JSON `is_violation` + краткое `reasoning`) — для suite и triage, не как единственный gate в production. Напоминание: **EV-03** — judge только доп. слой.
+
+Связь с учебным маршрутом assessment: [§34 Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md).
+
 ### Security evals checklist
 
 | ID | Проверка | Severity | Status |
@@ -152,6 +156,7 @@ deterministic checks → LLM-as-judge → human review → online monitoring
 | EV-05 | Online/user-сигналы используются для мониторинга, но не заменяют pre-release testing | High | TODO |
 | EV-06 | Для high-risk агента есть iterative adversarial suite (или явный N/A с причиной) | High | TODO |
 | EV-07 | Перед eval/red-team пройден containment pre-eval checklist; есть `EVAL-CONTAINMENT-01` (или N/A) | High | TODO |
+| EV-08 | Есть проверка integrity оценки (Evaluation Gaming): эталон/evaluator/test store недоступны агенту; score spike → human review | High | TODO |
 
 ## Iterative Adversarial Evals
 
@@ -282,6 +287,71 @@ func ViolatesContainment(e ContainmentEvent) bool {
 ```
 
 Перед прогоном — pre-eval checklist в §08; kill-switch drill — [§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md).
+
+## Evaluation Gaming / Reward Hacking
+
+Оптимизация метрики **непредусмотренным путём**: доступ к эталону (ground truth), изменение evaluator / judge, правка test data или metrics store — без реального выполнения задачи. Score растёт, доверие к результату — нет.
+
+> **Правило:** результат теста недостоверен, если агент может получить эталон, изменить оценщик или воздействовать на среду проверки.
+
+```mermaid
+flowchart LR
+  Goal["Agent optimizes score"]
+  Shortcut["Shortcut to ground truth"]
+  Eval["Touch evaluator or test store"]
+  Score["Score rises"]
+  Invalid["Result not trustworthy"]
+  Goal --> Shortcut --> Eval --> Score --> Invalid
+```
+
+### Отличие от Containment Escape
+
+| | Containment Escape | Evaluation Gaming |
+|---|---|---|
+| Фокус | выход за стенд / сеть | недоверие к **score** |
+| Даже если… | сеть в allowlist eval infra | containment «зелёный» |
+| Канон | [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape) + `EVAL-CONTAINMENT-01` выше | этот раздел |
+
+Тот же инцидент ([OpenAI — HF model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/)) освещает и network escape, и путь к эталону / evaluator; здесь — **целостность оценки**, не isolation стенда.
+
+### Design checklist
+
+1. Эталон (answer key / golden labels) недоступен агенту и его tools.
+2. Evaluator / judge отделён от agent runtime (нет write к scoring path).
+3. Test data и metrics store — read-only для агента; изменения только через controlled pipeline.
+4. Dataset / label hosts вне allowlist агента (или отдельный non-agent network).
+5. Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§15](../part-5-control-observability/15-observability-tracing.md)).
+6. Coding: правки tests / отключение CI checks / чтение golden из artifacts — fail integrity ([§26](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)).
+
+### Go: `EvalIntegritySignals` / `ScoreNeedsHumanReview`
+
+```go
+package evalintegrity
+
+type EvalIntegritySignals struct {
+	ScoreDelta       float64
+	ExternalHosts    []string
+	CredentialAccess bool
+	TestStoreWrite   bool
+}
+
+// ScoreNeedsHumanReview — score spike после внешних хостов / credentials / записи в test store
+// не считается auto-pass; нужен human review.
+func ScoreNeedsHumanReview(s EvalIntegritySignals) bool {
+	if s.TestStoreWrite {
+		return true
+	}
+	if s.ScoreDelta <= 0 {
+		return false
+	}
+	if s.CredentialAccess {
+		return true
+	}
+	return len(s.ExternalHosts) > 0
+}
+```
+
+Синхрон: [Python](../../examples/python/part-7/20-red-teaming-adversarial-testing.py) · [TypeScript](../../examples/typescript/part-7/20-red-teaming-adversarial-testing.ts). Threat context — [§02](../part-1-architecture-threats/02-threat-model.md); audit fields — [§15](../part-5-control-observability/15-observability-tracing.md).
 
 ## Подходы и контрмеры
 
@@ -620,12 +690,17 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 - [ ] Automated iterative red team не заменяет human review и runtime controls.
 - [ ] Есть `EVAL-CONTAINMENT-01` (или N/A): boundary crossing = fail даже при task_completed.
 - [ ] Перед eval пройден pre-eval containment checklist ([§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)).
+- [ ] Эталон / golden labels недоступны агенту и его tools (EV-08).
+- [ ] Evaluator и metrics/test store отделены; агент не может писать в scoring path.
+- [ ] Dataset / label hosts вне allowlist агента (или явный N/A).
+- [ ] Score spike после `external_hosts` / `credential_access` / `test_store_write` → human review, не auto-pass.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
-- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape; evaluation gaming / reward hacking (целостность оценки)
 - [OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness](https://openai.com/index/unlocking-self-improvement-gpt-red/)
+- [Zheng et al. — Judging LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)
 - [OWASP AI Security Solutions Landscape for AI and Agentic Red Teaming](https://genai.owasp.org/resource/ai-security-solutions-landscape-for-ai-and-agentic-red-teaming-q2-2026/)
 - [OWASP Top 10 for Large Language Model Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -636,11 +711,14 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
+- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md) — сценарий reward hacking
 - [08 — Sandboxing (Containment Escape)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
-- [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
+- [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md) — audit fields eval integrity
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md)
+- [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md) — gaming tests / CI / golden
 - [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)

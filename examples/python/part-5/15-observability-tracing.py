@@ -41,6 +41,38 @@ class AuditEvent:
     attrs: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class EvalRunAudit:
+    """Fields for investigating Evaluation Gaming (see §20)."""
+
+    agent_goal: str = ""
+    declared_plan: str = ""
+    actual_actions: list[str] = field(default_factory=list)
+    external_hosts: list[str] = field(default_factory=list)
+    credential_access: bool = False
+    evaluation_score: float = 0.0
+    score_delta: float = 0.0
+    policy_violations: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ActionIntegrityView:
+    """Layers for Reasoning vs actions (see §15)."""
+
+    user_facing_summary: str = ""
+    declared_plan: str = ""
+    actual_actions: list[str] = field(default_factory=list)
+    reasoning_available: bool = False  # CoT optional; never sole SoT
+    summary_actions_gap: bool = False
+    plan_actions_gap: bool = False
+    l2_mismatch: bool = False
+
+
+def needs_human_review(v: ActionIntegrityView) -> bool:
+    """L2 / plan-actions / summary-actions gap → human review."""
+    return v.l2_mismatch or v.summary_actions_gap or v.plan_actions_gap
+
+
 SECRET_PATTERNS = [
     re.compile(
         r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"

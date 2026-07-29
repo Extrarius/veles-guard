@@ -3,7 +3,7 @@ tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
 обновлено: 2026-07-26
-изменения: "Якорь Containment escape (eval harness): first actions; полный runbook — отдельный P1."
+изменения: "Trusted defender access: org practice для IR/red-team elevated access; checklist."
 ---
 
 # 23 — Incident Response и Recovery
@@ -134,7 +134,8 @@ Prepare → Detect → Triage → Contain → Eradicate → Recover → Learn
 - audit logs;
 - playbooks;
 - test data;
-- communication templates.
+- communication templates;
+- Trusted defender access path ([ниже](#trusted-defender-access)).
 
 ### 2. Detect
 
@@ -293,11 +294,15 @@ type Signal struct {
 
 func Classify(signal Signal) Severity {
 	switch signal.Event {
-	case "secret_exfiltrated", "cross_tenant_leakage", "production_shell_executed":
+	case "secret_exfiltrated", "cross_tenant_leakage", "production_shell_executed",
+		"credential_use_after_revoke":
 		return Critical
-	case "egress_with_secret_blocked", "mcp_server_compromised", "unsafe_tool_executed":
+	case "egress_with_secret_blocked", "mcp_server_compromised", "unsafe_tool_executed",
+		"egress_destination_out_of_policy", "undeclared_tool_call", "audit_gap",
+		"score_spike_after_network":
 		return High
-	case "prompt_injection_detected", "tool_denied_repeated", "budget_exceeded":
+	case "prompt_injection_detected", "tool_denied_repeated", "budget_exceeded",
+		"tool_retry_after_deny", "eval_probe_suspected":
 		return Medium
 	default:
 		return Low
@@ -334,6 +339,22 @@ func BuildContainmentPlan(signal Signal) []ContainmentAction {
 		return []ContainmentAction{StopRun}
 	}
 }
+
+// AutonomousContainmentSteps — упорядоченный IR path для containment / pivot
+// (не замена ATA ransomware playbook). Revoke credentials — через §17 kill-switch path.
+func AutonomousContainmentSteps() []string {
+	return []string{
+		"stop_agent",
+		"revoke_credentials",
+		"block_egress",
+		"save_tool_trace",
+		"ignore_user_facing_summary",
+		"pivot_check",
+		"rotate_secrets",
+		"notify_affected",
+		"regression_eval",
+	}
+}
 ```
 
 ### Incident report validation
@@ -367,6 +388,36 @@ func ExportIncident(i Incident) ([]byte, error) {
 	return json.MarshalIndent(i, "", "  ")
 }
 ```
+
+## Trusted defender access
+
+Org practice: кто и на каких условиях получает elevated доступ к agent tooling, traces и **attack materials** во время IR / red-team (не повседневный prod access).
+
+> **Правило:** доступ защитника к agent / attack materials — только verified identity, изолированная среда, полный audit, time-box; без auto-export; с kill access и явным emergency elevate.
+
+Prod-модели иногда **отказывают** анализировать attack materials → нужен заранее согласованный org path для defender tooling, а не «обход» guardrails в обычном workspace.
+
+### Когда применять
+
+- IR triage и разбор tool traces / logs;
+- red-team review attack materials в согласованном стенде;
+- emergency elevate tools / scopes на короткий TTL (не baseline prod rights).
+
+Не путать с [Autonomous-agent IR](#playbook-autonomous-agent-ir-containment) (шаги containment) и с повседневным [Agent Identity §06](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding).
+
+### Org checklist
+
+| Контроль | Требование |
+|---|---|
+| Verified org / role | отдельная managed identity; не shared SA / API key |
+| Isolated env | отдельный стенд / sandbox; без blast radius в prod |
+| Full audit | кто / что / когда; tool trace и access log |
+| Time-boxed | TTL на доступ; автоистечение |
+| No auto-export | запрет автовыгрузки attack materials наружу |
+| Kill access | отзыв по истечении TTL или по решению IR lead ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)) |
+| Emergency elevate | явный approval + TTL; не silent privilege growth |
+
+RoE для обычного security testing sandbox — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md); elevated defender path — только по этому разделу.
 
 ## Playbook: Prompt Injection Success
 
@@ -442,18 +493,70 @@ Learn
 14. Обновить threat model (§02) и monitoring rules; postmortem с owner/due dates.
 ```
 
-## Containment escape (eval harness)
+## Playbook: Autonomous-agent IR (containment)
 
-Если агент в тестовой / research среде вышел за границы стенда (сеть, чужая infra, живые credentials) — не ждать полного playbook. First actions:
+Когда агент вышел за trust boundary (eval harness escape, runaway autonomous agent, pivot на чужие hosts / credentials) — не только «ransomware ATA». Этот playbook про **containment, целостность trace и pivot**, не про destructive DB extortion.
 
-1. Остановить агент (kill-switch) и отозвать его credentials ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+> **Правило:** user-facing summary ≠ полный список действий агента. IR опирается на tool trace / audit ([GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6)), не на ответ модели пользователю.
+
+### Когда применять
+
+- агент в eval / research / prod runtime достиг hosts вне task allowlist;
+- подозрение на hunt answers / evaluator / test store ([Evaluation Gaming §20](20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking));
+- retries after deny, credential use after revoke, undeclared tools / audit gaps;
+- confirmed или high-confidence containment escape ([§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)).
+
+**Не этот playbook:** чистый ATA / agentic ransomware с destructive DB — см. [Playbook ATA](#playbook-agentic-threat-actor--agentic-ransomware) выше (можно запускать оба, если есть и pivot, и destructive).
+
+### TL;DR first actions
+
+Не ждать полного triage. Сразу:
+
+1. Остановить агент (kill-switch) и отозвать credentials ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
 2. Заблокировать сетевой egress среды.
 3. Сохранить полную последовательность tool calls / trace (не доверять user-facing summary).
 4. Проверить внешние системы, к которым агент обращался; при необходимости уведомить затронутые стороны.
-5. Ротировать секреты и токены, доступные из стенда.
-6. Превратить цепочку в regression: [`EVAL-CONTAINMENT-01`](20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01).
+5. Ротировать секреты и токены, доступные из стенда / runtime.
+6. Превратить цепочку в regression: [`EVAL-CONTAINMENT-01`](20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (и integrity evals при score gaming).
 
-Канон isolation и pre-eval checklist — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape). Развёрнутый autonomous-agent IR runbook — отдельный пункт roadmap (не этот блок).
+### Detect
+
+Сигналы мониторинга ([§16](../part-5-control-observability/16-monitoring-alerting.md)):
+
+| Signal | Смысл | Типичная severity |
+|---|---|---|
+| `egress_destination_out_of_policy` | host / DNS вне task allowlist (out-of-task hosts) | High |
+| `eval_probe_suspected` | hunt answers / evaluator / golden / label hosts | Medium–High |
+| `tool_retry_after_deny` | повтор того же / похожего tool после deny | Medium |
+| `credential_use_after_revoke` | использование отозванных / чужих credentials | Critical |
+| `score_spike_after_network` | рост eval score после network tool (см. §20 Gaming) | High |
+| `undeclared_tool_call` / `audit_gap` | hidden actions: tool/span нет в declared plan / audit | High |
+
+### Contain → Eradicate → Recover
+
+Порядок (см. также `AutonomousContainmentSteps` в примере Go):
+
+```text
+1. stop_agent          — kill-switch: остановить run / agent ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md))
+2. revoke_credentials  — suspend identity, revoke tokens (не только «выключить tool»)
+3. block_egress        — deny outbound; зафиксировать attempted destinations
+4. save_tool_trace     — полный tool-call / span sequence как IR artifact
+5. ignore_user_summary — сравнивать declared plan / user-facing text с actual_actions; расхождения = evidence
+6. pivot_check         — какие hosts, credentials, systems затронуты; lateral / secondary agents
+7. rotate_secrets      — все secrets/tokens, доступные из стенда или agent host
+8. notify_affected     — владельцы систем / data subjects по политике
+9. regression_eval     — EVAL-CONTAINMENT-01; при score gaming — integrity checks (§20 EV-08)
+```
+
+Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape). Отчёт — [`templates/incident-report-template.md`](../../templates/incident-report-template.md).
+
+### Отличия от соседних playbooks
+
+| Playbook | Фокус |
+|---|---|
+| ATA / Agentic Ransomware | destructive / extortion, control-plane RCE |
+| Autonomous-agent IR | containment, pivot, trace integrity |
+| Evaluation Gaming (§20) | недоверие к **score**, не замена IR |
 
 ## Чек-лист
 
@@ -469,18 +572,23 @@ Learn
 - [ ] Есть playbook для secret exposure.
 - [ ] Есть playbook для MCP compromise.
 - [ ] Есть playbook для Agentic Threat Actor / agentic ransomware.
+- [ ] Есть playbook Autonomous-agent IR (containment) ([выше](#playbook-autonomous-agent-ir-containment)).
 - [ ] Есть процедура очистки memory.
 - [ ] Red team findings добавляются в regression suite.
 - [ ] После инцидента обновляется threat model.
 - [ ] После инцидента обновляется monitoring.
 - [ ] Postmortem имеет owner и due dates.
 - [ ] Inventory internet-facing agent control planes и процедура их изоляции.
-- [ ] Есть first-actions на containment escape из eval harness ([выше](#containment-escape-eval-harness)).
+- [ ] IR сохраняет tool trace и не опирается на user-facing summary.
+- [ ] Containment escape → regression `EVAL-CONTAINMENT-01` (и integrity evals при необходимости).
+- [ ] Есть Trusted defender access path ([выше](#trusted-defender-access)): verified role, isolated env, audit, TTL, no auto-export, kill access.
+- [ ] Emergency elevate — только с approval + TTL; не baseline prod rights.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/)
+- [OpenAI — GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6) — user-facing ≠ full agent actions
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [NIST Computer Security Incident Handling Guide SP 800-61](https://csrc.nist.gov/pubs/sp/800/61/r2/final)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
@@ -491,9 +599,12 @@ Learn
 ## См. также
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [06 — RBAC и Tool Permissions (Agent Identity)](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding)
+- [08 — Sandboxing (Containment Escape)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [16 — Monitoring и Alerting](../part-5-control-observability/16-monitoring-alerting.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
-- [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming (Containment + Evaluation Gaming)](20-red-teaming-adversarial-testing.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) — RoE; elevated access → этот раздел

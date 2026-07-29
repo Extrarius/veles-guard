@@ -2,7 +2,7 @@
 
 [← Оглавление](../../README.md)
 
-> Безопасные учебные фрагменты для [§34](../../notes/part-10-course-appendix/34-mcp-skill-review-workshop.md).  
+> Безопасные учебные фрагменты для [§36](../../notes/part-10-course-appendix/36-mcp-skill-review-workshop.md).  
 > Показывают **tool description poisoning** без рабочих exploit-payloads.
 
 ## Bad (антипаттерн)
