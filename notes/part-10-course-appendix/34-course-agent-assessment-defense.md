@@ -3,21 +3,21 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-29
-изменения: "Учебный assessment and defense: матрица классов → §§ I–IX; hard/soft guardrails."
+изменения: "Renumber B: assessment = §34 (после landscape, до практикума)."
 ---
 
-# 38 — Course: Agent Assessment and Defense
+# 34 — Course: Agent Assessment and Defense
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](37-ai-agent-security-testing-workshop.md) · [Вперёд →](../../README.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](33-course-ai-security-landscape.md) · [Вперёд →](35-course-appendix-agentic-security.md)
 
 *Кратко: учебная карта «что оценивать у агента и чем закрывать» — input / output / RAG / MCP / red team — со ссылками на части I–IX. Без offensive payloads и без вендорного стека.*
 
 > Примеры в разделе — на Go. Те же примеры на других языках:
-> [Python](../../examples/python/part-10/38-course-agent-assessment-defense.py) ·
-> [Bash](../../examples/bash/part-10/38-course-agent-assessment-defense.sh) ·
-> [TypeScript](../../examples/typescript/part-10/38-course-agent-assessment-defense.ts) ·
-> [C++](../../examples/cpp/part-10/38-course-agent-assessment-defense.cpp) ·
-> [Java](../../examples/java/part-10/38-course-agent-assessment-defense.java)
+> [Python](../../examples/python/part-10/34-course-agent-assessment-defense.py) ·
+> [Bash](../../examples/bash/part-10/34-course-agent-assessment-defense.sh) ·
+> [TypeScript](../../examples/typescript/part-10/34-course-agent-assessment-defense.ts) ·
+> [C++](../../examples/cpp/part-10/34-course-agent-assessment-defense.cpp) ·
+> [Java](../../examples/java/part-10/34-course-agent-assessment-defense.java)
 
 ## Суть
 
@@ -33,13 +33,13 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 **Assessment** — понять, какие классы угроз релевантны *вашему* агенту и где их ловить (до релиза и в runtime).  
 **Defense** — внешние контроли (policy, schema, sandbox, egress, HITL, monitoring), а не «надежда на alignment».
 
-Этот раздел — **навигатор** к канону частей I–IX и к практикуму (§33–37). Не замена threat model ([§02](../part-1-architecture-threats/02-threat-model.md)) и не offensive manual.
+Этот раздел — **навигатор по поверхностям** (input / output / knowledge / tools / assurance) к канону частей I–IX. [§33](33-course-ai-security-landscape.md) — навигатор по **слоям системы**. Не замена threat model ([§02](../part-1-architecture-threats/02-threat-model.md)) и не offensive manual.
 
 ## Для кого
 
 | Роль | Как использовать |
 |---|---|
-| Преподаватель | 20–40 мин перед / после практикума: классы угроз → §§ |
+| Преподаватель | 20–40 мин после landscape / перед практикумом: классы угроз → §§ |
 | Студент | Чек-лист «что проверить у учебного агента» |
 | Разработчик | Быстрый маршрут finding → раздел конспекта |
 | Команда | Общий язык assessment areas |
@@ -63,7 +63,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 | **Output** | Небезопасный вывод (разметка, скрипты, утечки) до рендера / доверия UI | [§11](../part-4-output-security/11-output-validation-fact-checking.md), [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) |
 | **Knowledge / RAG** | Отравление документов в базе; retrieval вне ACL; exfil через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
 | **Tools / MCP** | Вредоносный / отравленный tool; **confused deputy** (агент действует с чужими правами по подсказке) | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
-| **Assurance** | Red team / evals до релиза; LLM-as-judge только как доп. слой | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md), [§37](37-ai-agent-security-testing-workshop.md) |
+| **Assurance** | Red team / evals до релиза; LLM-as-judge только как доп. слой | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md), [§38](38-ai-agent-security-testing-workshop.md) |
 
 Карта «тема × стандарт»: [notes/mapping.md](../mapping.md).
 
@@ -72,7 +72,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 1. **Indirect injection через документ** — в knowledge base попадает текст с инструкциями для модели → проверить access-aware retrieval и изоляцию контекста (§09).
 2. **Insecure output** — модель возвращает разметку, опасную при render в UI → sanitize / CSP / не доверять raw HTML (§11).
 3. **Confused deputy** — сообщение (например, email) маскируется под «системное» и толкает агента вызвать привилегированный tool от имени пользователя → least privilege + confirmation (§19, §06, §14).
-4. **Malicious MCP** — description/schema скрывает побочный эффект → review до install (§35, §19).
+4. **Malicious MCP** — description/schema скрывает побочный эффект → review до install ([§36](36-mcp-skill-review-workshop.md), §19).
 
 ## Guardrails: hard block vs soft response
 
@@ -89,7 +89,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 ## Red team assessment
 
-До релиза: matrix → Expected (контроль срабатывает) → findings → regression ([§37](37-ai-agent-security-testing-workshop.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md)).
+До релиза: matrix → Expected (контроль срабатывает) → findings → regression ([§38](38-ai-agent-security-testing-workshop.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md)).
 
 **LLM-as-a-Judge** в suite: отдельная модель/промпт оценивает пару (запрос, ответ / tool trace) на нарушение политики — только **дополнительный** слой (EV-03 в [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)), не единственная защита. Детерминированные checks и human review для high-risk обязательны.
 
@@ -99,7 +99,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 2. На каждую High-область — Expected control и раздел канона.
 3. Guardrails: hard + soft раздельно; не светить внутреннюю причину block.
 4. MCP/tools: review до connect; confused deputy в threat model.
-5. Перейти к практикуму: [§33](33-course-ai-security-landscape.md) → [§34](34-course-appendix-agentic-security.md) → [§35](35-mcp-skill-review-workshop.md) → [§36](36-agentic-security-baseline-workshop.md) → [§37](37-ai-agent-security-testing-workshop.md).
+5. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Пример (Go): область assessment → якоря конспекта
 
@@ -131,7 +131,7 @@ func HandbookRefs(area Area) ([]string, error) {
 	case AreaToolsMCP:
 		return []string{"§06", "§14", "§19"}, nil
 	case AreaAssurance:
-		return []string{"§20", "§37"}, nil
+		return []string{"§20", "§38"}, nil
 	default:
 		return nil, fmt.Errorf("unknown area %q", area)
 	}
@@ -146,7 +146,7 @@ const (
 )
 ```
 
-Синхрон: [Python](../../examples/python/part-10/38-course-agent-assessment-defense.py) · [Bash](../../examples/bash/part-10/38-course-agent-assessment-defense.sh) · [TypeScript](../../examples/typescript/part-10/38-course-agent-assessment-defense.ts) · [C++](../../examples/cpp/part-10/38-course-agent-assessment-defense.cpp) · [Java](../../examples/java/part-10/38-course-agent-assessment-defense.java).
+Синхрон: [Python](../../examples/python/part-10/34-course-agent-assessment-defense.py) · [Bash](../../examples/bash/part-10/34-course-agent-assessment-defense.sh) · [TypeScript](../../examples/typescript/part-10/34-course-agent-assessment-defense.ts) · [C++](../../examples/cpp/part-10/34-course-agent-assessment-defense.cpp) · [Java](../../examples/java/part-10/34-course-agent-assessment-defense.java).
 
 ## Чек-лист
 
@@ -156,7 +156,7 @@ const (
 - [ ] Различаете hard block и soft response.
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
-- [ ] Следующий шаг — практикум §33–37 или Testing Guide.
+- [ ] Следующий шаг — практикум §35–38 или Testing Guide.
 
 ## Литература
 
@@ -170,10 +170,10 @@ const (
 ## См. также
 
 - [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
-- [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
-- [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
-- [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
-- [37 — AI Agent Security Testing Workshop](37-ai-agent-security-testing-workshop.md)
+- [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
+- [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
+- [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
+- [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
 - [03 — Prompt Injection](../part-2-input-security/03-prompt-injection-detection.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)

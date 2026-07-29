@@ -2,26 +2,26 @@
 tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Навигация «Вперёд» → §37 (AI Agent Security Testing Workshop)."
+обновлено: 2026-07-29
+изменения: "Renumber B: baseline workshop = §37."
 ---
 
-# 36 — Agentic Security Baseline Workshop
+# 37 — Agentic Security Baseline Workshop
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](35-mcp-skill-review-workshop.md) · [Вперёд →](37-ai-agent-security-testing-workshop.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](36-mcp-skill-review-workshop.md) · [Вперёд →](38-ai-agent-security-testing-workshop.md)
 
 *Кратко: пройти 8 правил минимального набора безопасности (baseline) для агента / MCP / навыков (skills), связать с политикой разрешённых инструментов (allowed-tools policy), проверками в CI и bash, зафиксировать ответственного (Owner).*
 
 > Примеры в разделе — на Go. Те же примеры на других языках:
-> [Python](../../examples/python/part-10/36-agentic-security-baseline-workshop.py) ·
-> [Bash](../../examples/bash/part-10/36-agentic-security-baseline-workshop.sh) ·
-> [TypeScript](../../examples/typescript/part-10/36-agentic-security-baseline-workshop.ts) ·
-> [C++](../../examples/cpp/part-10/36-agentic-security-baseline-workshop.cpp) ·
-> [Java](../../examples/java/part-10/36-agentic-security-baseline-workshop.java)
+> [Python](../../examples/python/part-10/37-agentic-security-baseline-workshop.py) ·
+> [Bash](../../examples/bash/part-10/37-agentic-security-baseline-workshop.sh) ·
+> [TypeScript](../../examples/typescript/part-10/37-agentic-security-baseline-workshop.ts) ·
+> [C++](../../examples/cpp/part-10/37-agentic-security-baseline-workshop.cpp) ·
+> [Java](../../examples/java/part-10/37-agentic-security-baseline-workshop.java)
 
 ## Суть
 
-После проверки (review) одного MCP или навыка (skill) ([§35](35-mcp-skill-review-workshop.md)) нужен **системный минимум** для среды агента — не корпоративный контур «на всех» (enterprise), а то, что должно быть включено до регулярного использования.
+После проверки (review) одного MCP или навыка (skill) ([§36](36-mcp-skill-review-workshop.md)) нужен **системный минимум** для среды агента — не корпоративный контур «на всех» (enterprise), а то, что должно быть включено до регулярного использования.
 
 Основная (каноническая) заполняемая таблица:
 
@@ -104,7 +104,7 @@ func RejectFloating(version string) error {
 }
 ```
 
-Учебный сниппет раздела — [examples/bash/part-10/36-agentic-security-baseline-workshop.sh](../../examples/bash/part-10/36-agentic-security-baseline-workshop.sh). Ops-проверки CI — в `examples/bash/verify-pins.sh` и `check-allowed-tools.sh`; они не подменяют политику организации.
+Учебный сниппет раздела — [examples/bash/part-10/37-agentic-security-baseline-workshop.sh](../../examples/bash/part-10/37-agentic-security-baseline-workshop.sh). Ops-проверки CI — в `examples/bash/verify-pins.sh` и `check-allowed-tools.sh`; они не подменяют политику организации.
 
 ## Чек-лист
 
@@ -124,9 +124,10 @@ func RejectFloating(version string) error {
 ## См. также
 
 - [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
-- [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
-- [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
-- [37 — AI Agent Security Testing Workshop](37-ai-agent-security-testing-workshop.md)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
+- [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
+- [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
+- [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [28 — Permissions, sandbox, approval](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)
 - [25 — Security-by-Design чек-лист](../part-8-practice/25-security-by-design-checklist.md)

@@ -37,6 +37,8 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Designing AI agents to resist prompt injection** — <https://openai.com/index/designing-agents-to-resist-prompt-injection/>
 - **OpenAI — Keeping your data safe when an AI agent clicks a link** — <https://openai.com/index/ai-agent-link-safety/>
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
+- **Meta — Llama Guard 3** — <https://www.llama.com/docs/model-cards-and-prompt-formats/llama-guard-3/> — model card / prompt formats для safety classifier (hard policy block на стороне runtime).
+- **Zheng et al. — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena** — <https://arxiv.org/abs/2306.05685> — LLM-as-a-Judge как метод оценки ответов; в RT — доп. слой (не единственный gate; EV-03).
 - **OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness** — <https://openai.com/index/unlocking-self-improvement-gpt-red/> — iterative automated red-teaming pattern; канон процесса в §20 Iterative Adversarial Evals.
 - **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — containment escape / evaluation integrity из eval harness.
 - **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
@@ -76,7 +78,7 @@ tags: [ai-security, конспект, литература]
 ## Инструменты
 
 - **Guardrails / валидация**: OpenAI Agents SDK Guardrails, LangChain Guardrails, NVIDIA NeMo Guardrails, Guardrails AI, LLM Guard.
-- **Moderation / classifiers**: OpenAI Moderation API, Meta Llama Guard, Lakera Guard, Pangea AI Guard.
+- **Moderation / classifiers**: OpenAI Moderation API, [Meta Llama Guard 3](https://www.llama.com/docs/model-cards-and-prompt-formats/llama-guard-3/), Lakera Guard, Pangea AI Guard.
 - **Sandbox**: Docker hardening, gVisor (<https://gvisor.dev/>), Firecracker, Kata Containers, E2B, Daytona, Anthropic SRT, Microsandbox.
 - **DLP / PII**: Microsoft Presidio (<https://github.com/microsoft/presidio>), Protect AI LLM Guard.
 - **Red Team / сканеры**: garak (<https://github.com/NVIDIA/garak>), Microsoft PyRIT, promptfoo, DeepTeam, Giskard, Inspect AI.

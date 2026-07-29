@@ -3,12 +3,12 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-29
-изменения: "См. также → §38 Assessment and Defense."
+изменения: "Renumber B: дальше → §34 Assessment, затем практикум §35–38."
 ---
 
 # 33 — Course: AI Security Landscape
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](../part-9-ai-coding-security/32-ai-coding-security-checklist.md) · [Вперёд →](34-course-appendix-agentic-security.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](../part-9-ai-coding-security/32-ai-coding-security-checklist.md) · [Вперёд →](34-course-agent-assessment-defense.md)
 
 *Кратко: учебная «картина мира» перед практикумом — зачем нужна безопасность AI, слои системы, как пользоваться фреймворками (NIST / OWASP / ATLAS), сквозной сценарий assistant+RAG, ограничения модели и ссылки на разделы частей I–IX. Не замена самому конспекту.*
 
@@ -21,7 +21,7 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 
 ## Суть
 
-Практикум (§34–37) отвечает на вопрос «что проверить». Этот раздел — на «как думать до чек-листа»:
+Практикум (§35–38) отвечает на вопрос «что проверить». Этот раздел — на «как думать до чек-листа» по **слоям системы**. Следом [§34 Assessment](34-course-agent-assessment-defense.md) — матрица по **поверхностям** (input / output / tools…); оси разные, не дубли.
 
 1. Внедрение GenAI часто обгоняет контур безопасности (**security gap**).
 2. Угрозы сидят на **разных слоях** системы (интерфейс → приложение → данные/модель → агент/инструменты), а не только в «плохом промпте».
@@ -30,13 +30,13 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 5. Модель — недоверенный компонент: alignment недостаточен, нужны **внешние** guardrails.
 6. Учебная группировка угроз ведёт к **разделам частей I–IX** этого справочника (не новый стандарт и не канон Части X).
 
-Дальше по курсу: [§34](34-course-appendix-agentic-security.md) (набор артефактов) → [§35](35-mcp-skill-review-workshop.md) / [§36](36-agentic-security-baseline-workshop.md) / [§37](37-ai-agent-security-testing-workshop.md).
+Дальше по курсу: [§34](34-course-agent-assessment-defense.md) (assessment) → [§35](35-course-appendix-agentic-security.md) (hub) → [§36](36-mcp-skill-review-workshop.md) / [§37](37-agentic-security-baseline-workshop.md) / [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Для кого
 
 | Роль | Как использовать |
 |---|---|
-| Преподаватель | Вводные 20–40 мин перед воркшопами §35–37 |
+| Преподаватель | Вводные 20–40 мин перед §34 и воркшопами §36–38 |
 | Студент | Карта «куда идти в конспекте» как ориентир перед практикумом |
 | Разработчик | Быстрый маршрут harm → раздел, без чтения всего справочника сразу |
 | Команда | Общий язык: слой / framework / residual risk |
@@ -186,7 +186,7 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 2. Привязать слабость к **слою системы** и к **разделу** частей I–IX (таблица выше).
 3. Для RAG/assistant пройти маршрут harm → residual risk один раз на учебном сценарии.
 4. Считать модель недоверенной: Zero Trust + HITL на критичных действиях.
-5. После картины мира — практикум: [§34](34-course-appendix-agentic-security.md) → §35–37.
+5. После картины мира — [§34 Assessment](34-course-agent-assessment-defense.md), затем практикум: [§35](35-course-appendix-agentic-security.md) → §36–38.
 
 ## Пример (Go): навигатор слоя → разделы
 
@@ -237,7 +237,7 @@ func SectionRefs(layer Layer) ([]string, error) {
 - [ ] На сценарии assistant+RAG зафиксированы harm, residual risk и risk owner.
 - [ ] Модель считается недоверенной; названы внешние guardrails (не только alignment).
 - [ ] Выбран слой в навигаторе и открыты соответствующие §§ частей I–IX.
-- [ ] Следующий шаг — [§34](34-course-appendix-agentic-security.md) или воркшоп §35–37.
+- [ ] Следующий шаг — [§34 Assessment](34-course-agent-assessment-defense.md), затем практикум §35–38.
 
 ## Литература
 
@@ -251,11 +251,11 @@ func SectionRefs(layer Layer) ([]string, error) {
 
 ## См. также
 
-- [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
-- [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
-- [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
-- [37 — AI Agent Security Testing Workshop](37-ai-agent-security-testing-workshop.md)
-- [38 — Course: Agent Assessment and Defense](38-course-agent-assessment-defense.md)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
+- [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
+- [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
+- [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
+- [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
 - [01 — Введение](../part-1-architecture-threats/01-introduction.md)
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
