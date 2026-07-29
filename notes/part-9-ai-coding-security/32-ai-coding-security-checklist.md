@@ -2,13 +2,13 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-19
-изменения: "AC-ADI-01/02: resource IDs / self-asserted trust из tool/issue/PR; ссылка на §03."
+обновлено: 2026-07-26
+изменения: "AC-SK-07: re-review по событиям из mcp-skill-review."
 ---
 
 # 32 — AI Coding Security Checklist
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../part-10-course-appendix/33-course-appendix-agentic-security.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](31-ci-cd-mcp-skills-production-path.md) · [Вперёд →](../part-10-course-appendix/33-course-ai-security-landscape.md)
 
 *Кратко: итоговый checklist для безопасной работы с AI-coding agents: repo instructions, permissions, sandbox, review, supply chain, CI/CD, MCP, skills, secrets и incident response.*
 
@@ -157,7 +157,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-SK-04 | Optional scripts требуют sandbox | High | TODO |
 | AC-SK-05 | Skills не могут override security policy | High | TODO |
 | AC-SK-06 | Есть kill-switch per skill/plugin | Medium | TODO |
-| AC-SK-07 | Skill updates требуют re-review | High | TODO |
+| AC-SK-07 | Skill updates требуют re-review по событиям из [mcp-skill-review](../../templates/mcp-skill-review.md#re-review-triggers) | High | TODO |
 
 ## 10. Secrets and privacy
 

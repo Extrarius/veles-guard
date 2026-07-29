@@ -2,8 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-07-19
-изменения: "Agent Data Injection (ADI): trusted format ≠ trusted data; ValidateDocumentRef; sync py/ts."
+обновлено: 2026-07-29
+изменения: "Hard block vs soft response; якорь курса §34 Assessment and Defense."
 ---
 
 # 03 — Prompt Injection Detection
@@ -289,6 +289,8 @@ Detection + Isolation + Least Privilege + Tool Policy + Logging + Approval
 | approval | действие потенциально опасное, но может быть легитимным |
 | log-only | ранний этап внедрения, собираем статистику |
 
+**Hard block vs soft response:** `block` на политике — это **hard** (запрос не идёт в tools / не доверяется UI). Пользователю можно отдать **soft** ответ: вежливый отказ без раскрытия внутренней причины фильтра. Не подменять hard block «надеждой, что модель сама откажется». Учебный разбор: [§34 Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md); classifiers — [literature.md](../literature.md) (в т.ч. Meta Llama Guard).
+
 ## Пример (Go): простой detector
 
 Это не промышленная защита. Это минимальный иллюстративный слой, который показывает механику: вход проверяется до попадания в контекст агента.
@@ -487,3 +489,4 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [27 — Repository instructions](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)
