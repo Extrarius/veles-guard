@@ -3,7 +3,7 @@ tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
 обновлено: 2026-07-29
-изменения: "LLM-as-judge в assessment; якорь курса §38 Assessment and Defense."
+изменения: "LLM-as-judge в assessment; якорь курса §34 Assessment and Defense."
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -143,7 +143,7 @@ deterministic checks → LLM-as-judge → human review → online monitoring
 
 **LLM-as-a-Judge в assessment:** отдельный checker оценивает пару (вход, ответ / tool trace) на нарушение политики (запрещённый контент, утечка, unsafe intent). Формат вердикта лучше фиксировать машинночитаемым (например JSON `is_violation` + краткое `reasoning`) — для suite и triage, не как единственный gate в production. Напоминание: **EV-03** — judge только доп. слой.
 
-Связь с учебным маршрутом assessment: [§38 Course: Agent Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md).
+Связь с учебным маршрутом assessment: [§34 Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md).
 
 ### Security evals checklist
 
@@ -721,4 +721,4 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 - [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
-- [38 — Course: Agent Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)
