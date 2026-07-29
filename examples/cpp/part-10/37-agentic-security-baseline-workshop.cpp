@@ -1,4 +1,4 @@
-// Illustrative examples for notes/part-10-course-appendix/36-agentic-security-baseline-workshop.md
+// Illustrative examples for notes/part-10-course-appendix/37-agentic-security-baseline-workshop.md
 // Not for production use. Licensed under MIT (see LICENSE-CODE).
 
 #include <algorithm>

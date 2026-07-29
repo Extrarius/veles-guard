@@ -1,4 +1,4 @@
-# Illustrative examples for notes/part-10-course-appendix/38-course-agent-assessment-defense.md
+# Illustrative examples for notes/part-10-course-appendix/34-course-agent-assessment-defense.md
 # Not for production use. Licensed under MIT (see LICENSE-CODE).
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ def handbook_refs(area: str) -> list[str]:
         "output": ["§04", "§11"],
         "knowledge": ["§09", "§13"],
         "tools_mcp": ["§06", "§14", "§19"],
-        "assurance": ["§20", "§37"],
+        "assurance": ["§20", "§38"],
     }
     if area not in mapping:
         raise ValueError(f"unknown area {area!r}")

@@ -1,4 +1,4 @@
-// Illustrative examples for notes/part-10-course-appendix/38-course-agent-assessment-defense.md
+// Illustrative examples for notes/part-10-course-appendix/34-course-agent-assessment-defense.md
 // Not for production use. Licensed under MIT (see LICENSE-CODE).
 
 #include <stdexcept>
@@ -15,6 +15,6 @@ inline std::vector<std::string> handbookRefs(const std::string& area) {
   if (area == "tools_mcp")
     return {"§06", "§14", "§19"};
   if (area == "assurance")
-    return {"§20", "§37"};
+    return {"§20", "§38"};
   throw std::invalid_argument("unknown area");
 }
