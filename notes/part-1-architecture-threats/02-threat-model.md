@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Evaluation Gaming / Reward Hacking: STRIDE + короткий сценарий; ссылка на §20."
+обновлено: 2026-07-29
+изменения: "Blast radius ladder + lethal trifecta; priority controls by capability."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -266,6 +266,41 @@ Threat model: элемент **Eval harness** в DFD; controls и EV-08 — [§2
 | Medium | Low | Medium | High |
 | High | Medium | High | High |
 
+## Capability → blast radius
+
+Injection часто только **триггер**. Радиус поражения задают права и tools. Чем шире capability, тем выше приоритет границ при threat modeling:
+
+```text
+1. Text only
+2. Read context / files
+3. Suggest changes
+4. Write files
+5. Run commands / shell
+6. CI/CD & deploy     ← max blast radius
+```
+
+| Что агент может | Радиус | Минимум controls |
+|---|---|---|
+| Read-only в рабочей директории | low | command / path allowlist |
+| Write в рабочей директории | ↑ | allowlist + human approval на sensitive paths |
+| Arbitrary shell / run code | high | sandbox + approval ([§08](../part-3-processing-security/08-sandboxing.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)) |
+| External APIs с данными | high | short-lived narrow credentials + audit ([§10](../part-3-processing-security/10-secrets-management.md)) |
+| CI/CD, deploy | max | всё выше + review + reduced rights ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)) |
+
+Approval работает только если человек **понимает**, что подтверждает.
+
+После DFD: отметьте границы (стрелки между слоями) → «worst case на границе?» → **ранжируйте по blast radius** → controls сначала на наибольший радиус.
+
+## Lethal trifecta (design rule)
+
+Опасная связка в **одном** execution path ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)):
+
+1. доступ к **private data**;
+2. влияние **untrusted content** (issue, email, PR, web, tool output);
+3. **outbound channel** (HTTP, email, public PR, image/URL render).
+
+Правило проектирования: убрать хотя бы одну «ногу» (нет egress при чтении чужих PR; нет secrets в контексте при untrusted input; нет private read при открытом egress). Атакующему нужно пройти всю цепочку; защитнику достаточно удержать **одну** границу. Детали egress — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md); MCP-кейсы — [§19](../part-6-multi-agent-security/19-mcp-security.md).
+
 ## Карта угроз по слоям
 
 | Слой | Основные угрозы | Разделы конспекта |
@@ -483,10 +518,13 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
 - [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 - [ ] Учтён Evaluation Gaming: эталон / evaluator / test store вне reach агента; score без integrity ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
+- [ ] Capability агента сопоставлена с blast radius; controls сначала на max radius.
+- [ ] Проверен lethal trifecta: нет одновременных private data + untrusted input + outbound в одном path.
 
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — evaluation gaming / containment (канон §20)
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -505,4 +543,5 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [13 — Egress Control (lethal trifecta / exfil)](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
