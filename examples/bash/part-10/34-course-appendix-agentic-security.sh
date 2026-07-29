@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Учебный сниппет для notes/part-10-course-appendix/33-course-appendix-agentic-security.md
+# Учебный сниппет для notes/part-10-course-appendix/34-course-appendix-agentic-security.md
 # Порт идеи deny-by-default / allowlist tools. Не для production.
 # Licensed under MIT (see LICENSE-CODE).
 #
-# Usage: bash examples/bash/part-10/33-course-appendix-agentic-security.sh <tool-name>
+# Usage: bash examples/bash/part-10/34-course-appendix-agentic-security.sh <tool-name>
 # Exit: 0 OK, 1 not in allowlist
 
 set -euo pipefail

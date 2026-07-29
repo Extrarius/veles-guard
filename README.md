@@ -107,15 +107,17 @@ AI-агенты перестают быть «чатом с моделью»: о
 32. [AI Coding Security Checklist](notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 
 ### Часть X. Учебное приложение
-33. [Course Appendix: практикум MCP / Skills](notes/part-10-course-appendix/33-course-appendix-agentic-security.md)
-34. [MCP / Skill Review Workshop](notes/part-10-course-appendix/34-mcp-skill-review-workshop.md)
-35. [Agentic Security Baseline Workshop](notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md)
-36. [AI Agent Security Testing Workshop](notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md)
+33. [Course: AI Security Landscape](notes/part-10-course-appendix/33-course-ai-security-landscape.md)
+34. [Course Appendix: практикум MCP / Skills](notes/part-10-course-appendix/34-course-appendix-agentic-security.md)
+35. [MCP / Skill Review Workshop](notes/part-10-course-appendix/35-mcp-skill-review-workshop.md)
+36. [Agentic Security Baseline Workshop](notes/part-10-course-appendix/36-agentic-security-baseline-workshop.md)
+37. [AI Agent Security Testing Workshop](notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md)
+38. [Course: Agent Assessment and Defense](notes/part-10-course-appendix/38-course-agent-assessment-defense.md)
 
 ### Учебное приложение
 
 Отдельный прикладной блок для курсов, воркшопов и внутренних разборов.
-Содержит шаблоны, baseline-подходы и безопасные учебные примеры для ревью MCP,
+Содержит учебный landscape (§33), шаблоны, baseline-подходы и безопасные учебные примеры для ревью MCP,
 agent skills и AI-coding workflow. См. также [templates/course/](templates/course/), [examples/course/](examples/course/) и [guides/ai-agent-security-testing-guide.md](guides/ai-agent-security-testing-guide.md).
 
 ## Литература
