@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Учебный сниппет для notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md
+# Учебный сниппет для notes/part-10-course-appendix/38-ai-agent-security-testing-workshop.md
 # Проверка обязательных полей finding; Critical/High требуют regression test.
 # Licensed under MIT (see LICENSE-CODE).
 #
 # Usage:
-#   bash examples/bash/part-10/37-ai-agent-security-testing-workshop.sh \
+#   bash examples/bash/part-10/38-ai-agent-security-testing-workshop.sh \
 #     <id> <severity> <area> <expected> <actual> [regression_test]
 # Exit: 0 OK, 1 validation failed
 
