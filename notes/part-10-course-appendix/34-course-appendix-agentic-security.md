@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-27
-изменения: "Нумерация Части X: практикум = §34 (после landscape §33)."
+обновлено: 2026-07-29
+изменения: "См. также → §38 Assessment and Defense."
 ---
 
 # 34 — Course Appendix: практикум по безопасности AI-агентов, MCP и Skills
@@ -154,6 +154,7 @@ func Authorize(tool string) error {
 - [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
 - [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
 - [37 — AI Agent Security Testing Workshop](37-ai-agent-security-testing-workshop.md)
+- [38 — Course: Agent Assessment and Defense](38-course-agent-assessment-defense.md)
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [31 — CI/CD, MCP, Skills](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
