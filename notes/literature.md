@@ -56,6 +56,8 @@ tags: [ai-security, конспект, литература]
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
 - **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
+- **Simon Willison — The lethal trifecta for AI agents** — <https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/> — private data + untrusted content + external communication; design rule: убрать хотя бы одну «ногу».
+- **Legit Security — Remote Prompt Injection in GitLab Duo Leads to Source Code Theft** — <https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo> — hidden prompt в MR/контексте → HTML/image URL exfiltration в ответе ассистента.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
 - Детекторы: **Lakera Guard**, **Rebuff**, **Prompt Security**, **Meta Prompt Guard**, **LLM Guard Prompt Injection scanner**, **Pangea AI Guard**, **NeMo Guardrails** input/output rails.
 
@@ -63,6 +65,8 @@ tags: [ai-security, конспект, литература]
 
 - **MCP Inspector** — <https://github.com/modelcontextprotocol/inspector>
 - **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan>
+- **Invariant Labs — GitHub MCP Exploited: Accessing private repositories via MCP** — <https://invariantlabs.ai/blog/mcp-github-vulnerability> — public issue → over-privileged agent → leak private repos via public PR (toxic agent flow / lethal trifecta).
+- **Cursor — GHSA-4cxx-hrm3-49rm (CurXecute / CVE-2025-54135)** — <https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm> — prompt injection → write MCP config → RCE via auto-start; NVD: <https://nvd.nist.gov/vuln/detail/CVE-2025-54135>.
 - **OWASP — Practical Guide for Securely Using Third-Party MCP Servers** — <https://genai.owasp.org/resource/cheatsheet-a-practical-guide-for-securely-using-third-party-mcp-servers-1-0/>
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
 - **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
