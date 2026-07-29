@@ -53,6 +53,7 @@ class CircuitBreaker:
 
 class KillSwitch(Protocol):
     def enabled(self, scope: str) -> bool: ...
+    def activate(self, scope: str) -> None: ...
 
 
 class MemoryKillSwitch:
@@ -71,6 +72,17 @@ class MemoryKillSwitch:
     def enabled(self, scope: str) -> bool:
         with self._lock:
             return self._closed.get(scope, False)
+
+
+def trip_agent_kill_switch(
+    kill: KillSwitch, agent_id: str, revoke_credentials: bool = True
+) -> None:
+    """Disable agent (+ tools) and signal credential revocation."""
+    kill.activate(f"agent:{agent_id}")
+    kill.activate("tool:*")
+    if revoke_credentials:
+        # revoke/rotate tokens for agent_id in identity provider / secret store
+        _ = agent_id
 
 
 class Tool(Protocol):

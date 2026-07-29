@@ -52,6 +52,7 @@ class CircuitBreaker {
 
 interface KillSwitch {
   enabled(scope: string): boolean;
+  activate(scope: string): void;
 }
 
 class MemoryKillSwitch implements KillSwitch {
@@ -67,6 +68,20 @@ class MemoryKillSwitch implements KillSwitch {
 
   enabled(scope: string): boolean {
     return this.closed.get(scope) ?? false;
+  }
+}
+
+/** Disable agent (+ tools) and signal credential revocation. */
+function tripAgentKillSwitch(
+  kill: KillSwitch,
+  agentId: string,
+  revokeCredentials = true,
+): void {
+  kill.activate(`agent:${agentId}`);
+  kill.activate("tool:*");
+  if (revokeCredentials) {
+    // revoke/rotate tokens for agentId in identity provider / secret store
+    void agentId;
   }
 }
 

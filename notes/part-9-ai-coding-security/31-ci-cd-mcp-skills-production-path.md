@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлена градация Skill Security (prototype→regulated), Go RequiredControls; sync Python/TS."
+обновлено: 2026-07-26
+изменения: "Якорь re-review triggers (rug pull) → templates/mcp-skill-review."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -169,11 +169,11 @@ Skill Security = не «ставим всё», а «выбираем урове�
 
 ### На что смотреть на каждом уровне
 
-**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§34 MCP / Skill Review Workshop](../part-10-course-appendix/34-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
+**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§36 MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
 
 **Sandbox** для skill-скриптов: не запускать install/postinstall и произвольный shell от имени разработчика без изоляции. См. [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md).
 
-**Provenance + pin**: фиксированная версия (pin), не `latest`; известный источник и ответственный (owner). При обновлении — **diff review** (rug pull): что изменилось в instructions/scripts/permissions. См. [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md), [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md).
+**Provenance + pin**: фиксированная версия (pin), не `latest`; известный источник и ответственный (owner). При обновлении — **diff review** (rug pull): что изменилось в instructions/scripts/permissions. События, когда обязателен re-review (version/hash, drift tools/description/scripts, смена source, unpin, Next review date) — [templates/mcp-skill-review.md — Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers). Auto-apply до нового Allow запрещён. См. [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md), [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md).
 
 Skills и инструкции в репозитории пересекаются с [27 — Repository instructions](27-repository-instructions-attack-surface.md). Операционный минимум: [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md).
 
@@ -348,6 +348,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Контроли соответствуют выбранному уровню (не «всем всё», а минимум под риск).
 - [ ] Description skill не считается policy; body/scripts проходят отдельный review.
 - [ ] Для production+: pin версий, sandbox scripts, egress control, audit, diff review при обновлении.
+- [ ] Обновление skill/MCP без trigger-based re-review запрещено (события — [mcp-skill-review](../../templates/mcp-skill-review.md#re-review-triggers)).
 - [ ] Для regulated: allowlist skills, formal policy / threat model, обязательный human approval.
 - [ ] Third-party skill не ставится без trusted source и review (даже на startup).
 
@@ -369,4 +370,4 @@ func CanEnterProductionPath(pr PR) bool {
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
-- [34 — MCP / Skill Review Workshop](../part-10-course-appendix/34-mcp-skill-review-workshop.md)
+- [36 — MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md)

@@ -13,14 +13,50 @@ enum Severity {
 interface AuditEvent {
   time?: Date;
   runId: string;
+  correlationId?: string;
   event: string;
   severity: Severity;
   component: string;
+  agentId?: string;
+  agentOwner?: string;
+  onBehalfOf?: string;
+  role?: string;
+  effectiveScope?: string;
   tool?: string;
+  operation?: string;
+  resource?: string;
+  approvalId?: string;
   risk?: string;
   decision?: string;
   reason?: string;
   attrs?: Record<string, unknown>;
+}
+
+/** Fields for investigating Evaluation Gaming (see §20). */
+interface EvalRunAudit {
+  agentGoal?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  externalHosts?: string[];
+  credentialAccess?: boolean;
+  evaluationScore?: number;
+  scoreDelta?: number;
+  policyViolations?: string[];
+}
+
+/** Layers for Reasoning vs actions (see §15). */
+interface ActionIntegrityView {
+  userFacingSummary?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  reasoningAvailable?: boolean; // CoT optional; never sole SoT
+  summaryActionsGap?: boolean;
+  planActionsGap?: boolean;
+  l2Mismatch?: boolean;
+}
+
+function needsHumanReview(v: ActionIntegrityView): boolean {
+  return Boolean(v.l2Mismatch || v.summaryActionsGap || v.planActionsGap);
 }
 
 const SECRET_PATTERNS = [

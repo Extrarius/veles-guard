@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-07-26
+изменения: "Reasoning vs actions: слои мониторинга; ActionIntegrityView; sync py/ts."
 ---
 
 # 15 — Observability и Tracing
@@ -143,6 +143,69 @@ Audit log отличается от обычного debug log.
 кто → что → когда → через какой tool → с какими правами → с каким решением policy → с каким результатом
 ```
 
+Для agent identity и safe tool binding ([§06](../part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding)) high-risk tool call должен нести минимум:
+
+| Поле | Назначение |
+|---|---|
+| `agent_id` | какая agent identity выполнила действие |
+| `agent_owner` | human owner identity |
+| `on_behalf_of` | пользователь при delegated mode (или пусто) |
+| `role` | baseline / elevated role на момент вызова |
+| `effective_scope` | фактический scope |
+| `tool` | имя tool |
+| `operation` | read / write / delete / send / … |
+| `resource` | целевой ресурс |
+| `approval_id` | id approval, если был HITL |
+| `correlation_id` | связь orchestrator → tool → downstream (часто = `run_id` + span) |
+
+Без этих полей лог «есть», но нельзя ответить: под чьей authority и в каком scope прошло действие.
+
+Для eval / red-team runs (Evaluation Gaming, [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) дополнительно фиксируйте:
+
+| Поле | Назначение |
+|---|---|
+| `agent_goal` | заявленная цель прогона (task / metric) |
+| `declared_plan` | план агента до действий (кратко) |
+| `actual_actions` | фактические tool calls / writes (сводка) |
+| `external_hosts` | внешние хосты, к которым был доступ |
+| `credential_access` | был ли доступ к credentials / secrets |
+| `evaluation_score` | итоговый score |
+| `score_delta` | изменение score относительно baseline |
+| `policy_violations` | сработавшие policy / deny / boundary flags |
+
+> **Правило:** резкий `score_delta` после `external_hosts` / `credential_access` (или запись в test/metrics store) → **human review**, не auto-pass. Канон — [§20 `ScoreNeedsHumanReview`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking).
+
+## Reasoning vs actions
+
+Мониторинг агента должен сравнивать **несколько слоёв**, а не только финальный ответ или «рассуждение» модели.
+
+| Слой | Что это | Доверие |
+|---|---|---|
+| User-facing answer / summary | ответ пользователю | низкое |
+| Declared plan | заявленный план | среднее (заявка) |
+| Actual tool actions | tool calls / egress / writes / audit spans | **высокое** (evidence) |
+| Internal reasoning / CoT | если вендор отдаёт трассу рассуждений | низкое–среднее; модель может скрывать или искажать |
+| Independent L2 monitor | отдельный checker по actions / traces (не тот же planner) | высокое как сигнал расхождения |
+
+> **Правило:** цепочка рассуждений и user-facing summary ≠ source of truth. Доверять сопоставлению `declared_plan` / `actual_actions` / audit spans; при расхождении — human review (IR: [§23](../part-7-testing-compliance/23-incident-response-recovery.md) — не опираться на user summary). Источник паттерна: [GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6).
+
+Не требуем логировать полный raw CoT (privacy / лимиты вендора). Если трасса рассуждений недоступна — опираемся на plan + actions + L2.
+
+```mermaid
+flowchart TB
+  Answer["UserFacingAnswer"]
+  Plan["DeclaredPlan"]
+  Actions["ActualToolActions"]
+  Reason["InternalReasoningIfAny"]
+  L2["IndependentL2Monitor"]
+  Truth["SourceOfTruth"]
+  Answer -.->|notEnough| Truth
+  Reason -.->|notEnough| Truth
+  Plan --> Actions
+  Actions --> Truth
+  L2 --> Truth
+```
+
 ## Угроза / контекст
 
 | Угроза | Пример | Risk |
@@ -153,7 +216,10 @@ Audit log отличается от обычного debug log.
 | Нет correlation id | невозможно связать ответ, tool call и approval | Medium |
 | Overlogging | в traces сохраняются полные документы и PII | High |
 | Underlogging | фиксируется только финальный ответ, но не policy decisions | Medium |
+| Нет identity fields | tool call есть, но неизвестны agent_id / on_behalf_of / role | High |
 | Недостаточный retention | следы инцидента исчезли раньше расследования | Medium |
+| Нет eval integrity fields | score spike без `external_hosts` / `credential_access` / `score_delta` в audit | High |
+| Доверие к reasoning / summary вместо tool trace | CoT или user summary «всё ок», а tools уже сделали egress / write | High |
 
 ## Подходы и контрмеры
 
@@ -241,18 +307,57 @@ const (
 )
 
 type AuditEvent struct {
-    Time      time.Time      `json:"time"`
-    RunID     string         `json:"run_id"`
-    Event     string         `json:"event"`
-    Severity  Severity       `json:"severity"`
-    Component string         `json:"component"`
-    Tool      string         `json:"tool,omitempty"`
-    Risk      string         `json:"risk,omitempty"`
-    Decision  string         `json:"decision,omitempty"`
-    Reason    string         `json:"reason,omitempty"`
-    Attrs     map[string]any `json:"attrs,omitempty"`
+    Time           time.Time      `json:"time"`
+    RunID          string         `json:"run_id"`
+    CorrelationID  string         `json:"correlation_id,omitempty"`
+    Event          string         `json:"event"`
+    Severity       Severity       `json:"severity"`
+    Component      string         `json:"component"`
+    AgentID        string         `json:"agent_id,omitempty"`
+    AgentOwner     string         `json:"agent_owner,omitempty"`
+    OnBehalfOf     string         `json:"on_behalf_of,omitempty"`
+    Role           string         `json:"role,omitempty"`
+    EffectiveScope string         `json:"effective_scope,omitempty"`
+    Tool           string         `json:"tool,omitempty"`
+    Operation      string         `json:"operation,omitempty"`
+    Resource       string         `json:"resource,omitempty"`
+    ApprovalID     string         `json:"approval_id,omitempty"`
+    Risk           string         `json:"risk,omitempty"`
+    Decision       string         `json:"decision,omitempty"`
+    Reason         string         `json:"reason,omitempty"`
+    Attrs          map[string]any `json:"attrs,omitempty"`
+}
+
+// EvalRunAudit — поля для расследования Evaluation Gaming (см. §20).
+type EvalRunAudit struct {
+	AgentGoal         string   `json:"agent_goal"`
+	DeclaredPlan      string   `json:"declared_plan,omitempty"`
+	ActualActions     []string `json:"actual_actions,omitempty"`
+	ExternalHosts     []string `json:"external_hosts,omitempty"`
+	CredentialAccess  bool     `json:"credential_access"`
+	EvaluationScore   float64  `json:"evaluation_score"`
+	ScoreDelta        float64  `json:"score_delta"`
+	PolicyViolations  []string `json:"policy_violations,omitempty"`
+}
+
+// ActionIntegrityView — слои для Reasoning vs actions (см. выше).
+type ActionIntegrityView struct {
+	UserFacingSummary  string
+	DeclaredPlan       string
+	ActualActions      []string
+	ReasoningAvailable bool // CoT optional; never sole source of truth
+	SummaryActionsGap  bool // operator/L2: summary hides side effects
+	PlanActionsGap     bool // operator/L2: plan misses actual tools
+	L2Mismatch         bool // independent monitor flagged drift
+}
+
+// NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
+func NeedsHumanReview(v ActionIntegrityView) bool {
+	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
 }
 ```
+
+Синхрон: [Python](../../examples/python/part-5/15-observability-tracing.py) · [TypeScript](../../examples/typescript/part-5/15-observability-tracing.ts).
 
 ### Redacted logger
 
@@ -353,6 +458,12 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Секреты и PII редактируются до записи в логи.
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
+- [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
+- [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
+- [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
+- [ ] Сравниваются слои: user-facing summary / declared plan / actual actions (Reasoning vs actions).
+- [ ] Internal reasoning / CoT не считается source of truth; при расхождении с actions — human review.
+- [ ] Для high-risk агента есть independent L2 monitor (или явный N/A).
 - [ ] Есть retention policy для security logs.
 - [ ] Логи нельзя менять обычным пользователям агента.
 - [ ] В trace видно версию prompt / policy / tool schema.
@@ -362,6 +473,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 ## Литература
 
 - [Список литературы](../literature.md#инструменты)
+- [OpenAI — GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6) — user-facing ≠ full actions; reasoning ≠ SoT
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [OpenTelemetry Signals](https://opentelemetry.io/docs/concepts/signals/)
 - [OpenTelemetry Logs Specification](https://opentelemetry.io/docs/specs/otel/logs/)
@@ -370,7 +482,9 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 ## См. также
 
+- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [14 — Human-in-the-Loop](14-human-in-the-loop.md)
 - [16 — Monitoring и Alerting](16-monitoring-alerting.md)
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md) — ignore user-facing summary

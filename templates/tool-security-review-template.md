@@ -22,6 +22,17 @@ tags: [ai-security, шаблон, tool-review]
 - **Роли, которым разрешён вызов:** `<RBAC>`
 - **Доступ к системам:** `<DB / shell / network / FS>`
 
+### 2.1 Agent identity binding
+
+См. [§06 Agent Identity и Safe Tool Binding](../notes/part-3-processing-security/06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding).
+
+- **Agent principal / identity:** `<dedicated agent id — не shared SA>`
+- **Human owner агента:** `<...>`
+- **Acting mode:** `<own_identity / on_behalf_of>`
+- **JIT / elevation expiry:** `<нет / TTL / per-action approval>`
+- **Downstream re-auth expected:** `<да/нет — API сам проверяет claims>`
+- **Shared credentials across agents:** `<нет — обязательно>`
+
 ## 3. Входные параметры
 
 | Параметр | Тип | Обязательный | Валидация / schema | Опасные значения |

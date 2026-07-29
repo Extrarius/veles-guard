@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Учебный сниппет для notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md
+# Учебный сниппет для notes/part-10-course-appendix/37-agentic-security-baseline-workshop.md
 # Порт RejectFloating: запрет latest / * / ^ / ~ / пустой версии. Не дубль verify-pins.sh.
 # Licensed under MIT (see LICENSE-CODE).
 #
-# Usage: bash examples/bash/part-10/35-agentic-security-baseline-workshop.sh <version>
+# Usage: bash examples/bash/part-10/37-agentic-security-baseline-workshop.sh <version>
 # Exit: 0 pinned OK, 1 floating/empty
 
 set -euo pipefail

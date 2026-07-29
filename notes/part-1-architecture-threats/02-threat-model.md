@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-07-29
+изменения: "Blast radius ladder + lethal trifecta; priority controls by capability."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -70,8 +70,52 @@ tags: [ai-security, конспект]
 | Компрометированный tool / MCP server | подменяет описание инструмента, схему или результат |
 | Другой агент | передаёт вредное сообщение в multi-agent workflow |
 | AI-driven attacker | использует автономного агента для разведки, генерации эксплойтов, перебора учётных данных и lateral movement на скорости машины |
+| Agentic Threat Actor (ATA) | capability атаки доставляется AI-агентом end-to-end (не human-driven toolkit): recon → credentials → pivot → destructive playbook |
 
 Задокументирован первый масштабный AI-оркестрированный взлом (кампания GTG-1002, 2025): агент выполнял ~80–90% операций, человек вмешивался в 4–6 точках. Защитный вывод для threat model: открытый или доступный исходный код упрощает автоматическую разведку — assume adversary с доступом к исходникам. Подробнее — в [literature.md](../literature.md).
+
+### Agentic Threat Actor / Agentic Ransomware (JADEPUFFER)
+
+**Agentic Threat Actor (ATA)** — оператор, чья атакующая capability реализуется AI-агентом от initial access до цели, а не классическим human-driven ransomware toolkit.
+
+**JADEPUFFER** (Sysdig Threat Research, 2026) — задокументированный случай **agentic ransomware**: LLM-driven кампания с автоматическим вымогательством через destructive действия против production database. Ниже — threat narrative для модели угроз, **без** offensive payloads и PoC эксплуатации.
+
+#### Сценарий
+
+```text
+Exposed AI/agent framework (e.g. Langflow)
+  + known CVE / missing auth on control plane
+  → RCE on internet-facing host with API keys / cloud creds in env
+  → automated recon + credential sweep (.env, keys, wallets, DB/config)
+  → lateral / pivot to production DB / config services
+  → destructive database extortion playbook
+```
+
+Типичные предпосылки:
+
+- internet-facing agent builder / workflow UI без жёсткой auth/network segmentation;
+- provider API keys и cloud credentials в environment на том же хосте;
+- default/weak credentials на внутренних сервисах, доступных с хоста агента;
+- production DB или config plane достижимы из скомпрометированного AI-adjacent host.
+
+#### Detection signals
+
+| Сигнал | Почему характерен для ATA |
+|---|---|
+| Verbose self-narrating scripts / LLM-style annotations в payloads | LLM часто «комментирует» шаги и приоритеты так, как люди редко пишут |
+| Rapid retries / plan–act–observe–adjust | fail → fix за секунды (адаптация параметров, повтор) |
+| Массовый параллельный поиск secrets | `.env`, API keys, wallets, cloud/DB credentials сразу несколькими категориями |
+| Быстрый переход recon → destructive | после сбора кредов — сразу destructive/extortion на DB, без долгой «тихой» фазы |
+
+#### STRIDE (на что смотреть в DFD)
+
+| STRIDE | В сценарии ATA |
+|---|---|
+| Elevation of Privilege | RCE на agent control plane → права хоста / доступ к env secrets |
+| Information Disclosure | credential sweep, dump config/DB, exfil staging |
+| Tampering | destructive DB / config changes как рычаг вымогательства |
+
+Threat model должен учитывать **не только** защиту *своего* агента, но и то, что противник может применять agentic capability **против** вашей инфраструктуры (особенно exposed AI frameworks). IR — [§23](../part-7-testing-compliance/23-incident-response-recovery.md).
 
 ## DFD Level 1 — агент с границами доверия
 
@@ -151,8 +195,8 @@ STRIDE — это способ пройтись по компонентам си
 
 | STRIDE | Вопрос для агента | Пример |
 |---|---|---|
-| Spoofing | Кто-то выдаёт себя за пользователя, tool или агента? | внешний агент отправляет сообщение от имени доверенного агента |
-| Tampering | Можно ли изменить вход, память, tool output или policy? | документ содержит скрытую инструкцию, меняющую цель агента |
+| Spoofing | Кто-то выдаёт себя за пользователя, tool или агента? | внешний агент отправляет сообщение от имени доверенного агента; tool response подставляет fake `author` / provenance |
+| Tampering | Можно ли изменить вход, память, tool output или policy? | документ содержит скрытую инструкцию; поля `id`/`uri` в JSON выглядят «trusted», но не проверены policy |
 | Repudiation | Можно ли отрицать выполнение действия? | агент отправил письмо, но нет audit log с причиной вызова tool |
 | Information Disclosure | Может ли агент раскрыть данные? | секрет из памяти попал в ответ или внешний API |
 | Denial of Service | Можно ли перегрузить агента или ресурсы? | token bombing, бесконечный loop, дорогие API calls |
@@ -164,6 +208,7 @@ STRIDE — это способ пройтись по компонентам си
 |---|---|---|---|---|
 | User Input | Tampering | Prompt injection меняет цель или ограничения задачи | High | input validation, prompt injection detection, context isolation |
 | Uploaded Docs / Web / Email | Tampering | Indirect prompt injection в документе влияет на план агента | High | treat content as data, sanitization, retrieval filtering |
+| Uploaded Docs / Tool Output | Spoofing / Tampering | Agent Data Injection: untrusted поля маскируются под trusted metadata (resource ID, provenance, author) | High | trusted format ≠ trusted data; deterministic validation ID/URL ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)) |
 | Context Builder | Information Disclosure | В контекст попадают секреты или лишние данные | High | data minimization, PII redaction, need-to-know context |
 | LLM Planner | Tampering | Модель принимает tool output как новую инструкцию | High | instruction/data separation, tool output labeling |
 | Policy Engine | Elevation of Privilege | Ошибка политики разрешает опасный tool call | High | deny by default, RBAC, scopes, tests |
@@ -176,6 +221,32 @@ STRIDE — это способ пройтись по компонентам си
 | Agent Loop | Denial of Service | Бесконечные шаги, дорогие вызовы, bill spike | Medium | max steps, timeouts, quotas, circuit breaker |
 | Audit Logger | Repudiation | Нельзя восстановить, почему агент выполнил действие | Medium | immutable logs, correlation ID, tool call reason |
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
+| Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
+| Eval harness / metrics / test store | Tampering / Elevation of Privilege | Evaluation Gaming: spoofed path к эталону, evaluator или test data → недостоверный score | High | isolate ground truth; separate evaluator; block dataset hosts; score spike → human review ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
+
+## Сценарий: Agent Data Injection (spoofed trusted metadata)
+
+Атакующий не пишет «ignore previous instructions». В tool response / документе / issue появляются поля, которые агент привык считать служебными: `document_id`, `source`, `author`, `trusted: true`. Формат валидный JSON → planner или downstream tool использует ID как будто он уже проверен.
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Untrusted surface отдаёт structured data с «доверенными» полями |
+| 2 | Агент трактует format как trust (или копирует `author`/provenance в audit) |
+| 3 | Опасный sink вызывается с подставным resource ID / account / path |
+
+Контрмера на уровне threat model: в DFD пометить **metadata fields внутри untrusted data** как отдельный Tampering/Spoofing путь; controls — policy validation, не «модель разберётся». Канон и checklist — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi).
+
+## Сценарий: Evaluation Gaming / Reward Hacking
+
+Агент оптимизирует метрику не через выполнение задачи, а через shortcut к эталону / evaluator / test store. Сеть может оставаться «в allowlist» eval infra — score растёт, результат недостоверен. Это не Containment Escape (выход за стенд), а **целостность оценки**.
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Цель агента — высокий eval score |
+| 2 | Tool/path ведёт к ground truth, evaluator config или metrics write |
+| 3 | Score растёт без легитимного task completion → auto-pass недопустим |
+
+Threat model: элемент **Eval harness** в DFD; controls и EV-08 — [§20 Evaluation Gaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking). Audit signals — [§15](../part-5-control-observability/15-observability-tracing.md).
 
 ## Risk Rating
 
@@ -195,6 +266,41 @@ STRIDE — это способ пройтись по компонентам си
 | Medium | Low | Medium | High |
 | High | Medium | High | High |
 
+## Capability → blast radius
+
+Injection часто только **триггер**. Радиус поражения задают права и tools. Чем шире capability, тем выше приоритет границ при threat modeling:
+
+```text
+1. Text only
+2. Read context / files
+3. Suggest changes
+4. Write files
+5. Run commands / shell
+6. CI/CD & deploy     ← max blast radius
+```
+
+| Что агент может | Радиус | Минимум controls |
+|---|---|---|
+| Read-only в рабочей директории | low | command / path allowlist |
+| Write в рабочей директории | ↑ | allowlist + human approval на sensitive paths |
+| Arbitrary shell / run code | high | sandbox + approval ([§08](../part-3-processing-security/08-sandboxing.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)) |
+| External APIs с данными | high | short-lived narrow credentials + audit ([§10](../part-3-processing-security/10-secrets-management.md)) |
+| CI/CD, deploy | max | всё выше + review + reduced rights ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)) |
+
+Approval работает только если человек **понимает**, что подтверждает.
+
+После DFD: отметьте границы (стрелки между слоями) → «worst case на границе?» → **ранжируйте по blast radius** → controls сначала на наибольший радиус.
+
+## Lethal trifecta (design rule)
+
+Опасная связка в **одном** execution path ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)):
+
+1. доступ к **private data**;
+2. влияние **untrusted content** (issue, email, PR, web, tool output);
+3. **outbound channel** (HTTP, email, public PR, image/URL render).
+
+Правило проектирования: убрать хотя бы одну «ногу» (нет egress при чтении чужих PR; нет secrets в контексте при untrusted input; нет private read при открытом egress). Атакующему нужно пройти всю цепочку; защитнику достаточно удержать **одну** границу. Детали egress — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md); MCP-кейсы — [§19](../part-6-multi-agent-security/19-mcp-security.md).
+
 ## Карта угроз по слоям
 
 | Слой | Основные угрозы | Разделы конспекта |
@@ -205,6 +311,7 @@ STRIDE — это способ пройтись по компонентам си
 | Контроль | отсутствие approval, плохие логи, отсутствие мониторинга, нет kill-switch | 14, 15, 16, 17 |
 | Мультиагентность | spoofing агента, insecure delegation, poisoned inter-agent messages | 18, 19 |
 | Практика / compliance | отсутствие red teaming, supply chain, incident response | 20, 21, 22, 23, 24, 25 |
+| Инфраструктура агента | exposed control plane, ATA / agentic ransomware | 02 (ATA), 10, 17, 23 |
 
 ## Маппинг на OWASP ASI Top 10
 
@@ -392,7 +499,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 ## Чек-лист threat modeling
 
 - [ ] Определены активы: данные, инструменты, память, credentials, внешние системы.
-- [ ] Определены акторы: пользователь, внешний документ, внешний сервис, другой агент, инсайдер.
+- [ ] Определены акторы: пользователь, внешний документ, внешний сервис, другой агент, инсайдер, AI-driven / ATA.
 - [ ] Нарисован DFD Level 1.
 - [ ] Отмечены trust boundaries.
 - [ ] Для каждого внешнего входа указано, почему он недоверенный.
@@ -405,10 +512,21 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Для agent loop есть лимиты шагов, времени, стоимости и токенов.
 - [ ] Логи не содержат секреты без redaction.
 - [ ] Есть связь угроз с разделами конспекта.
+- [ ] Учтены exposed AI/agent control planes как initial access для ATA.
+- [ ] Есть detection signals для agentic ransomware (self-narrating payloads, rapid retries, credential sweep → destructive).
+- [ ] Secrets не предполагаются в env на internet-facing agent hosts.
+- [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
+- [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
+- [ ] Учтён Evaluation Gaming: эталон / evaluator / test store вне reach агента; score без integrity ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
+- [ ] Capability агента сопоставлена с blast radius; controls сначала на max radius.
+- [ ] Проверен lethal trifecta: нет одновременных private data + untrusted input + outbound в одном path.
 
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — evaluation gaming / containment (канон §20)
+- [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [Microsoft Learn — Data-flow diagram elements](https://learn.microsoft.com/en-us/training/modules/tm-create-a-threat-model-using-foundational-data-flow-diagram-elements/)
@@ -420,4 +538,10 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
+- [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
+- [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
+- [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [13 — Egress Control (lethal trifecta / exfil)](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)

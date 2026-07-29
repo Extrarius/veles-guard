@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлен подраздел Runtime Trust Gap + Go-сниппет ValidateToolOutput"
+обновлено: 2026-07-29
+изменения: "Confused deputy + якорь курса §34 Assessment and Defense."
 ---
 
 # 19 — MCP Security
@@ -137,6 +137,14 @@ flowchart LR
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
 
+### Confused deputy (учебный сценарий)
+
+Классическая проблема confused deputy: агент действует **с эффективными правами пользователя** (или сервиса), а стимул к действию приходит из **недоверенного** канала.
+
+Пример (без offensive payload): письмо или тикет выглядит как «системное уведомление» и побуждает агента вызвать привилегированный tool (отправить почту, изменить ACL, вызвать admin API). Часть действия может выполниться, даже если модель «признаётся» в ответе пользователю.
+
+Контрмеры: least privilege на tools ([§06](../part-3-processing-security/06-rbac-tool-permissions.md)); HITL на high-risk ([§14](../part-5-control-observability/14-human-in-the-loop.md)); не трактовать внешний текст как authorization; audit tool calls. См. также OWASP Agentic / MCP threat guidance в [literature.md](../literature.md). Учебный маршрут assessment — [§34 Course: Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md).
+
 ## MCP03 — Tool Poisoning
 
 **MCP03 (Tool Poisoning)** — атака, при которой описание, schema или metadata MCP tool заставляют агента использовать инструмент не так, как ожидает пользователь. Агент доверяет metadata сервера; злоумышленник или скомпрометированный сервер может подменить поведение без явного взлома runtime.
@@ -158,7 +166,7 @@ flowchart LR
 - **Не доверять tool metadata** (п. 3) — поведение задаётся локальной policy, не описанием сервера.
 - **Strict schema validation** (п. 4) — args, paths, URLs проверяются до execution.
 - **Sandboxing MCP tools** (п. 8) — shell, filesystem, network в изоляции.
-- Pin tool definitions (version/hash); при изменении metadata — re-review и alert.
+- Pin tool definitions (version/hash); при изменении metadata — re-review и alert. События re-review — [mcp-skill-review — Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers).
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
@@ -175,15 +183,46 @@ Allowlist, consent и security review обычно происходят **при
 
 > **Правило:** tool metadata, tool output, resource content и prompt provider output — **untrusted context**. Tool output — это **данные**, а не команда для следующего tool call.
 
+**Agent Data Injection (ADI):** валидный JSON / «правильная» форма resource не делает поля `id`, `uri`, `author`, provenance trusted. Tool/resource output **не** назначает себе trust level. Resource IDs и URL из output → deterministic policy validation (allowlist / registry), канон — [§03 ADI](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi) и [§07](../part-3-processing-security/07-parameter-validation-schema.md). Это не MCP03 (poisoned description при connect), а trust полей в runtime data.
+
 | Connect-time контроль | Runtime gap | Контрмера |
 |---|---|---|
 | Server allowlist + review | Tool output содержит скрытые инструкции | Output validation: размер, формат, reject control phrases |
-| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions |
+| Tool metadata pinned | Metadata drift после consent | Re-review + alert при изменении definitions ([triggers](../../templates/mcp-skill-review.md#re-review-triggers)) |
 | Schema validation args | Output трактуется как «вызови tool X» | Tool output ≠ команда; planner решает только по user task + policy |
 | Single server policy | Cross-server chaining через output | Separate internal vs external MCP; no chaining без policy |
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
 
 См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
+
+## Localhost is not a trust boundary (AutoJack)
+
+**AutoJack** — кейс, когда вредная веб-страница управляет browser tool агента, а тот обращается к **локальному** привилегированному MCP/WebSocket на `127.0.0.1` / `localhost` **без auth** → выполнение команд → RCE на хосте разработчика.
+
+Это не SSRF «наружу» (см. [§13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)). Здесь уязвимость в **ложном доверии к loopback**: сервис считают «внутренним и безопасным», хотя до него может дотянуться browser automation агента.
+
+```mermaid
+flowchart LR
+    Page[External: Malicious Web Page]
+    Browser[Process: Agent Browser Tool]
+    Local["Local MCP / WebSocket loopback no auth"]
+    Host[External System: Shell / OS]
+    Page -->|"drives agent"| Browser
+    Browser -->|"127.0.0.1:port"| Local
+    Local -->|"tool exec"| Host
+```
+
+> **Правило:** `localhost`, loopback, private IP и link-local адреса — **не** trust boundary. Локальный MCP/WebSocket требует **auth+authz**; origin/referer check недостаточен.
+
+| Ложное допущение | Реальность | Контрмера |
+|---|---|---|
+| Loopback = безопасно | Browser tool агента / DNS rebinding достигают local service | Auth+authz на локальном сервере; не полагаться на bind address |
+| Origin check достаточно | Подделывается; non-browser клиент обходит | Token + authz per request |
+| Bind `0.0.0.0` для удобства | Сервис доступен из сети | Bind loopback + token; firewall |
+| Egress только «наружу» | Агент ходит на `127.0.0.1` / private ranges | Egress блокирует loopback/private/link-local по умолчанию (§13) |
+| Dev MCP «временный» | Dev-машина хранит secrets и tokens | Experimental frameworks — в sandbox/devbox (§08) |
+
+См. [isLoopbackOrPrivateHost](#блокировка-loopbackprivate-адресов-autojack) в примере ниже.
 
 ## Подходы и контрмеры
 
@@ -536,6 +575,30 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 }
 ```
 
+### Блокировка loopback/private адресов (AutoJack)
+
+Перед MCP egress или HTTP tool call отклоняем loopback, private и link-local адреса, если policy не разрешает явно.
+
+```go
+import (
+	"net"
+	"strings"
+)
+
+func isLoopbackOrPrivateHost(host string) bool {
+	h := strings.ToLower(strings.TrimSpace(host))
+	if h == "localhost" || strings.HasSuffix(h, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(h)
+	if ip == nil {
+		return false // hostname: резолвить и проверять отдельно per policy
+	}
+	return ip.IsLoopback() || ip.IsPrivate() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+```
+
 ## STRIDE для MCP
 
 | STRIDE | Угроза |
@@ -566,11 +629,16 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 - [ ] Есть monitoring по MCP failures, denied calls и egress.
 - [ ] Есть kill-switch per MCP server.
 - [ ] Версии MCP server/packages фиксируются и обновляются контролируемо.
-- [ ] Tool definitions pinned; metadata drift детектируется и требует re-review.
+- [ ] Tool definitions pinned; metadata drift детектируется и требует re-review (см. [triggers](../../templates/mcp-skill-review.md#re-review-triggers)).
 - [ ] Tool output не трактуется как инструкция вызвать другой tool.
 - [ ] Tool output проходит output validation (размер/формат) и не содержит control instructions.
+- [ ] Поля `id` / `uri` / `author` / provenance из tool/resource output не trusted by format (ADI; [§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 - [ ] Internal и external MCP servers разделены.
 - [ ] Cross-server tool chaining запрещён без явной policy.
+- [ ] Local MCP/WebSocket требует auth+authz (loopback не считается защитой).
+- [ ] Origin/referer check не считается достаточной защитой local MCP.
+- [ ] Egress агента блокирует loopback/private/link-local по умолчанию.
+- [ ] Experimental agent frameworks и local privileged services — в sandbox/devbox.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
 
 ## Когда отключать MCP server
@@ -592,11 +660,13 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
 - [OWASP MCP Tool Poisoning](https://owasp.org/www-community/attacks/MCP_Tool_Poisoning)
+- [Microsoft — AutoJack: single-page RCE on host running AI agent](https://www.microsoft.com/en-us/security/blog/2026/06/18/autojack-single-page-rce-host-running-ai-agent/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 
 ## См. также
 
+- [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
@@ -604,3 +674,4 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)
