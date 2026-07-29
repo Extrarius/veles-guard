@@ -2,13 +2,13 @@
 tags: [ai-security, course-appendix, testing, review, workshop, findings]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-27
-изменения: "Нумерация Части X: testing workshop = §37."
+обновлено: 2026-07-29
+изменения: "Навигация → §38 Assessment and Defense."
 ---
 
 # 37 — AI Agent Security Testing Workshop
 
-> Навигация: [Оглавление](../../README.md) · [← Назад](36-agentic-security-baseline-workshop.md) · [Вперёд →](../../README.md)
+> Навигация: [Оглавление](../../README.md) · [← Назад](36-agentic-security-baseline-workshop.md) · [Вперёд →](38-course-agent-assessment-defense.md)
 
 *Кратко: за 30–45 минут пройти порядок проверки своего агента — Scope и Rules of Engagement, 3–4 строки Test Matrix, 1–2 finding, краткий Report; без offensive payloads.*
 
@@ -186,4 +186,5 @@ func Validate(f Finding) error {
 - [34 — Course Appendix: практикум](34-course-appendix-agentic-security.md)
 - [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
 - [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
+- [38 — Course: Agent Assessment and Defense](38-course-agent-assessment-defense.md)
 - [templates/agent-security-finding.md](../../templates/agent-security-finding.md)

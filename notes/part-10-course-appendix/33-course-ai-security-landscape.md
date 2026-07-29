@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-27
-изменения: "Нумерация Части X: landscape = §33 (первый)."
+обновлено: 2026-07-29
+изменения: "См. также → §38 Assessment and Defense."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -255,6 +255,7 @@ func SectionRefs(layer Layer) ([]string, error) {
 - [35 — MCP / Skill Review Workshop](35-mcp-skill-review-workshop.md)
 - [36 — Agentic Security Baseline Workshop](36-agentic-security-baseline-workshop.md)
 - [37 — AI Agent Security Testing Workshop](37-ai-agent-security-testing-workshop.md)
+- [38 — Course: Agent Assessment and Defense](38-course-agent-assessment-defense.md)
 - [01 — Введение](../part-1-architecture-threats/01-introduction.md)
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
