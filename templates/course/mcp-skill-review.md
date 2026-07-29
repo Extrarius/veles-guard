@@ -9,7 +9,7 @@ tags: [ai-security, шаблон, course, mcp-review, skills]
 
 > Учебная обёртка. Основная форма проверки — [templates/mcp-skill-review.md](../mcp-skill-review.md).  
 > Расширенная проверка сервера MCP — [mcp-server-review-template.md](../mcp-server-review-template.md).  
-> Воркшоп: [§35](../../notes/part-10-course-appendix/35-mcp-skill-review-workshop.md).
+> Воркшоп: [§36](../../notes/part-10-course-appendix/36-mcp-skill-review-workshop.md).
 
 ## Как использовать на занятии
 

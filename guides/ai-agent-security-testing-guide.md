@@ -17,7 +17,7 @@ tags: [ai-security, testing, review, guide, agents]
 Окей, я прочитал конспект. А как теперь проверить своего агента?
 ```
 
-Учебный проход по этому гайду — [§37](../notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md). Заполняемая форма finding — [templates/agent-security-finding.md](../templates/agent-security-finding.md).
+Учебный проход по этому гайду — [§38](../notes/part-10-course-appendix/38-ai-agent-security-testing-workshop.md). Заполняемая форма finding — [templates/agent-security-finding.md](../templates/agent-security-finding.md).
 
 ## 1. Scope
 
@@ -150,10 +150,10 @@ Critical / High без Fix и Regression test → production usage запрещ�
 | Sandbox | [§08 Sandboxing](../notes/part-3-processing-security/08-sandboxing.md), [§28](../notes/part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md) |
 | Egress | [§13 Egress](../notes/part-4-output-security/13-egress-control-data-exfiltration.md) |
 | Output | [§11 Output validation](../notes/part-4-output-security/11-output-validation-fact-checking.md), [§12 Secrets](../notes/part-4-output-security/12-secrets-pii-filtering.md) |
-| MCP | [§19 MCP](../notes/part-6-multi-agent-security/19-mcp-security.md), [§31](../notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [§35](../notes/part-10-course-appendix/35-mcp-skill-review-workshop.md) |
+| MCP | [§19 MCP](../notes/part-6-multi-agent-security/19-mcp-security.md), [§31](../notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [§36](../notes/part-10-course-appendix/36-mcp-skill-review-workshop.md) |
 | AI-coding | [§27](../notes/part-9-ai-coding-security/27-repository-instructions-attack-surface.md)–[§32](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md) |
 | Process / IR | [§20](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [§23](../notes/part-7-testing-compliance/23-incident-response-recovery.md), [§25](../notes/part-8-practice/25-security-by-design-checklist.md) |
-| Course practice | [§33](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)–[§37](../notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md) |
+| Course practice | [§33](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)–[§38](../notes/part-10-course-appendix/38-ai-agent-security-testing-workshop.md) |
 
 Ядро обвязки: **§20** (как тестировать adversarially) → **этот гайд** (порядок и findings) → **§25 / §32** (чеклисты) → **§23** (если finding = инцидент).
 
@@ -187,7 +187,7 @@ Critical / High без Fix и Regression test → production usage запрещ�
 - [23 — Incident Response (Trusted defender access)](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access)
 - [25 — Security-by-Design чек-лист](../notes/part-8-practice/25-security-by-design-checklist.md)
 - [32 — AI Coding Security Checklist](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
-- [33–37 — Учебное приложение](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)
+- [33–38 — Учебное приложение](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)
 - [templates/agent-security-finding.md](../templates/agent-security-finding.md)
 - [templates/agentic-security-baseline.md](../templates/agentic-security-baseline.md)
 - [templates/mcp-skill-review.md](../templates/mcp-skill-review.md)
