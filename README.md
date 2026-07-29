@@ -112,6 +112,7 @@ AI-агенты перестают быть «чатом с моделью»: о
 35. [MCP / Skill Review Workshop](notes/part-10-course-appendix/35-mcp-skill-review-workshop.md)
 36. [Agentic Security Baseline Workshop](notes/part-10-course-appendix/36-agentic-security-baseline-workshop.md)
 37. [AI Agent Security Testing Workshop](notes/part-10-course-appendix/37-ai-agent-security-testing-workshop.md)
+38. [Course: Agent Assessment and Defense](notes/part-10-course-appendix/38-course-agent-assessment-defense.md)
 
 ### Учебное приложение
 

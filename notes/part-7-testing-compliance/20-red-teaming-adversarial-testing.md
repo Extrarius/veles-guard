@@ -2,8 +2,8 @@
 tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Evaluation Gaming / Reward Hacking; EV-08; ScoreNeedsHumanReview; sync py/ts."
+обновлено: 2026-07-29
+изменения: "LLM-as-judge в assessment; якорь курса §38 Assessment and Defense."
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -140,6 +140,10 @@ Security evals для AI-агентов лучше рассматривать к
 ```text
 deterministic checks → LLM-as-judge → human review → online monitoring
 ```
+
+**LLM-as-a-Judge в assessment:** отдельный checker оценивает пару (вход, ответ / tool trace) на нарушение политики (запрещённый контент, утечка, unsafe intent). Формат вердикта лучше фиксировать машинночитаемым (например JSON `is_violation` + краткое `reasoning`) — для suite и triage, не как единственный gate в production. Напоминание: **EV-03** — judge только доп. слой.
+
+Связь с учебным маршрутом assessment: [§38 Course: Agent Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md).
 
 ### Security evals checklist
 
@@ -696,6 +700,7 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 - [Список литературы](../literature.md#практические-руководства)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape; evaluation gaming / reward hacking (целостность оценки)
 - [OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness](https://openai.com/index/unlocking-self-improvement-gpt-red/)
+- [Zheng et al. — Judging LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)
 - [OWASP AI Security Solutions Landscape for AI and Agentic Red Teaming](https://genai.owasp.org/resource/ai-security-solutions-landscape-for-ai-and-agentic-red-teaming-q2-2026/)
 - [OWASP Top 10 for Large Language Model Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -716,3 +721,4 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 - [29 — AI-generated code review и spec-driven workflow](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
+- [38 — Course: Agent Assessment and Defense](../part-10-course-appendix/38-course-agent-assessment-defense.md)
