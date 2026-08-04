@@ -2,8 +2,8 @@
 tags: [ai-security, agents, incident-response, recovery, playbooks]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Trusted defender access: org practice для IR/red-team elevated access; checklist."
+обновлено: 2026-08-04
+изменения: "TTAC metric; stop_all_parallel_evals; third-party notify; eval report fields; Go/py/ts sync."
 ---
 
 # 23 — Incident Response и Recovery
@@ -344,6 +344,7 @@ func BuildContainmentPlan(signal Signal) []ContainmentAction {
 // (не замена ATA ransomware playbook). Revoke credentials — через §17 kill-switch path.
 func AutonomousContainmentSteps() []string {
 	return []string{
+		"stop_all_parallel_evals",
 		"stop_agent",
 		"revoke_credentials",
 		"block_egress",
@@ -354,6 +355,19 @@ func AutonomousContainmentSteps() []string {
 		"notify_affected",
 		"regression_eval",
 	}
+}
+
+// TimeToAgentContainment — TTAC = agent_stopped_at − first_policy_violation_at.
+// Если stopped раньше violation или zero times — возвращает 0 (illustrative).
+func TimeToAgentContainment(firstViolation, stoppedAt time.Time) time.Duration {
+	if firstViolation.IsZero() || stoppedAt.IsZero() {
+		return 0
+	}
+	d := stoppedAt.Sub(firstViolation)
+	if d < 0 {
+		return 0
+	}
+	return d
 }
 ```
 
@@ -512,12 +526,12 @@ Learn
 
 Не ждать полного triage. Сразу:
 
-1. Остановить агент (kill-switch) и отозвать credentials ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+1. Остановить **все** связанные / параллельные eval-сессии (не только текущий run), затем kill-switch агента и отозвать credentials ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
 2. Заблокировать сетевой egress среды.
-3. Сохранить полную последовательность tool calls / trace (не доверять user-facing summary).
-4. Проверить внешние системы, к которым агент обращался; при необходимости уведомить затронутые стороны.
+3. Сохранить полную последовательность tool calls / trace, контейнер и сетевые журналы (не доверять user-facing summary).
+4. Сопоставить внешние IP и домены с владельцами; **уведомить затронутые организации** (третьи стороны), не только внутренних owners.
 5. Ротировать секреты и токены, доступные из стенда / runtime.
-6. Превратить цепочку в regression: [`EVAL-CONTAINMENT-01`](20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (и integrity evals при score gaming).
+6. Превратить цепочку в regression: [`EVAL-CONTAINMENT-01`](20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (и integrity evals при score gaming); проверить внешнего [evaluation partner §22](22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория).
 
 ### Detect
 
@@ -537,18 +551,45 @@ Learn
 Порядок (см. также `AutonomousContainmentSteps` в примере Go):
 
 ```text
-1. stop_agent          — kill-switch: остановить run / agent ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md))
-2. revoke_credentials  — suspend identity, revoke tokens (не только «выключить tool»)
-3. block_egress        — deny outbound; зафиксировать attempted destinations
-4. save_tool_trace     — полный tool-call / span sequence как IR artifact
-5. ignore_user_summary — сравнивать declared plan / user-facing text с actual_actions; расхождения = evidence
-6. pivot_check         — какие hosts, credentials, systems затронуты; lateral / secondary agents
-7. rotate_secrets      — все secrets/tokens, доступные из стенда или agent host
-8. notify_affected     — владельцы систем / data subjects по политике
-9. regression_eval     — EVAL-CONTAINMENT-01; при score gaming — integrity checks (§20 EV-08)
+1. stop_all_parallel_evals — остановить все связанные / параллельные eval-сессии (не только текущий run)
+2. stop_agent              — kill-switch: остановить run / agent ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md))
+3. revoke_credentials      — suspend identity, revoke tokens (не только «выключить tool»)
+4. block_egress            — deny outbound; зафиксировать attempted destinations
+5. save_tool_trace         — полный tool-call / span sequence как IR artifact
+6. ignore_user_summary     — сравнивать declared plan / user-facing text с actual_actions; расхождения = evidence
+7. pivot_check             — какие hosts, credentials, systems затронуты; lateral / secondary agents
+8. rotate_secrets          — все secrets/tokens, доступные из стенда или agent host
+9. notify_affected         — затронутые организации / третьи стороны (не только внутренние owners)
+10. regression_eval        — EVAL-CONTAINMENT-01; при score gaming — integrity checks (§20 EV-08); проверить evaluation partner (§22)
 ```
 
-Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape). Отчёт — [`templates/incident-report-template.md`](../../templates/incident-report-template.md).
+Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape). Отчёт — [`templates/incident-report-template.md`](../../templates/incident-report-template.md) §6.1.
+
+### Time to Agent Containment (TTAC)
+
+**TTAC** — время от первого выхода за область разрешений до полной остановки агента:
+
+```text
+TTAC = agent_stopped_at − first_policy_violation_at
+```
+
+Фиксировать timestamps (и связанные поля) в отчёте:
+
+| Поле | Назначение |
+|---|---|
+| `first_policy_violation_at` | первый выход за scope / policy deny, который потом привёл к инциденту |
+| `first_external_connection_at` | первое внешнее соединение вне allowlist |
+| `first_detection_at` | момент детекта (monitor / human) |
+| `agent_stopped_at` | момент полной остановки (все parallel evals + kill-switch) |
+| `affected_external_targets` | затронутые hosts / orgs |
+| `evaluation_partner` | внешняя лаборатория оценки, если была ([§22](22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория)) |
+| `scope_manifest_version` | версия signed scope |
+| `network_policy_version` | версия сетевой policy / allowlist |
+| `credentials_exposed` | были ли раскрыты / использованы secrets |
+| `notifications_sent` | кому и когда ушли уведомления третьим сторонам |
+| `regression_eval_added` | ID regression suite / N/A |
+
+Шаблон заполнения — [`templates/incident-report-template.md`](../../templates/incident-report-template.md) §6.1. Иллюстративный расчёт — `TimeToAgentContainment` в примере Go ниже.
 
 ### Отличия от соседних playbooks
 
@@ -573,6 +614,10 @@ Pre-eval prevention остаётся в [§08](../part-3-processing-security/08-
 - [ ] Есть playbook для MCP compromise.
 - [ ] Есть playbook для Agentic Threat Actor / agentic ransomware.
 - [ ] Есть playbook Autonomous-agent IR (containment) ([выше](#playbook-autonomous-agent-ir-containment)).
+- [ ] При containment во время eval: остановлены **все** параллельные eval-сессии (`stop_all_parallel_evals`).
+- [ ] Записан TTAC (`agent_stopped_at − first_policy_violation_at`) и timestamps в отчёте ([§6.1](../../templates/incident-report-template.md)).
+- [ ] Уведомлены затронутые организации / третьи стороны; заполнены `notifications_sent` / `affected_external_targets`.
+- [ ] В отчёте есть `evaluation_partner`, `scope_manifest_version`, `network_policy_version` (или N/A).
 - [ ] Есть процедура очистки memory.
 - [ ] Red team findings добавляются в regression suite.
 - [ ] После инцидента обновляется threat model.
