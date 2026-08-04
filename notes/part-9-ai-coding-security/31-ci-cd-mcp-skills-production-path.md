@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Якорь re-review triggers (rug pull) → templates/mcp-skill-review."
+обновлено: 2026-07-29
+изменения: "CurXecute / CVE-2025-54135: MCP config write → RCE; §36 review link."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -139,6 +139,10 @@ Dev-машина coding agent хранит secrets, tokens, SSH keys и част
 
 В AI-coding контексте это особенно опасно: агент постоянно открывает внешние страницы (docs, issues, PR diffs), а локальные MCP/skills слушают loopback. Контрмеры: auth+authz на local MCP, egress блокирует loopback/private, experimental frameworks — в sandbox/devbox. Подробнее: [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack), [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary).
 
+### Confirmed in the wild: CurXecute (MCP config → RCE)
+
+[GHSA-4cxx-hrm3-49rm](https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm) / [CVE-2025-54135](https://nvd.nist.gov/vuln/detail/CVE-2025-54135): цепочка prompt injection → запись MCP config (`mcp.json`) → **auto-start** нового entry → RCE на хосте разработчика. Урок для production path: изменение MCP/skills config — high-risk write (approval + re-review); не считать workspace file «просто текстом». Review до connect — [§36](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [§19](../part-6-multi-agent-security/19-mcp-security.md).
+
 ## Skills threat model
 
 | Угроза | Пример | Risk |
@@ -169,7 +173,7 @@ Skill Security = не «ставим всё», а «выбираем урове�
 
 ### На что смотреть на каждом уровне
 
-**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§35 MCP / Skill Review Workshop](../part-10-course-appendix/35-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
+**description vs body** (`SKILL.md` / аналог): описание для модели (description) — не доверенная политика (policy). Тело и скрипты (body / scripts) проходят отдельный review. Учебные anti-patterns: [§36 MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [examples/course/bad-good-skill-manifest.md](../../examples/course/bad-good-skill-manifest.md).
 
 **Sandbox** для skill-скриптов: не запускать install/postinstall и произвольный shell от имени разработчика без изоляции. См. [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md).
 
@@ -355,6 +359,7 @@ func CanEnterProductionPath(pr PR) bool {
 ## Литература
 
 - [Список литературы](../literature.md#mcp)
+- [Cursor — GHSA-4cxx-hrm3-49rm (CurXecute / CVE-2025-54135)](https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm)
 - [GitHub Copilot cloud agent](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent)
 - [GitHub Actions — Security hardening](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions)
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
@@ -370,4 +375,4 @@ func CanEnterProductionPath(pr PR) bool {
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
-- [35 — MCP / Skill Review Workshop](../part-10-course-appendix/35-mcp-skill-review-workshop.md)
+- [36 — MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md)

@@ -2,7 +2,7 @@
 
 [← Оглавление](../../README.md)
 
-> Безопасные учебные фрагменты для [§35](../../notes/part-10-course-appendix/35-mcp-skill-review-workshop.md).  
+> Безопасные учебные фрагменты для [§36](../../notes/part-10-course-appendix/36-mcp-skill-review-workshop.md).  
 > Не рабочие payloads и не реальные skill-файлы для установки. Формат условный (YAML-подобный).
 
 ## Bad (антипаттерн)

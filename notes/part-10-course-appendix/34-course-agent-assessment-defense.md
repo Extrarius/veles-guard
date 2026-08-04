@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-29
-изменения: "Renumber B: assessment = §34 (после landscape, до практикума)."
+изменения: "Lethal trifecta + blast-radius assessment; break-one-link rule."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -55,6 +55,18 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 Типичный разрыв: есть агент с tools и RAG, а assessment сводится к «потрогали chat». Нужна матрица по **поверхностям**.
 
+### Blast radius и lethal trifecta (assessment)
+
+Перед матрицей областей зафиксируйте **что агент умеет** (text → read → write → shell → CI/deploy) и где наибольший blast radius — [§02](../part-1-architecture-threats/02-threat-model.md).
+
+**Lethal trifecta** ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)): private data + untrusted content + outbound в одном path. Assessment-вопросы:
+
+1. Есть ли private data в контексте при чтении untrusted issue/PR/email?
+2. Есть ли outbound (HTTP, public PR, render img/URL) в том же run?
+3. Какую **одну** границу удержать, чтобы цепочка оборвалась?
+
+Правило защиты: атакующему нужны все звенья; достаточно сломать одно (untrusted = data not commands; write вне allowlist → approval; нет secrets у агента; нет egress). Учебные прецеденты по звеньям: [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) (Duo / image exfil), [§19](../part-6-multi-agent-security/19-mcp-security.md) (GitHub MCP), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) (CurXecute).
+
 ## Матрица assessment → части I–IX
 
 | Область | Что оценивать (безопасно) | Канон |
@@ -95,11 +107,12 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 ## Подходы и контрмеры
 
-1. Составить матрицу областей (таблица выше) под *свой* агент — вычеркнуть N/A.
-2. На каждую High-область — Expected control и раздел канона.
-3. Guardrails: hard + soft раздельно; не светить внутреннюю причину block.
-4. MCP/tools: review до connect; confused deputy в threat model.
-5. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
+1. Зафиксировать capability / blast radius и trifecta ([§02](../part-1-architecture-threats/02-threat-model.md)).
+2. Составить матрицу областей (таблица выше) под *свой* агент — вычеркнуть N/A.
+3. На каждую High-область — Expected control и раздел канона; достаточно удержать одну границу в цепочке.
+4. Guardrails: hard + soft раздельно; не светить внутреннюю причину block.
+5. MCP/tools: review до connect; confused deputy в threat model.
+6. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Пример (Go): область assessment → якоря конспекта
 
@@ -156,11 +169,14 @@ const (
 - [ ] Различаете hard block и soft response.
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
+- [ ] Lethal trifecta проверен; есть план «сломать одно звено».
+- [ ] Capability / blast radius зафиксированы до матрицы областей.
 - [ ] Следующий шаг — практикум §35–38 или Testing Guide.
 
 ## Литература
 
 - [Список литературы](../literature.md)
+- [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OWASP Top 10 for Agentic Applications](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/)

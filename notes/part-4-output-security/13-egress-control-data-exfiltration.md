@@ -2,8 +2,8 @@
 tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлен подраздел Source→Sink: egress как sink; примеры не требуют обновления."
+обновлено: 2026-07-29
+изменения: "Lethal trifecta (egress leg) + GitLab Duo image/URL exfil anchor."
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
@@ -113,6 +113,12 @@ Destination + Data + Actor + Purpose проверяются вместе.
 | Covert channel | данные закодированы в URL/path/base64 | High | payload classifier, size limits |
 | Tool chaining | один tool читает файл, другой отправляет наружу | High | flow-aware policy |
 | Over-sharing | агент отправляет весь документ вместо выдержки | Medium | data minimization |
+
+### Lethal trifecta: нога egress
+
+Если агент одновременно видит **private data**, принимает **untrusted content** и имеет **outbound** (включая render ссылок/картинок в UI), injection может унести данные без «явного» HTTP-tool. Design rule: убрать хотя бы одну ногу — [§02](../part-1-architecture-threats/02-threat-model.md), [Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/).
+
+Публичный прецедент (механика, не payload): скрытый prompt в merge request / контексте заставил coding assistant вставить в ответ HTML/image URL с закодированными данными; браузер при рендере «картинки» отправил GET наружу ([Legit Security — GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo)). Контроль: не рендерить untrusted HTML/img на внешние домены; destination allowlist для любых outbound URL в ответе; не считать markdown «безопасным текстом».
 
 ## Подходы и контрмеры
 
@@ -522,10 +528,14 @@ Egress Control запрещает отправить секрет наружу, 
 - [ ] Все решения allow/block/review логируются.
 - [ ] Egress/navigate трактуются как sinks в Source→Sink ([§03](../part-2-input-security/03-prompt-injection-detection.md)).
 - [ ] Untrusted source + outbound к третьей стороне не silent: allowlist и/или approval.
+- [ ] Ответ агента не рендерит произвольные external img/URL (markdown/HTML exfil).
+- [ ] Проверен lethal trifecta: private + untrusted + egress не в одном path ([§02](../part-1-architecture-threats/02-threat-model.md)).
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
+- [Legit Security — Remote Prompt Injection in GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo)
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OWASP LLM02:2025 Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)
 - [OWASP LLM05:2025 Improper Output Handling](https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/)
@@ -534,6 +544,7 @@ Egress Control запрещает отправить секрет наружу, 
 
 ## См. также
 
+- [02 — Threat Model (trifecta / blast radius)](../part-1-architecture-threats/02-threat-model.md)
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
