@@ -2,8 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-07-19
-изменения: "Agent Data Injection (ADI): trusted format ≠ trusted data; ValidateDocumentRef; sync py/ts."
+обновлено: 2026-08-04
+изменения: "Guardrail pipeline + router (taxonomy of harms); якоря §04/§11; lit NeMo/AILuminate."
 ---
 
 # 03 — Prompt Injection Detection
@@ -269,6 +269,37 @@ Untrusted data:
 | Context isolation | Не даёт внешнему тексту стать управляющей инструкцией |
 | Human approval | Требует подтверждение для опасных действий |
 
+<a id="guardrail-pipeline-router"></a>
+
+#### Guardrail pipeline + router
+
+Канон входного detector-pipeline (layered rails; иллюстрация подхода — [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/)):
+
+```text
+быстрые эвристики (длина, JSON/формат, stop-patterns, повтор секретов)
+  → block | mask | normalize
+  → similarity / model detector
+  → LLM-as-judge (спорные кейсы)
+```
+
+Связь с таблицей уровней выше: rule-based = эвристики; classifier / judge = поздние ступени. Tool-policy, context isolation и HITL остаются **вне** detector-pipeline — pipeline их не заменяет.
+
+Mask / normalize на ступени «очистки» — [§04](04-pii-redaction-content-filtering.md). Зеркальный layered path на выходе — [§11](../part-4-output-security/11-output-validation-fact-checking.md).
+
+**Router** возвращает структурированный результат (не свободный текст модели). Категория вреда задаёт политику — ориентир taxonomy: [MLCommons AILuminate](https://mlcommons.org/ailuminate/) / [arXiv 2503.05731](https://arxiv.org/abs/2503.05731) (полную таксономию в раздел не копируем).
+
+| Поле | Назначение |
+|---|---|
+| `category_hint` | класс вреда / taxonomy |
+| `max_similarity` | score similarity-детектора |
+| `matched_patterns` | сработавшие эвристики |
+| `risk_signal` | агрегированный риск |
+| `route` | `strict` \| `block` |
+
+`allow` / `sanitize` / `approval` из таблицы решений ниже остаются совместимы: `strict` = ужесточённая политика на категорию (жёстче sanitize, до block / approval).
+
+> **Правило:** категория вреда задаёт политику; модель-детектор не выбирает произвольный «мягкий» путь мимо policy.
+
 ### 3. Не пытаться “победить prompt injection только промптом”
 
 Промпт — это не граница безопасности.
@@ -288,6 +319,8 @@ Detection + Isolation + Least Privilege + Tool Policy + Logging + Approval
 | block | явная атака или попытка раскрыть секреты |
 | approval | действие потенциально опасное, но может быть легитимным |
 | log-only | ранний этап внедрения, собираем статистику |
+
+**Hard block vs soft response:** `block` на политике — это **hard** (запрос не идёт в tools / не доверяется UI). Пользователю можно отдать **soft** ответ: вежливый отказ без раскрытия внутренней причины фильтра. Не подменять hard block «надеждой, что модель сама откажется». Учебный разбор: [§34 Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md); classifiers — [literature.md](../literature.md) (в т.ч. Meta Llama Guard).
 
 ## Пример (Go): простой detector
 
@@ -380,6 +413,51 @@ func DetectPromptInjection(input string) DetectionResult {
 }
 ```
 
+### Пример (Go): GuardrailRouteDecision
+
+Иллюстрация router после эвристик. Не промышленный similarity/judge — только механика полей и выбора `route`.
+
+```go
+package inputsecurity
+
+type GuardrailRoute string
+
+const (
+	RouteStrict GuardrailRoute = "strict"
+	RouteBlock  GuardrailRoute = "block"
+)
+
+type GuardrailRouteDecision struct {
+	CategoryHint    string
+	MaxSimilarity   float64
+	MatchedPatterns []string
+	RiskSignal      Severity
+	Route           GuardrailRoute
+}
+
+// RouteFromDetection maps heuristic DetectionResult into a structured router decision.
+// Similarity/judge stages would fill MaxSimilarity / refine CategoryHint in a real pipeline.
+func RouteFromDetection(det DetectionResult) GuardrailRouteDecision {
+	patterns := make([]string, 0, len(det.Signals))
+	for _, s := range det.Signals {
+		patterns = append(patterns, s.Name)
+	}
+
+	d := GuardrailRouteDecision{
+		CategoryHint:    "prompt_injection",
+		MaxSimilarity:   0,
+		MatchedPatterns: patterns,
+		RiskSignal:      det.Risk,
+		Route:           RouteStrict,
+	}
+
+	if det.Risk == High || !det.Allowed {
+		d.Route = RouteBlock
+	}
+	return d
+}
+```
+
 ## Пример (Go): безопасная сборка контекста
 
 ```go
@@ -453,7 +531,9 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [ ] Все внешние данные помечаются как untrusted.
 - [ ] User input и external content проходят через input gateway.
 - [ ] Есть rule-based detection для очевидных атак.
-- [ ] Есть отдельное решение: allow / sanitize / block / approval.
+- [ ] Входной guardrail идёт по pipeline: эвристики → block/mask/normalize → similarity/detector → judge ([канон](#guardrail-pipeline-router)).
+- [ ] Router отдаёт структурированные поля (`category_hint`, `max_similarity`, `matched_patterns`, `risk_signal`, `route`); категория задаёт политику.
+- [ ] Есть отдельное решение: allow / sanitize / block / approval (совместимо с `strict` / `block` router).
 - [ ] Внешний текст не смешивается с system/developer instructions.
 - [ ] Tool call невозможен без policy check.
 - [ ] High-risk input не попадает в memory.
@@ -469,9 +549,12 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 
 ## Литература
 
-- [Список литературы](../literature.md#prompt-injection)
+- [Список литературы](../literature.md#prompt-injection) · [Академические исследования](../literature.md#академические-исследования) · [Инструменты](../literature.md#инструменты)
 - [Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents](https://arxiv.org/abs/2607.05120) — ADI vs instruction injection; isolation trusted/untrusted data
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) — source–sink analysis, social engineering mindset
+- [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/) — layered input/output rails
+- [MLCommons AILuminate](https://mlcommons.org/ailuminate/) — taxonomy of harms
+- [AILuminate v1.0 (arXiv 2503.05731)](https://arxiv.org/abs/2503.05731)
 - OWASP LLM01:2025 Prompt Injection — https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 - OWASP Top 10 for Large Language Model Applications — https://owasp.org/www-project-top-10-for-large-language-model-applications/
 - OWASP Gen AI Security Project — https://genai.owasp.org/
@@ -479,6 +562,8 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 ## См. также
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [04 — PII Redaction и Content Filtering](04-pii-redaction-content-filtering.md) — mask / normalize
+- [11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md) — выходной layered path
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
@@ -487,3 +572,4 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [27 — Repository instructions](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)

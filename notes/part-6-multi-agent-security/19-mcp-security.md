@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Якорь re-review triggers → mcp-skill-review; ADI/AutoJack сохранены."
+обновлено: 2026-07-29
+изменения: "GitHub MCP toxic flow (Invariant); trifecta cross-link; §34 anchor."
 ---
 
 # 19 — MCP Security
@@ -136,6 +136,18 @@ flowchart LR
 | Missing audit | невозможно доказать, какой MCP tool что сделал | Medium |
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
+
+### Confused deputy (учебный сценарий)
+
+Классическая проблема confused deputy: агент действует **с эффективными правами пользователя** (или сервиса), а стимул к действию приходит из **недоверенного** канала.
+
+Пример (без offensive payload): письмо или тикет выглядит как «системное уведомление» и побуждает агента вызвать привилегированный tool (отправить почту, изменить ACL, вызвать admin API). Часть действия может выполниться, даже если модель «признаётся» в ответе пользователю.
+
+Контрмеры: least privilege на tools ([§06](../part-3-processing-security/06-rbac-tool-permissions.md)); HITL на high-risk ([§14](../part-5-control-observability/14-human-in-the-loop.md)); не трактовать внешний текст как authorization; audit tool calls. См. также OWASP Agentic / MCP threat guidance в [literature.md](../literature.md). Учебный маршрут assessment — [§34 Course: Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md).
+
+### Confirmed in the wild: GitHub MCP (toxic flow)
+
+Публичный разбор ([Invariant Labs](https://invariantlabs.ai/blog/mcp-github-vulnerability)): агент с широким GitHub MCP читает **public issue** (untrusted) → тянет **private repos** → публикует утечку через **public PR** (egress). Это одновременно lethal trifecta ([§02](../part-1-architecture-threats/02-threat-model.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md)): private + untrusted + outbound в одном tool surface. Контрмеры: scoped token / single-repo session, least privilege, HITL на write/PR, не «always allow».
 
 ## MCP03 — Tool Poisoning
 
@@ -648,6 +660,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 ## Литература
 
 - [Список литературы](../literature.md#mcp)
+- [Invariant Labs — GitHub MCP Exploited](https://invariantlabs.ai/blog/mcp-github-vulnerability)
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
@@ -666,3 +679,4 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
+- [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)

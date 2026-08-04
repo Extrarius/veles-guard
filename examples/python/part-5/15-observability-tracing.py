@@ -79,6 +79,24 @@ def needs_human_review(v: ActionIntegrityView) -> bool:
     return v.l2_mismatch or v.summary_actions_gap or v.plan_actions_gap
 
 
+@dataclass
+class ActionIntegrityView:
+    """Layers for Reasoning vs actions (see §15)."""
+
+    user_facing_summary: str = ""
+    declared_plan: str = ""
+    actual_actions: list[str] = field(default_factory=list)
+    reasoning_available: bool = False  # CoT optional; never sole SoT
+    summary_actions_gap: bool = False
+    plan_actions_gap: bool = False
+    l2_mismatch: bool = False
+
+
+def needs_human_review(v: ActionIntegrityView) -> bool:
+    """L2 / plan-actions / summary-actions gap → human review."""
+    return v.l2_mismatch or v.summary_actions_gap or v.plan_actions_gap
+
+
 SECRET_PATTERNS = [
     re.compile(
         r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"

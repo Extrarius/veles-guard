@@ -494,7 +494,7 @@ func ShouldAutoStop(s WeakSignals) bool {
 
 ## См. также
 
-- [15 — Observability и Tracing](15-observability-tracing.md) · eval-поля (`scope_decision`, `monitoring_state`, …)
+- [15 — Observability и Tracing](15-observability-tracing.md) · eval-поля (`scope_decision`, `monitoring_state`, …) · [Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions)
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»
 - [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)

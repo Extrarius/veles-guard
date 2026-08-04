@@ -369,6 +369,22 @@ type ActionIntegrityView struct {
 func NeedsHumanReview(v ActionIntegrityView) bool {
 	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
 }
+
+// ActionIntegrityView — слои для Reasoning vs actions (см. выше).
+type ActionIntegrityView struct {
+	UserFacingSummary  string
+	DeclaredPlan       string
+	ActualActions      []string
+	ReasoningAvailable bool // CoT optional; never sole source of truth
+	SummaryActionsGap  bool // operator/L2: summary hides side effects
+	PlanActionsGap     bool // operator/L2: plan misses actual tools
+	L2Mismatch         bool // independent monitor flagged drift
+}
+
+// NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
+func NeedsHumanReview(v ActionIntegrityView) bool {
+	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
+}
 ```
 
 Синхрон: [Python](../../examples/python/part-5/15-observability-tracing.py) · [TypeScript](../../examples/typescript/part-5/15-observability-tracing.ts).

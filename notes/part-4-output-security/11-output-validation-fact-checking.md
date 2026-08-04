@@ -2,8 +2,8 @@
 tags: [ai-security, output-validation, fact-checking, guardrails, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Уточнена граница с §07: structured output ответа vs параметры tool call"
+обновлено: 2026-08-04
+изменения: "Якорь на §03 Guardrail pipeline (выходной layered path)."
 ---
 
 # 11 — Output Validation и Fact-Checking
@@ -45,6 +45,8 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 - источником для другого агента.
 
 Поэтому output validation — это не “красивый финальный фильтр”, а **граница безопасности между моделью и внешним миром**.
+
+Выходной gate — зеркальный layered path к входному [guardrail pipeline §03](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router): эвристики / schema → filter (PII, secrets, safety) → более тяжёлые проверки. Streaming-проверка по чанкам — отдельный backlog; здесь — validation полного ответа до выпуска за Output Gate.
 
 ## Что проверяем на выходе
 

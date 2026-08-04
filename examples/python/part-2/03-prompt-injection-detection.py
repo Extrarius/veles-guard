@@ -78,6 +78,33 @@ def detect_prompt_injection(input_text: str) -> DetectionResult:
     return result
 
 
+class GuardrailRoute(str, Enum):
+    STRICT = "strict"
+    BLOCK = "block"
+
+
+@dataclass
+class GuardrailRouteDecision:
+    category_hint: str
+    max_similarity: float
+    matched_patterns: List[str]
+    risk_signal: Severity
+    route: GuardrailRoute
+
+
+def route_from_detection(det: DetectionResult) -> GuardrailRouteDecision:
+    """Map heuristic DetectionResult into a structured router decision."""
+    patterns = [s.name for s in det.signals]
+    route = GuardrailRoute.BLOCK if det.risk == Severity.HIGH or not det.allowed else GuardrailRoute.STRICT
+    return GuardrailRouteDecision(
+        category_hint="prompt_injection",
+        max_similarity=0.0,
+        matched_patterns=patterns,
+        risk_signal=det.risk,
+        route=route,
+    )
+
+
 @dataclass
 class ContextBlock:
     source: str
