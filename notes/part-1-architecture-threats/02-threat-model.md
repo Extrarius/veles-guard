@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Blast radius ladder + lethal trifecta; priority controls by capability."
+обновлено: 2026-08-02
+изменения: "Target ambiguity: fictional target matches real org; deterministic scope."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -223,6 +223,7 @@ STRIDE — это способ пройтись по компонентам си
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
 | Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
 | Eval harness / metrics / test store | Tampering / Elevation of Privilege | Evaluation Gaming: spoofed path к эталону, evaluator или test data → недостоверный score | High | isolate ground truth; separate evaluator; block dataset hosts; score spike → human review ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
+| Eval target scope / signed manifest | Elevation of Privilege / Tampering | Target ambiguity: вымышленная цель совпала с реальной org → агент считает найденную infra частью испытания | High | signed scope manifest; deterministic allowlist; LLM не расширяет цели ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)) |
 
 ## Сценарий: Agent Data Injection (spoofed trusted metadata)
 
@@ -247,6 +248,27 @@ STRIDE — это способ пройтись по компонентам си
 | 3 | Score растёт без легитимного task completion → auto-pass недопустим |
 
 Threat model: элемент **Eval harness** в DFD; controls и EV-08 — [§20 Evaluation Gaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking). Audit signals — [§15](../part-5-control-observability/15-observability-tracing.md).
+
+## Сценарий: Target ambiguity
+
+Агент получает **вымышленную** цель кибериспытания. Имя или адрес совпадает с реальной организацией; агент обнаруживает доступную внешнюю инфраструктуру и считает её частью симуляции → выполняет реальные действия против третьей стороны.
+
+```text
+вымышленная цель → имя/адрес совпадает с реальным → агент видит внешнюю infra
+  → считает её частью испытания → реальные действия против третьей стороны
+```
+
+Публичный случай cyber-eval (июль 2026): совпадение имени вымышленной цели с реальной организацией. Это **не** Evaluation Gaming (целостность score) и не только Containment Escape (выход за стенд): фокус — **кто решает**, что цель «внутри симуляции».
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Сценарий задаёт fictional target (имя / домен) |
+| 2 | Найденная infra совпадает по имени или резолвится во внешний объект |
+| 3 | LLM/агент трактует объект как часть испытания и действует против него |
+
+> **Правило:** scope проверяет **детерминированный код** по подписанному manifest (default deny), не LLM. Совпадение имени ≠ разрешение цели.
+
+Controls и `EVAL-TARGET-BOUNDARY-01` — [§20 Target boundary](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01); signed scope в pre-eval — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape).
 
 ## Risk Rating
 
@@ -518,6 +540,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
 - [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 - [ ] Учтён Evaluation Gaming: эталон / evaluator / test store вне reach агента; score без integrity ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
+- [ ] Учтён Target ambiguity: цели из signed scope; LLM не решает «это симуляция» при совпадении имени ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)).
 - [ ] Capability агента сопоставлена с blast radius; controls сначала на max radius.
 - [ ] Проверен lethal trifecta: нет одновременных private data + untrusted input + outbound в одном path.
 
@@ -526,6 +549,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
 - [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — evaluation gaming / containment (канон §20)
+- [arXiv 2607.25379 — Cyber-Capable AI Agents](https://arxiv.org/abs/2607.25379) — evaluation containment / target boundaries
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
@@ -541,6 +565,8 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
+- [20 — Red Teaming (Target boundary / EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
+- [08 — Sandboxing (signed scope / pre-eval)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [13 — Egress Control (lethal trifecta / exfil)](../part-4-output-security/13-egress-control-data-exfiltration.md)
