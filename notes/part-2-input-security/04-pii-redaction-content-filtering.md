@@ -2,8 +2,8 @@
 tags: [ai-security, pii, redaction, content-filtering, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-04
+изменения: "Якорь на §03 Guardrail pipeline (mask/normalize как ступень)."
 ---
 
 # 04 — PII Redaction и Content Filtering
@@ -96,6 +96,8 @@ flowchart LR
 ```
 
 Важно: фильтрация только перед LLM недостаточна. Агент может передать исходный текст в tool или сохранить его в memory.
+
+Mask / normalize на входе — ступень [guardrail pipeline §03](03-prompt-injection-detection.md#guardrail-pipeline-router) (эвристики → block|mask|normalize → detector → judge). Канон router / taxonomy — там; здесь — механика redaction и content filtering.
 
 ## Подходы и контрмеры
 

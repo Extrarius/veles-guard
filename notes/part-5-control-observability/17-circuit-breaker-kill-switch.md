@@ -2,8 +2,8 @@
 tags: [ai-security, agents, circuit-breaker, kill-switch, runtime-control]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Pre-eval: kill-switch drill + лимиты до red-team/containment suite."
+обновлено: 2026-08-04
+изменения: "Когда срабатывать: monitoring tampering, new domain out of scope, continue after deny."
 ---
 
 # 17 — Circuit Breaker и Kill-Switch
@@ -416,6 +416,11 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 | guardrail unavailable | fail closed for high-risk actions |
 | incident confirmed | global read-only mode / full shutdown + revoke credentials |
 | compromised agent identity | suspend principal + revoke/rotate tokens |
+| monitoring tampering (disable/modify logging/trace) | terminate run + preserve logs + critical alert |
+| new domain / host not in signed scope | stop run (no human wait) |
+| continue after policy deny | stop run |
+
+Канон детекции и корреляции слабых сигналов — [§16 Scope drift + monitoring tampering](16-monitoring-alerting.md); поля лога (`monitoring_state`, `kill_switch_state`, `scope_decision`) — [§15](15-observability-tracing.md).
 
 ## Перед eval / red-team
 
@@ -453,4 +458,5 @@ func AgentLoop(ctx context.Context, budget *RunBudget, next func() error) error 
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
-- [16 — Monitoring и Alerting](16-monitoring-alerting.md)
+- [15 — Observability и Tracing](15-observability-tracing.md) — eval-поля `kill_switch_state` / `monitoring_state`
+- [16 — Monitoring и Alerting](16-monitoring-alerting.md) — scope drift / monitoring tampering / `ShouldAutoStop`

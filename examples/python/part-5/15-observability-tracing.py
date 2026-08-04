@@ -43,7 +43,7 @@ class AuditEvent:
 
 @dataclass
 class EvalRunAudit:
-    """Fields for investigating Evaluation Gaming (see §20)."""
+    """Fields for investigating Evaluation Gaming and scope drift (see §20 / §16)."""
 
     agent_goal: str = ""
     declared_plan: str = ""
@@ -53,6 +53,30 @@ class EvalRunAudit:
     evaluation_score: float = 0.0
     score_delta: float = 0.0
     policy_violations: list[str] = field(default_factory=list)
+    evaluation_id: str = ""
+    declared_target: str = ""
+    resolved_ip: str = ""
+    scope_decision: str = ""  # allow | deny | mismatch
+    monitoring_state: str = ""  # enabled | degraded | tampered
+    kill_switch_state: str = ""  # armed | tripped | disabled
+
+
+@dataclass
+class ActionIntegrityView:
+    """Layers for Reasoning vs actions (see §15)."""
+
+    user_facing_summary: str = ""
+    declared_plan: str = ""
+    actual_actions: list[str] = field(default_factory=list)
+    reasoning_available: bool = False  # CoT optional; never sole SoT
+    summary_actions_gap: bool = False
+    plan_actions_gap: bool = False
+    l2_mismatch: bool = False
+
+
+def needs_human_review(v: ActionIntegrityView) -> bool:
+    """L2 / plan-actions / summary-actions gap → human review."""
+    return v.l2_mismatch or v.summary_actions_gap or v.plan_actions_gap
 
 
 @dataclass

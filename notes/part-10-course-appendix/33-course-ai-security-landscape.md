@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-07-29
-изменения: "Renumber B: дальше → §34 Assessment, затем практикум §35–38."
+изменения: "5 agent layers + lifecycle controls map; cross-link §02 trifecta/blast radius."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -71,6 +71,40 @@ Execution & Agents                ← tools, MCP, skills, действия во�
 На каждом слое свой класс сбоев: injection и jailbreak на входе; misconfig и logic bypass в приложении; poisoning и утечки в знаниях; tool misuse и excessive permissions у агента; отсутствие inventory / monitoring / rollback — сквозь всё.
 
 Иллюстрация (публичный инцидент, не «рецепт атаки»): ранняя волна chat-ботов показала, что **system prompt плохо изолирован** от пользовательского ввода — классический prompt injection / system prompt leakage. Канон защиты — [§03](../part-2-input-security/03-prompt-injection-detection.md), не «ещё один список фраз».
+
+### Пять слоёв агента (учебная карта)
+
+Модель — один из слоёв. Защита нужна на каждом и **между** ними (атака часто на стрелке, не «внутри коробки»):
+
+```text
+INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXECUTION / INFRA
+     ↑ injection        ↑ goal hijack   ↑ poisoning    ↑ tool poison     ↑ RCE / exfil
+```
+
+| Слой | Вопрос | Куда в конспекте |
+|---|---|---|
+| Input / Context | что агент читает как данные, не как команды? | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Agent Core | кто выбирает следующий шаг? | [§01](../part-1-architecture-threats/01-introduction.md), [§02](../part-1-architecture-threats/02-threat-model.md) |
+| Memory / RAG | что запоминает и откуда? | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Tools / MCP | что вызывает и с какими правами? | [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§19](../part-6-multi-agent-security/19-mcp-security.md) |
+| Execution / Infra | где действует (shell, CI, cloud)? | [§08](../part-3-processing-security/08-sandboxing.md), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) |
+
+Приоритет границ по **blast radius** и design rule **lethal trifecta** — [§02](../part-1-architecture-threats/02-threat-model.md); egress — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md).
+
+### Учебный lifecycle контролей (не отдельный стандарт)
+
+Контроль принадлежит **стадии**, а не списку советов. Карта к канону I–IX (не фреймворк рядом с OWASP/NIST):
+
+| Стадия | Фокус | Канон |
+|---|---|---|
+| Design | границы; что запрещено | [§02](../part-1-architecture-threats/02-threat-model.md), [§25](../part-8-practice/25-security-by-design-checklist.md) |
+| Tools | allowlist; description ≠ policy | [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§19](../part-6-multi-agent-security/19-mcp-security.md), [§36](36-mcp-skill-review-workshop.md) |
+| Context | provenance; external = data | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Memory | check на входе / выходе | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Identity | агент не держит raw secret | [§10](../part-3-processing-security/10-secrets-management.md) |
+| Gateway | auth, metadata, logging на tool/MCP path | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§15](../part-5-control-observability/15-observability-tracing.md) |
+| Red Team | атаковать себя регулярно | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [§38](38-ai-agent-security-testing-workshop.md) |
+| Observe | лог достаточный для расследования | [§15](../part-5-control-observability/15-observability-tracing.md), [§16](../part-5-control-observability/16-monitoring-alerting.md), [§23](../part-7-testing-compliance/23-incident-response-recovery.md) |
 
 ## Frameworks walkthrough
 
@@ -251,11 +285,11 @@ func SectionRefs(layer Layer) ([]string, error) {
 
 ## См. также
 
+- [01 — Введение](../part-1-architecture-threats/01-introduction.md)
+- [02 — Threat Model](../part-1-architecture-threats/02-threat-model.md)
+- [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
-- [01 — Введение](../part-1-architecture-threats/01-introduction.md)
-- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
-- [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
