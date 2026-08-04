@@ -18,6 +18,14 @@ tags: [ai-security, конспект, литература]
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
 - **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
 - **Muth & Margraf — From Legacy Documentation to OSCAL: An MCP-Based Agent Pipeline for Threat-Informed Continuous Compliance** — <https://arxiv.org/abs/2607.08288> — MCP-grounded multi-agent pipeline: NL infra docs → knowledge graph → NIST OSCAL SSP/SAR; errors shift to entity extraction (human review).
+- **Cyber-Capable AI Agents: Vulnerabilities, Evaluation Containment, and Defensive Response** — <https://arxiv.org/abs/2607.25379> — обзор рисков киберспособных агентов и границ evaluation containment (в т.ч. target / sandbox boundaries).
+- **Taught Well Learned Ill: Towards Distillation-conditional Backdoor Attack** — <https://arxiv.org/abs/2509.23871> — закладка в teacher может перейти в student при distillation (§22 model provenance).
+- **Stealthy Yet Effective: Distribution-Preserving Backdoor Attacks on Graph Classification** — <https://arxiv.org/abs/2509.26032> — backdoor / triggers на graph classifiers (смежная поверхность; не агентный LLM-runtime).
+- **GREAT: Generalizable Backdoor Attacks in RLHF via Emotion-Aware Trigger Synthesis** — <https://arxiv.org/abs/2510.09260> — semantic / emotion-aware triggers в RLHF, не фиксированные токены (§22).
+- **Cross-Paradigm Graph Backdoor Attacks with Promptable Subgraph Triggers** — <https://arxiv.org/abs/2510.22555> — promptable subgraph triggers в графовых моделях (смежная поверхность).
+- **Enhancing All-to-X Backdoor Attacks with Optimized Target Class Mapping** — <https://arxiv.org/abs/2511.13356> — All-to-X mapping устойчивее простых one-trigger→one-class сценариев (§22).
+- **The Trigger in the Haystack** — <https://arxiv.org/abs/2602.03085> — извлечение / реконструкция backdoor-триггеров в LLM без prior knowledge; детекция ≠ гарантия clean weights (§22).
+- **AILuminate v1.0** — <https://arxiv.org/abs/2503.05731> — benchmark / taxonomy of harms для оценки safety LLM; ориентир category_hint в guardrail router (§03).
 
 ## Стандарты и фреймворки
 
@@ -30,6 +38,7 @@ tags: [ai-security, конспект, литература]
 - **MITRE ATLAS** — <https://atlas.mitre.org/>
 - **Google SAIF — Secure AI Framework** — <https://safety.google/intl/en_us/safety/saif/>
 - **MAESTRO Framework**, **Databricks DASF** — дополнительные фреймворки управления рисками.
+- **MLCommons AILuminate** — <https://mlcommons.org/ailuminate/> — taxonomy of harms / safety assessment; см. также arXiv 2503.05731 (§03 guardrail router).
 
 ## Практические руководства
 
@@ -37,8 +46,14 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Designing AI agents to resist prompt injection** — <https://openai.com/index/designing-agents-to-resist-prompt-injection/>
 - **OpenAI — Keeping your data safe when an AI agent clicks a link** — <https://openai.com/index/ai-agent-link-safety/>
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
+- **Meta — Llama Guard 3** — <https://www.llama.com/docs/model-cards-and-prompt-formats/llama-guard-3/> — model card / prompt formats для safety classifier (hard policy block на стороне runtime).
+- **Zheng et al. — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena** — <https://arxiv.org/abs/2306.05685> — LLM-as-a-Judge как метод оценки ответов; в RT — доп. слой (не единственный gate; EV-03).
+- **OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness** — <https://openai.com/index/unlocking-self-improvement-gpt-red/> — iterative automated red-teaming pattern; канон процесса в §20 Iterative Adversarial Evals.
+- **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — containment escape / evaluation integrity из eval harness.
+- **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
+- **NVIDIA NeMo Guardrails** — <https://docs.nvidia.com/nemo/guardrails/> — layered input/output/retrieval rails; ориентир guardrail pipeline (§03; streaming / retrieval — соседние разделы).
 
 ## Threat intelligence (отчёты вендоров)
 
@@ -51,6 +66,8 @@ tags: [ai-security, конспект, литература]
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
 - **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
+- **Simon Willison — The lethal trifecta for AI agents** — <https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/> — private data + untrusted content + external communication; design rule: убрать хотя бы одну «ногу».
+- **Legit Security — Remote Prompt Injection in GitLab Duo Leads to Source Code Theft** — <https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo> — hidden prompt в MR/контексте → HTML/image URL exfiltration в ответе ассистента.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
 - Детекторы: **Lakera Guard**, **Rebuff**, **Prompt Security**, **Meta Prompt Guard**, **LLM Guard Prompt Injection scanner**, **Pangea AI Guard**, **NeMo Guardrails** input/output rails.
 
@@ -58,6 +75,8 @@ tags: [ai-security, конспект, литература]
 
 - **MCP Inspector** — <https://github.com/modelcontextprotocol/inspector>
 - **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan>
+- **Invariant Labs — GitHub MCP Exploited: Accessing private repositories via MCP** — <https://invariantlabs.ai/blog/mcp-github-vulnerability> — public issue → over-privileged agent → leak private repos via public PR (toxic agent flow / lethal trifecta).
+- **Cursor — GHSA-4cxx-hrm3-49rm (CurXecute / CVE-2025-54135)** — <https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm> — prompt injection → write MCP config → RCE via auto-start; NVD: <https://nvd.nist.gov/vuln/detail/CVE-2025-54135>.
 - **OWASP — Practical Guide for Securely Using Third-Party MCP Servers** — <https://genai.owasp.org/resource/cheatsheet-a-practical-guide-for-securely-using-third-party-mcp-servers-1-0/>
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
 - **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
@@ -72,8 +91,8 @@ tags: [ai-security, конспект, литература]
 
 ## Инструменты
 
-- **Guardrails / валидация**: OpenAI Agents SDK Guardrails, LangChain Guardrails, NVIDIA NeMo Guardrails, Guardrails AI, LLM Guard.
-- **Moderation / classifiers**: OpenAI Moderation API, Meta Llama Guard, Lakera Guard, Pangea AI Guard.
+- **Guardrails / валидация**: OpenAI Agents SDK Guardrails, LangChain Guardrails, [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/), Guardrails AI, LLM Guard.
+- **Moderation / classifiers**: OpenAI Moderation API, [Meta Llama Guard 3](https://www.llama.com/docs/model-cards-and-prompt-formats/llama-guard-3/), Lakera Guard, Pangea AI Guard.
 - **Sandbox**: Docker hardening, gVisor (<https://gvisor.dev/>), Firecracker, Kata Containers, E2B, Daytona, Anthropic SRT, Microsandbox.
 - **DLP / PII**: Microsoft Presidio (<https://github.com/microsoft/presidio>), Protect AI LLM Guard.
 - **Red Team / сканеры**: garak (<https://github.com/NVIDIA/garak>), Microsoft PyRIT, promptfoo, DeepTeam, Giskard, Inspect AI.

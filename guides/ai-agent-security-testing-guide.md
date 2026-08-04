@@ -1,8 +1,8 @@
 ---
 tags: [ai-security, testing, review, guide, agents]
 статус: готово
-обновлено: 2026-07-18
-изменения: "Первая версия: Scope, RoE, Test Matrix, Severity, Findings, Report, mapping."
+обновлено: 2026-08-04
+изменения: "RoE п.8 расширенный preflight (IP / proxy / signed scope); якорь #pre-eval-checklist."
 ---
 
 # AI Agent Security Testing Guide
@@ -17,7 +17,7 @@ tags: [ai-security, testing, review, guide, agents]
 Окей, я прочитал конспект. А как теперь проверить своего агента?
 ```
 
-Учебный проход по этому гайду — [§36](../notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md). Заполняемая форма finding — [templates/agent-security-finding.md](../templates/agent-security-finding.md).
+Учебный проход по этому гайду — [§38](../notes/part-10-course-appendix/38-ai-agent-security-testing-workshop.md). Заполняемая форма finding — [templates/agent-security-finding.md](../templates/agent-security-finding.md).
 
 ## 1. Scope
 
@@ -59,6 +59,10 @@ tags: [ai-security, testing, review, guide, agents]
 5. Все findings фиксировать по [шаблону](../templates/agent-security-finding.md); устное «вроде баг» не считается.
 6. Finding с Critical/High без fix + regression **блокирует** production usage (согласовано с §25 / §32).
 7. Не публиковать в issues / PR реальные секреты, внутренние URL и offensive payload (см. [README](../README.md)).
+8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist): в т.ч. фактический внешний IP, очищенные proxy-переменные, цели из signed scope; kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
+9. **Trusted defender access:** elevated доступ к tooling / attack materials — только по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access) (verified role, isolated env, audit, TTL, no auto-export, kill access). Не смешивать с обычным sandbox testing по пунктам 1–8.
+10. **Target scope:** имена организаций и домены в сценарии заведомо фиктивны / reserved; разрешённые цели — из [подписанного scope §08](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist). Новый host вне manifest → **stop**, не «модель решит, что это симуляция». Suite [`EVAL-TARGET-BOUNDARY-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01); threat model — [§02 Target ambiguity](../notes/part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity).
+11. **Evaluation partner:** если прогон на сторонней платформе оценки — тот же RoE / preflight / signed scope, что для внутренней команды; у заказчика независимый kill switch и live telemetry; partner **не** расширяет scope сам. Полный checklist — [§22 Evaluation partner](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория); security evals — [EV-11](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md).
 
 ## 3. Test Matrix
 
@@ -68,13 +72,30 @@ tags: [ai-security, testing, review, guide, agents]
 | Context | trusted и untrusted данные не смешиваются в одном instruction channel | High |
 | Tools | RBAC, schema bypass не проходит, tool hijacking ловится | High |
 | Memory | memory poisoning и cross-user leakage невозможны | High |
-| Sandbox | shell / file / network escape блокируются | Critical |
+| Sandbox | shell / file / network escape блокируются; нет выхода за стенд (`EVAL-CONTAINMENT-01`) | Critical |
+| Target / Scope | цели из signed manifest; совпадение имени ≠ разрешение; host вне scope = fail (`EVAL-TARGET-BOUNDARY-01`) | Critical |
 | Egress | data exfiltration и domain bypass блокируются | Critical |
 | Output | секреты не утекают; unsafe rendering / hallucination с риском действия — под контролем | High |
 | MCP | tool poisoning и shadow server не проходят review/pin | High |
 | AI-coding | AGENTS.md / repo instructions, CI/CD, dependency changes под review | High |
 
 Минимум для первого прохода: взять **3–4** строки matrix, релевантные вашему агенту, и довести каждую до Expected / Actual / Evidence.
+
+### 3.1 Iterative adversarial (GPT-Red pattern)
+
+Single-shot кейс проверяет один вход. Агент может пройти single-shot и провалить **итеративный** прогон: попытка → наблюдение (ответ / tools / egress) → мутация → повтор до success или бюджета. Индустриальный паттерн (в т.ч. [OpenAI GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/)) — про процесс, не про продукт OpenAI.
+
+Канон цикла, surfaces, schema и runner — [§20 Iterative Adversarial Evals](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals). Здесь только что зафиксировать в отчёте проверки.
+
+| Метрика / поле | Зачем в Report |
+|---|---|
+| `max_attempts` / stop budget | предел итераций (timeout / cost) |
+| `ASR` | доля успешных атак (attack success rate) |
+| `attempts_to_success` | на какой попытке first success (или null) |
+
+> **Правило:** automated iterative red team **дополняет** human review и runtime controls (EV-03 / EV-04 / EV-06). Не единственный release gate.
+
+Для high-risk агента: iterative suite **или** явный N/A с причиной ([EV-06](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md)).
 
 ## 4. Severity
 
@@ -132,10 +153,10 @@ Critical / High без Fix и Regression test → production usage запрещ�
 | Sandbox | [§08 Sandboxing](../notes/part-3-processing-security/08-sandboxing.md), [§28](../notes/part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md) |
 | Egress | [§13 Egress](../notes/part-4-output-security/13-egress-control-data-exfiltration.md) |
 | Output | [§11 Output validation](../notes/part-4-output-security/11-output-validation-fact-checking.md), [§12 Secrets](../notes/part-4-output-security/12-secrets-pii-filtering.md) |
-| MCP | [§19 MCP](../notes/part-6-multi-agent-security/19-mcp-security.md), [§31](../notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [§34](../notes/part-10-course-appendix/34-mcp-skill-review-workshop.md) |
+| MCP | [§19 MCP](../notes/part-6-multi-agent-security/19-mcp-security.md), [§31](../notes/part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [§36](../notes/part-10-course-appendix/36-mcp-skill-review-workshop.md) |
 | AI-coding | [§27](../notes/part-9-ai-coding-security/27-repository-instructions-attack-surface.md)–[§32](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md) |
 | Process / IR | [§20](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [§23](../notes/part-7-testing-compliance/23-incident-response-recovery.md), [§25](../notes/part-8-practice/25-security-by-design-checklist.md) |
-| Course practice | [§33](../notes/part-10-course-appendix/33-course-appendix-agentic-security.md)–[§36](../notes/part-10-course-appendix/36-ai-agent-security-testing-workshop.md) |
+| Course practice | [§33](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)–[§38](../notes/part-10-course-appendix/38-ai-agent-security-testing-workshop.md) |
 
 Ядро обвязки: **§20** (как тестировать adversarially) → **этот гайд** (порядок и findings) → **§25 / §32** (чеклисты) → **§23** (если finding = инцидент).
 
@@ -156,17 +177,27 @@ Critical / High без Fix и Regression test → production usage запрещ�
 
 - [ ] Scope и RoE согласованы письменно (хотя бы в отчёте)
 - [ ] Пройдены выбранные строки Test Matrix
+- [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR в Report
+- [ ] Preflight §08 пройден: фактический внешний IP, proxy env cleared, цели из signed scope ([checklist](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist))
+- [ ] Для cyber/eval с внешними целями: signed scope + `EVAL-TARGET-BOUNDARY-01` (или N/A)
+- [ ] Внешний eval partner: checklist [§22](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория) / EV-11 (или явный N/A)
+- [ ] Elevated / defender access (если нужен) — по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access), не ad-hoc в prod
 - [ ] Все findings в шаблоне; Critical/High имеют Fix + Regression
 - [ ] Report содержит Blocked и Checklist / Red team updates
 - [ ] Mapping на разделы конспекта проставлен (хотя бы для High+)
 
 ## См. также
 
-- [20 — Red Teaming и Adversarial Testing](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
-- [23 — Incident Response и Recovery](../notes/part-7-testing-compliance/23-incident-response-recovery.md)
+- [20 — Red Teaming (Iterative Adversarial Evals)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals)
+- [20 — Target boundary (`EVAL-TARGET-BOUNDARY-01`)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
+- [08 — Pre-eval checklist (IP / proxy / signed scope)](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist)
+- [22 — Evaluation partner / внешняя лаборатория](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория)
+- [02 — Target ambiguity](../notes/part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity)
+- [OpenAI — GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/) — индустриальный паттерн iterative red team
+- [23 — Incident Response (Trusted defender access)](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access)
 - [25 — Security-by-Design чек-лист](../notes/part-8-practice/25-security-by-design-checklist.md)
 - [32 — AI Coding Security Checklist](../notes/part-9-ai-coding-security/32-ai-coding-security-checklist.md)
-- [33–36 — Учебное приложение](../notes/part-10-course-appendix/33-course-appendix-agentic-security.md)
+- [33–38 — Учебное приложение](../notes/part-10-course-appendix/33-course-ai-security-landscape.md)
 - [templates/agent-security-finding.md](../templates/agent-security-finding.md)
 - [templates/agentic-security-baseline.md](../templates/agentic-security-baseline.md)
 - [templates/mcp-skill-review.md](../templates/mcp-skill-review.md)

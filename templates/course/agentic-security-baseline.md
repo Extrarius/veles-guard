@@ -8,7 +8,7 @@ tags: [ai-security, шаблон, course, baseline, mcp, skills]
 [← Оглавление](../../README.md)
 
 > Учебная обёртка для воркшопа. Основная заполняемая таблица минимальных правил (baseline) — [templates/agentic-security-baseline.md](../agentic-security-baseline.md).  
-> Разделы: [§33](../../notes/part-10-course-appendix/33-course-appendix-agentic-security.md) · [§35](../../notes/part-10-course-appendix/35-agentic-security-baseline-workshop.md).
+> Разделы: [§35](../../notes/part-10-course-appendix/35-course-appendix-agentic-security.md) · [§37](../../notes/part-10-course-appendix/37-agentic-security-baseline-workshop.md).
 
 ## Как использовать на занятии
 
