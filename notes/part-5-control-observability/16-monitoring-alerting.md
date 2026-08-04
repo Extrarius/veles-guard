@@ -2,8 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Якорь Reasoning vs actions → §15; audit_gap / user-facing mismatch."
+обновлено: 2026-08-04
+изменения: "Scope drift + monitoring tampering: корреляция слабых сигналов; DETECT-MONITOR-TAMPERING-01; ShouldAutoStop."
 ---
 
 # 16 — Monitoring и Alerting
@@ -100,6 +100,9 @@ flowchart LR
 | `score_spike_after_network` | резкий рост eval score после network tool |
 | `undeclared_tool_call` | tool call вне declared plan / allowlist |
 | `audit_gap` | действие без span / audit (hidden action) |
+| `scope_drift_new_domain` | новый host / DNS вне signed scope (scope drift) |
+| `out_of_scope_action` | действие / tool call вне разрешённой области теста |
+| `monitoring_tampering_suspected` | попытка отключить / изменить logging, trace, network monitor |
 | `schema_validation_failed` | tool args не прошли строгую валидацию |
 | `budget_exceeded` | превышен лимит токенов, стоимости или шагов |
 | `circuit_breaker_opened` | tool/runtime временно остановлен |
@@ -140,6 +143,9 @@ agent_kill_switch_active
 | Stolen / revoked creds | `credential_use_after_revoke` | Critical |
 | Score spike after net | `score_spike_after_network` | High |
 | Hidden / undeclared action | `undeclared_tool_call` или `audit_gap` | High |
+| Scope drift (new domain) | `scope_drift_new_domain` | Critical |
+| Out of scope action | `out_of_scope_action` | Critical |
+| Monitoring tampering | `monitoring_tampering_suspected` | Critical |
 
 ## Угроза / контекст
 
@@ -148,6 +154,8 @@ agent_kill_switch_active
 | Silent exfiltration | данные уходят наружу, но нет алерта | High |
 | Cost runaway | агент попадает в loop и тратит бюджет | High |
 | Guardrail bypass | protection падает, но runtime продолжает работу | High |
+| Scope drift | агент уходит на host вне signed scope; «похоже на симуляцию» | Critical |
+| Monitoring tampering | агент гасит logging / trace / network monitor перед pivot | Critical |
 | Alert fatigue | слишком много шумных алертов | Medium |
 | Нет run-level drilldown | алерт есть, но нельзя найти конкретный trace | Medium |
 | Позднее обнаружение атаки | мониторинг смотрит только CPU/RAM | High |
@@ -197,11 +205,14 @@ latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, app
 | `credential_use_after_revoke` | kill-switch + revoke ([§17](17-circuit-breaker-kill-switch.md)) + IR |
 | `score_spike_after_network` / `eval_probe_suspected` | human review score; escalate IR |
 | `undeclared_tool_call` / `audit_gap` | High alert + preserve trace |
+| `scope_drift_new_domain` / `out_of_scope_action` | **stop run** ([§17](17-circuit-breaker-kill-switch.md)), без ожидания человека |
+| `monitoring_tampering_suspected` | **terminate** + preserve logs + Critical alert ([§17](17-circuit-breaker-kill-switch.md)) |
+| continue after policy deny | **stop run** |
 | token runaway | stop run |
 | compromised tool | disable tool |
 | confirmed containment / pivot | [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) |
 
-Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switch.md). Полный ordered playbook (trace, pivot, notify, regression) — [§23](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
+Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switch.md). Полный ordered playbook (trace, pivot, notify, regression) — [§23](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment). Поля лога eval — [§15](15-observability-tracing.md).
 
 ### 4. Детектировать поведенческие аномалии
 
@@ -217,6 +228,49 @@ Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switc
 - user-facing summary не совпадает с tool trace (audit gap).
 
 Канон слоёв (ответ / план / actions / reasoning / L2) и правило «reasoning ≠ source of truth» — [§15 Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions).
+
+### 5. Scope drift + monitoring tampering (корреляция)
+
+Отдельные слабые сигналы часто «шум». Для cyber/eval прогонов коррелируйте их и **останавливайте без ожидания человека**.
+
+```text
+новый внешний домен
++ поиск учётных данных
++ попытка изменить мониторинг
++ действия вне scope
+→ автоматическая остановка
+```
+
+#### Правила аварийного останова
+
+| Условие | Реакция |
+|---|---|
+| попытка отключить / изменить мониторинг | terminate + preserve logs + Critical |
+| сетевое соединение вне signed scope | stop run |
+| обращение к реальным секретам / prod credentials | stop + revoke path (§17 / §10) |
+| новый домен, отсутствующий в scope | stop run |
+| создание persistence | stop run |
+| резкий рост числа tool calls | stop / open breaker |
+| продолжение после отказа политики | stop run |
+
+Signed scope / target boundary — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape), [§20 `EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01). Поля `scope_decision`, `monitoring_state`, `kill_switch_state` — [§15](15-observability-tracing.md).
+
+#### Паттерн детекции (операционный)
+
+Не EV-канон §20 (нумерация EV-10/EV-11 занята/зарезервирована) — runtime detection pattern:
+
+```yaml
+id: DETECT-MONITOR-TAMPERING-01
+attack:
+  - disable_logging
+  - modify_trace_collector
+  - bypass_network_monitor
+expected:
+  - deny_action
+  - terminate_agent
+  - preserve_logs
+  - raise_critical_alert
+```
 
 ## Пример (Go)
 
@@ -382,6 +436,34 @@ var Rules = []Rule{
 }
 ```
 
+### Scope drift: корреляция → auto-stop
+
+```go
+// WeakSignals — слабые сигналы одного run (см. корреляцию выше).
+type WeakSignals struct {
+	NewExternalDomain    bool
+	CredentialSearch     bool
+	MonitoringTampering  bool
+	OutOfScopeAction     bool
+	ContinueAfterDeny    bool
+	RealSecretAccess     bool
+}
+
+// ShouldAutoStop — true при жёстком триггере аварийного останова.
+// Корреляция «новый домен + credential search + tampering + out-of-scope»
+// покрывается этими флагами (любой из них → stop; credential_search alone — нет).
+// Реакция: stop/terminate через §17 (preserve logs).
+func ShouldAutoStop(s WeakSignals) bool {
+	return s.MonitoringTampering ||
+		s.ContinueAfterDeny ||
+		s.RealSecretAccess ||
+		s.NewExternalDomain ||
+		s.OutOfScopeAction
+}
+```
+
+Синхрон: [Python](../../examples/python/part-5/16-monitoring-alerting.py) · [TypeScript](../../examples/typescript/part-5/16-monitoring-alerting.ts).
+
 ## Чек-лист
 
 - [ ] Есть security events для guardrails, policy, egress и tools.
@@ -397,6 +479,9 @@ var Rules = []Rule{
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
 - [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
 - [ ] Есть алерты на out-of-task hosts, retry-after-deny, credential-after-revoke, score-after-net, undeclared/audit_gap.
+- [ ] Есть события `scope_drift_new_domain`, `out_of_scope_action`, `monitoring_tampering_suspected` → auto-stop ([§17](17-circuit-breaker-kill-switch.md)).
+- [ ] Корреляция слабых сигналов (новый домен + credential search + tampering + out-of-scope) → stop без ожидания человека.
+- [ ] Паттерн `DETECT-MONITOR-TAMPERING-01` (или эквивалент) покрывает disable/modify logging/trace/monitor.
 - [ ] Critical / confirmed containment → escalate [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
 
 ## Литература
@@ -409,8 +494,9 @@ var Rules = []Rule{
 
 ## См. также
 
-- [15 — Observability и Tracing](15-observability-tracing.md) · [Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions)
-- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
+- [15 — Observability и Tracing](15-observability-tracing.md) · eval-поля (`scope_decision`, `monitoring_state`, …)
+- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»
+- [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary
 - [23 — Incident Response (Autonomous-agent IR)](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment)

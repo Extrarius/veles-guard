@@ -43,7 +43,7 @@ class AuditEvent:
 
 @dataclass
 class EvalRunAudit:
-    """Fields for investigating Evaluation Gaming (see §20)."""
+    """Fields for investigating Evaluation Gaming and scope drift (see §20 / §16)."""
 
     agent_goal: str = ""
     declared_plan: str = ""
@@ -53,6 +53,12 @@ class EvalRunAudit:
     evaluation_score: float = 0.0
     score_delta: float = 0.0
     policy_violations: list[str] = field(default_factory=list)
+    evaluation_id: str = ""
+    declared_target: str = ""
+    resolved_ip: str = ""
+    scope_decision: str = ""  # allow | deny | mismatch
+    monitoring_state: str = ""  # enabled | degraded | tampered
+    kill_switch_state: str = ""  # armed | tripped | disabled
 
 
 @dataclass
