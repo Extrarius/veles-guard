@@ -32,7 +32,7 @@ interface AuditEvent {
   attrs?: Record<string, unknown>;
 }
 
-/** Fields for investigating Evaluation Gaming (see §20). */
+/** Fields for investigating Evaluation Gaming and scope drift (see §20 / §16). */
 interface EvalRunAudit {
   agentGoal?: string;
   declaredPlan?: string;
@@ -42,6 +42,27 @@ interface EvalRunAudit {
   evaluationScore?: number;
   scoreDelta?: number;
   policyViolations?: string[];
+  evaluationId?: string;
+  declaredTarget?: string;
+  resolvedIp?: string;
+  scopeDecision?: string; // allow | deny | mismatch
+  monitoringState?: string; // enabled | degraded | tampered
+  killSwitchState?: string; // armed | tripped | disabled
+}
+
+/** Layers for Reasoning vs actions (see §15). */
+interface ActionIntegrityView {
+  userFacingSummary?: string;
+  declaredPlan?: string;
+  actualActions?: string[];
+  reasoningAvailable?: boolean; // CoT optional; never sole SoT
+  summaryActionsGap?: boolean;
+  planActionsGap?: boolean;
+  l2Mismatch?: boolean;
+}
+
+function needsHumanReview(v: ActionIntegrityView): boolean {
+  return Boolean(v.l2Mismatch || v.summaryActionsGap || v.planActionsGap);
 }
 
 /** Layers for Reasoning vs actions (see §15). */
