@@ -2,8 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Якорь на §09 Retrieval rails (stage после retrieve)."
+обновлено: 2026-08-08
+изменения: "Role confusion / CoT Forgery (#role-confusion); stop-patterns role-claim; политика на sink."
 ---
 
 # 03 — Prompt Injection Detection
@@ -84,6 +84,8 @@ Untrusted Input  →  Input Gateway  →  Trusted Agent Runtime
 - ответ внешнего API;
 - вывод другого агента.
 
+<a id="source--sink"></a>
+
 ## Source→Sink: от влияния к действию
 
 Детектор injection на входе недостаточен. Реальные атаки всё чаще похожи на social engineering: модель могут убедить, даже если строковый filter молчит. Нужно ограничивать **последствия**, если манипуляция всё же сработала.
@@ -107,6 +109,8 @@ Untrusted source → Model reasoning → Sensitive / dangerous sink
 | README / setup instructions | shell / install | RCE, supply-chain action |
 | MCP / tool output | internal API call | privilege abuse, data leak |
 | log content (SOC assistant) | ticket / block / escalate | wrong operational action |
+
+<a id="policy-on-sink"></a>
 
 ### Policy на sink
 
@@ -236,6 +240,29 @@ func ValidateDocumentRef(raw []byte) (DocumentRef, error) {
 
 Правило сниппета: даже валидный JSON без allowlisted `source` / корректного `document_id` → deny. Поля вроде `author` / `trusted` из того же JSON в policy не используются.
 
+<a id="role-confusion"></a>
+
+## Role confusion / CoT Forgery
+
+Для модели контекст — **один поток текста**. Теги `system` / `user` / `tool` / `think` (и аналоги) — разметка канала, **не** граница доверия. Внутри модель восстанавливает роль по **стилю** текста; стиль часто перебивает настоящий тег ([arXiv 2603.12277](https://arxiv.org/abs/2603.12277)).
+
+| Явление | Суть |
+|---|---|
+| **Role confusion** | недоверенный текст «звучит» как другая роль (user / assistant / system) |
+| **CoT Forgery** | поддельный reasoning в `user` / `tool` читается как «я уже проверил и разрешил» |
+| **Inline role claim** | префиксы вроде `User:`, `Tool output:`, «statement is from a user» в tool/docs повышают «userность» и ASR |
+
+Ориентиры paper (контекст, не метрика SLA): ASR с forged reasoning ~0 → ~60%; destyling → ~10%; замена «The user» → «The request» ≈ −19%. **Готовые forged-reasoning payload'ы не публикуем.**
+
+```text
+Политика на sink — детерминированная (policy-код / HITL).
+«Модель распознала роль / reasoning» — не контроль.
+```
+
+Связка: [Policy на sink](#policy-on-sink), [Source→Sink](#source--sink). Рассуждения модели ≠ source of truth — [§15 Reasoning vs actions](../part-5-control-observability/15-observability-tracing.md#reasoning-vs-actions) (врезка Forged CoT на входе — отдельный план). Strip role-тегов при memory/context — [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#strip-role-claims).
+
+Сигнатуры для detector / stop-patterns (см. pipeline и `injectionPatterns` ниже): role-claim префиксы; markers reasoning-style в недоверенном канале. На поверхности репозитория — похожая идея forbidden markers ([§27](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)), другая поверхность входа.
+
 ## Подходы и контрмеры
 
 ### 1. Разделять инструкции и данные
@@ -276,13 +303,14 @@ Untrusted data:
 Канон входного detector-pipeline (layered rails; иллюстрация подхода — [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/)):
 
 ```text
-быстрые эвристики (длина, JSON/формат, stop-patterns, повтор секретов)
+быстрые эвристики (длина, JSON/формат, stop-patterns, повтор секретов,
+  role-claim / forged-reasoning markers — см. #role-confusion)
   → block | mask | normalize
   → similarity / model detector
   → LLM-as-judge (спорные кейсы)
 ```
 
-Связь с таблицей уровней выше: rule-based = эвристики; classifier / judge = поздние ступени. Tool-policy, context isolation и HITL остаются **вне** detector-pipeline — pipeline их не заменяет.
+Связь с таблицей уровней выше: rule-based = эвристики; classifier / judge = поздние ступени. Tool-policy, context isolation и HITL остаются **вне** detector-pipeline — pipeline их не заменяет. Role-claim в stop-patterns — сигнал; решение на sink всё равно не «по мнению модели» ([#role-confusion](#role-confusion)).
 
 Mask / normalize на ступени «очистки» — [§04](04-pii-redaction-content-filtering.md). Зеркальный layered path на выходе — [§11](../part-4-output-security/11-output-validation-fact-checking.md). После RAG retrieve — отдельный stage [retrieval rails §09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails) (filter/mask chunks до LLM); это не часть входного detector-pipeline выше.
 
@@ -319,8 +347,42 @@ Detection + Isolation + Least Privilege + Tool Policy + Logging + Approval
 | block | явная атака или попытка раскрыть секреты |
 | approval | действие потенциально опасное, но может быть легитимным |
 | log-only | ранний этап внедрения, собираем статистику |
+| `route internal` | данные/риск требуют internal (или specialized) inference — [AI Gateway §13](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing), классы [D0–D4 §04](04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4) |
+| `reduce context` | убрать файл / лишние поля / вложение из контекста вместо полного block (минимизация; [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#resource-ai-labels), [§04 five points](04-pii-redaction-content-filtering.md#five-control-points)) |
+
+`route internal` и `reduce context` — **policy outcomes** на входе/контексте. Они не заменяют поле router `route` (`strict` \| `block`) из [taxonomy router](#guardrail-pipeline-router) выше: taxonomy задаёт ужесточение категории вреда; здесь — куда слать inference и что выкинуть из контекста.
 
 **Hard block vs soft response:** `block` на политике — это **hard** (запрос не идёт в tools / не доверяется UI). Пользователю можно отдать **soft** ответ: вежливый отказ без раскрытия внутренней причины фильтра. Не подменять hard block «надеждой, что модель сама откажется». Учебный разбор: [§34 Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md); classifiers — [literature.md](../literature.md) (в т.ч. Meta Llama Guard).
+
+### Go snippet: GuardrailDecision
+
+```go
+// GuardrailDecision — outcome политики на входе/контексте (не путать с GuardrailRouteDecision.route).
+type GuardrailDecision string
+
+const (
+	DecisionAllow          GuardrailDecision = "allow"
+	DecisionSanitize       GuardrailDecision = "sanitize"
+	DecisionBlock          GuardrailDecision = "block"
+	DecisionApproval       GuardrailDecision = "approval"
+	DecisionLogOnly        GuardrailDecision = "log_only"
+	DecisionRouteInternal  GuardrailDecision = "route_internal"
+	DecisionReduceContext  GuardrailDecision = "reduce_context"
+)
+
+func ApplyDecision(d GuardrailDecision) {
+	switch d {
+	case DecisionRouteInternal:
+		// AI Gateway: internal / specialized path (§13), не silent external
+	case DecisionReduceContext:
+		// drop attachment / fields; rebuild context (§04 Pre-context, §09)
+	case DecisionBlock:
+		// hard stop — tools/LLM не вызываем
+	default:
+		// allow / sanitize / approval / log_only — по существующей политике
+	}
+}
+```
 
 ## Пример (Go): простой detector
 
@@ -380,6 +442,17 @@ var injectionPatterns = []InjectionSignal{
 		Name:     "role_override",
 		Severity: Medium,
 		Pattern:  `(?i)(you are now|act as|developer mode|jailbreak)`,
+	},
+	// Role confusion / CoT Forgery heuristics (#role-confusion) — не каталог attack scripts.
+	{
+		Name:     "inline_role_claim",
+		Severity: High,
+		Pattern:  `(?i)(^\s*user\s*:|tool\s*output\s*:|statement is from a user)`,
+	},
+	{
+		Name:     "forged_reasoning_markers",
+		Severity: Medium,
+		Pattern:  `(?i)(</?think>|^\s*assistant\s*:|^\s*system\s*:)`,
 	},
 }
 
@@ -514,7 +587,7 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - тип входа: user / document / web / email / API;
 - найденные сигналы;
 - risk level;
-- принятое решение: allow / sanitize / block / approval;
+- принятое решение: allow / sanitize / block / approval / route_internal / reduce_context;
 - request id / trace id;
 - какой агент и какая версия policy приняли решение.
 
@@ -533,7 +606,9 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [ ] Есть rule-based detection для очевидных атак.
 - [ ] Входной guardrail идёт по pipeline: эвристики → block/mask/normalize → similarity/detector → judge ([канон](#guardrail-pipeline-router)).
 - [ ] Router отдаёт структурированные поля (`category_hint`, `max_similarity`, `matched_patterns`, `risk_signal`, `route`); категория задаёт политику.
-- [ ] Есть отдельное решение: allow / sanitize / block / approval (совместимо с `strict` / `block` router).
+- [ ] Есть отдельное решение: allow / sanitize / block / approval / `route internal` / `reduce context` (совместимо с `strict` / `block` router; не путать с taxonomy `route`).
+- [ ] При D2–D3 / высоком риске данных применяется `route internal` (AI Gateway), а не silent external.
+- [ ] При лишних вложениях/полях — `reduce context`, а не только полный block.
 - [ ] Внешний текст не смешивается с system/developer instructions.
 - [ ] Tool call невозможен без policy check.
 - [ ] High-risk input не попадает в memory.
@@ -546,10 +621,13 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 - [ ] Egress / navigate к третьей стороне не «тихие»: allowlist и/или approval ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)).
 - [ ] Учтена ADI: trusted format ≠ trusted data; resource ID / provenance — policy, не модель.
 - [ ] Tool response не задаёт себе trust; structured JSON untrusted до validation.
+- [ ] Учтён [Role confusion / CoT Forgery](#role-confusion): стиль ≠ тег; role-claim / forged-reasoning markers в stop-patterns.
+- [ ] «Модель распознала роль» не снимает [политику на sink](#policy-on-sink).
 
 ## Литература
 
 - [Список литературы](../literature.md#prompt-injection) · [Академические исследования](../literature.md#академические-исследования) · [Инструменты](../literature.md#инструменты)
+- [Ye et al. — Prompt Injection as Role Confusion](https://arxiv.org/abs/2603.12277) — Role confusion / CoT Forgery; стиль перебивает тег роли
 - [Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents](https://arxiv.org/abs/2607.05120) — ADI vs instruction injection; isolation trusted/untrusted data
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) — source–sink analysis, social engineering mindset
 - [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/) — layered input/output rails
@@ -562,14 +640,15 @@ func BuildAgentContext(userTask string, externalDocument string) ([]ContextBlock
 ## См. также
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
-- [04 — PII Redaction и Content Filtering](04-pii-redaction-content-filtering.md) — mask / normalize
-- [11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md) — выходной layered path
+- [04 — PII / five control points](04-pii-redaction-content-filtering.md#five-control-points) — mask / normalize; Pre-context … Post-model
+- [11 — Output Validation (Post-model)](../part-4-output-security/11-output-validation-fact-checking.md#post-model-control-point) — выходной layered path
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
-- [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
-- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [09 — Memory / strip role-claims](../part-3-processing-security/09-memory-isolation-context-sanitization.md#strip-role-claims)
+- [13 — Egress / inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [15 — Reasoning vs actions](../part-5-control-observability/15-observability-tracing.md#reasoning-vs-actions) — CoT ≠ SoT; Forged CoT на входе — отдельный план
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
-- [27 — Repository instructions](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md)
+- [27 — Repository instructions / forbidden markers](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md) — markers на другой поверхности
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
 - [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)
