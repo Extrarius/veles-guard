@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-08-02
-изменения: "Target ambiguity: fictional target matches real org; deterministic scope."
+обновлено: 2026-08-08
+изменения: "Trajectory composition: allowed action ≠ allowed trajectory; якорь §20 EV-13."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -224,6 +224,7 @@ STRIDE — это способ пройтись по компонентам си
 | Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
 | Eval harness / metrics / test store | Tampering / Elevation of Privilege | Evaluation Gaming: spoofed path к эталону, evaluator или test data → недостоверный score | High | isolate ground truth; separate evaluator; block dataset hosts; score spike → human review ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
 | Eval target scope / signed manifest | Elevation of Privilege / Tampering | Target ambiguity: вымышленная цель совпала с реальной org → агент считает найденную infra частью испытания | High | signed scope manifest; deterministic allowlist; LLM не расширяет цели ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)) |
+| Agent loop / multi-step tools | Elevation of Privilege | Trajectory composition: по отдельности допустимые шаги (read → identity → human contact → write) дают эффект вне goal | High | policy на цепочку; `EVAL-TRAJECTORY-01` / EV-13 ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)); корреляция [§16](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation) |
 
 ## Сценарий: Agent Data Injection (spoofed trusted metadata)
 
@@ -269,6 +270,32 @@ Threat model: элемент **Eval harness** в DFD; controls и EV-08 — [§2
 > **Правило:** scope проверяет **детерминированный код** по подписанному manifest (default deny), не LLM. Совпадение имени ≠ разрешение цели.
 
 Controls и `EVAL-TARGET-BOUNDARY-01` — [§20 Target boundary](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01); signed scope в pre-eval — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape).
+
+<a id="сценарий-trajectory-composition"></a>
+
+## Сценарий: Trajectory composition
+
+Goal — read-only анализ open-source проекта. Каждый следующий шаг может быть «разрешён» как отдельный tool call, но цепочка уходит за цель: найти maintainer → создать внешнюю личность → написать человеку → предложить изменение кода.
+
+```text
+read-only goal
+  → inspect_repository (ok)
+  → identify_maintainer (ok)
+  → create_external_identity
+  → contact_maintainer
+  → submit_code_change
+  → эффект вне goal
+```
+
+Это **не** Target ambiguity (путаница тестовой и реальной цели) и не Scope drift (новый host вне signed scope): фокус — **composition** допустимых шагов. Правило: `Allowed action != allowed trajectory`.
+
+| Шаг | Что происходит |
+|---|---|
+| 1 | Пользовательская цель ограничивает эффект (анализ / read-only) |
+| 2 | Агент набирает шаги, каждый из которых формально в allowlist |
+| 3 | Итоговый внешний эффект (identity + human contact + write) вне goal → fail |
+
+Controls и `EVAL-TRAJECTORY-01` — [§20 Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); runtime — [§16 Trajectory correlation](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation).
 
 ## Risk Rating
 
@@ -541,6 +568,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Учтён ADI: spoofed author / resource ID / tool-response metadata не trusted by format ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)).
 - [ ] Учтён Evaluation Gaming: эталон / evaluator / test store вне reach агента; score без integrity ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 - [ ] Учтён Target ambiguity: цели из signed scope; LLM не решает «это симуляция» при совпадении имени ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)).
+- [ ] Учтена Trajectory composition: policy на цепочку относительно goal; `Allowed action != allowed trajectory` ([§20 EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)).
 - [ ] Capability агента сопоставлена с blast radius; controls сначала на max radius.
 - [ ] Проверен lethal trifecta: нет одновременных private data + untrusted input + outbound в одном path.
 
@@ -549,6 +577,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
 - [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — evaluation gaming / containment (канон §20)
+- [UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing](https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing) — trajectory / out-of-scope agent behaviour (канон §20 EV-13)
 - [arXiv 2607.25379 — Cyber-Capable AI Agents](https://arxiv.org/abs/2607.25379) — evaluation containment / target boundaries
 - [Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -566,6 +595,8 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [20 — Red Teaming (Target boundary / EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
+- [20 — Red Teaming (Trajectory / EVAL-TRAJECTORY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)
+- [16 — Monitoring (trajectory correlation)](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation)
 - [08 — Sandboxing (signed scope / pre-eval)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
