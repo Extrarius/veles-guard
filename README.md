@@ -47,7 +47,7 @@ AI-агенты перестают быть «чатом с моделью»: о
 - Все источники: [notes/literature.md](notes/literature.md).
 - Карта стандартов: [notes/mapping.md](notes/mapping.md).
 - Глоссарий: [notes/glossary.md](notes/glossary.md).
-- Рабочие шаблоны (threat model, risk register, tool/MCP review, agentic security baseline, MCP/Skill review, agent security finding, incident report): [templates/](templates/).
+- Рабочие шаблоны (threat model, risk register, tool/MCP review, agent passport, agentic security baseline, MCP/Skill review, agent security finding, incident report): [templates/](templates/).
 - Практическая проверка агента после теории: [guides/ai-agent-security-testing-guide.md](guides/ai-agent-security-testing-guide.md) (Scope, RoE, Test Matrix, Findings, Report).
 
 ## Версионирование разделов
