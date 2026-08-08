@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Таблицы слоёв и lifecycle: русский (English); Safety vs Utility."
+обновлено: 2026-08-08
+изменения: "Теневой ИИ (Shadow AI) / эталонная платформа — формат русский (English)."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -55,6 +55,24 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 ### Security gap
 
 Организации подключают GenAI быстрее, чем выстраивают политики, inventory, least privilege и мониторинг. Итог: агент с инструментами и доступом к данным без сопоставимого контура контроля.
+
+<a id="shadow-ai"></a>
+
+### Теневой ИИ (Shadow AI): запрет / разрешение / контролируемое использование (ban / allow / controlled)
+
+Политика «что делать с генеративным ИИ (GenAI) / агентами» сама становится риском, если нет управляемого контура.
+
+| Режим | Суть | Риск при перекосе |
+|---|---|---|
+| **Запрет (Ban)** | запрет GenAI / агентов | обходы, личные аккаунты, утечки вне периметра, **потеря наблюдаемости (observability)** |
+| **Разрешение (Allow)** | всё разрешено без контура | разрыв безопасности (security gap), теневой ИИ (Shadow AI) внутри «разрешённого» хаоса |
+| **Контролируемое (Controlled)** | корпоративный контур ([эталонная платформа](#reference-platform)) | остаточный риск, но учёт (inventory) / политика (policy) / журнал (audit) |
+
+```text
+Запрет без альтернативы → люди уходят в личные ChatGPT/Claude → данные и действия вне логов.
+```
+
+Учебный вывод: контролируемое использование (controlled usage) ≠ «всё можно» — это путь через платформенные точки контроля, не мимо них.
 
 ### Слои системы (threat map)
 
@@ -199,6 +217,38 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 
 Модель = недоверенный компонент. Критичные действия → [HITL](../part-5-control-observability/14-human-in-the-loop.md). Права на tools → [§06](../part-3-processing-security/06-rbac-tool-permissions.md). Слоистая защита (guardrails + data controls + isolation + observability + governance) обязательна; ни один слой не даёт абсолютной гарантии.
 
+<a id="reference-platform"></a>
+
+## Эталонная корпоративная платформа (reference platform, учебная схема)
+
+Ответ на [теневой ИИ (Shadow AI) / контролируемое использование (controlled)](#shadow-ai): агент **не** ходит к моделям, инструментам (tools) и внешним сервисам напрямую — только через платформенные точки (канон в частях I–IX, здесь карта курса).
+
+```text
+Ограничения данных (Data Guardrails) → Шлюз к модели (AI Gateway)
+  → Шлюз инструментов (Tool Gateway) → Доверенный реестр (Trusted Registry)
+  → Песочница (Sandbox) → Журнал / мониторинг (Audit / Monitoring)
+  → Движок политики (Policy engine) → Аварийный стоп (Kill switch)
+```
+
+| Узел | Куда в конспекте |
+|---|---|
+| Ограничения данных (Data Guardrails) | [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) (D0–D4, санитизация — sanitization) |
+| Шлюз к модели (AI Gateway) | [§13 маршрутизация вывода (inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) |
+| Шлюз инструментов (Tool Gateway) | [§06](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway) |
+| Доверенный реестр (Trusted Registry) | [§19](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry) |
+| Песочница (Sandbox) | [§08](../part-3-processing-security/08-sandboxing.md) |
+| Журнал / мониторинг (Audit / Monitoring) | [§15](../part-5-control-observability/15-observability-tracing.md), [§16](../part-5-control-observability/16-monitoring-alerting.md) |
+| Движок политики (Policy engine) | [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§14](../part-5-control-observability/14-human-in-the-loop.md) |
+| Аварийный стоп (Kill switch) | [§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md) |
+
+```text
+Среда выполнения LLM / агента (LLM / agent runtime)
+  → узлы платформы (platform hops) → модель | инструменты (tools) | исходящий трафик (egress).
+Прямой вызов SDK модели или MCP «мимо» шлюза / реестра (gateway / registry) — антипаттерн курса.
+```
+
+Класс риска агента как продукта (R0–R3) — канон [§25](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class); учебная оценка — [§34 оценка по классу риска](34-course-agent-assessment-defense.md#agent-risk-assessment).
+
 ## Навигатор: слой системы → части I–IX
 
 Учебный навигатор по слоям системы (см. threat map выше) к разделам **частей I–IX**. Не отдельный стандарт — только карта «куда читать в конспекте».
@@ -227,9 +277,11 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 
 1. Начать с **вреда и владельцев риска**, не с длинного списка CVE-стиля.
 2. Привязать слабость к **слою системы** и к **разделу** частей I–IX (таблица выше).
-3. Для RAG/assistant пройти маршрут harm → residual risk один раз на учебном сценарии.
-4. Считать модель недоверенной: Zero Trust + HITL на критичных действиях.
-5. После картины мира — [§34 Assessment](34-course-agent-assessment-defense.md), затем практикум: [§35](35-course-appendix-agentic-security.md) → §36–38.
+3. Для политики GenAI выбрать режим [запрет / разрешение / контролируемое (ban / allow / controlled)](#shadow-ai); запрет без альтернативы → теневой ИИ (Shadow AI).
+4. Для контролируемого режима — путь через [эталонную платформу (reference platform)](#reference-platform), не прямой доступ к модели / инструментам (tools).
+5. Для помощника + RAG (assistant + RAG) пройти маршрут вред (harm) → остаточный риск (residual risk) один раз на учебном сценарии.
+6. Считать модель недоверенной: нулевое доверие для ИИ (Zero Trust for AI) + человек в контуре (HITL) на критичных действиях.
+7. После картины мира — [§34 оценка (Assessment)](34-course-agent-assessment-defense.md) (в т.ч. [класс риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)), затем практикум: [§35](35-course-appendix-agentic-security.md) → §36–38.
 
 ## Пример (Go): навигатор слоя → разделы
 
@@ -271,20 +323,39 @@ func SectionRefs(layer Layer) ([]string, error) {
 
 // SafetyNarrowsAutonomyNotCapability — тезис #safety-vs-utility (учебный ориентир, не runtime-flag).
 const SafetyNarrowsAutonomyNotCapability = true
+
+// UsageMode — политика GenAI / агентов (#shadow-ai); не runtime-enforcer.
+type UsageMode string
+
+const (
+	UsageBan        UsageMode = "ban"
+	UsageAllow      UsageMode = "allow"
+	UsageControlled UsageMode = "controlled"
+)
+
+// PlatformHops — узлы эталонной платформы (#reference-platform) в порядке пути.
+func PlatformHops() []string {
+	return []string{
+		"data_guardrails", "ai_gateway", "tool_gateway", "trusted_registry",
+		"sandbox", "audit_monitoring", "policy_engine", "kill_switch",
+	}
+}
 ```
 
 Синхрон: [Python](../../examples/python/part-10/33-course-ai-security-landscape.py) · [Bash](../../examples/bash/part-10/33-course-ai-security-landscape.sh) · [TypeScript](../../examples/typescript/part-10/33-course-ai-security-landscape.ts) · [C++](../../examples/cpp/part-10/33-course-ai-security-landscape.cpp) · [Java](../../examples/java/part-10/33-course-ai-security-landscape.java).
 
 ## Чек-лист
 
-- [ ] Понятен security gap (внедрение vs контур контроля).
+- [ ] Понятен разрыв безопасности (security gap): внедрение vs контур контроля.
+- [ ] Для политики GenAI назван режим [запрет / разрешение / контролируемое (ban / allow / controlled)](#shadow-ai) и риск теневого ИИ (Shadow AI) при запрете без альтернативы.
+- [ ] Понятна [эталонная платформа (reference platform)](#reference-platform): агент не ходит к моделям / инструментам (tools) напрямую.
 - [ ] Умеете указать слой системы для своей угрозы (interface / app / AI-data / agents / assurance).
 - [ ] Для одной системы прошли вопрос → framework → результат (хотя бы NIST + OWASP + ATLAS).
 - [ ] На сценарии assistant+RAG зафиксированы harm, residual risk и risk owner.
-- [ ] Модель считается недоверенной; названы внешние guardrails (не только alignment).
+- [ ] Модель считается недоверенной; названы внешние ограничения (guardrails), не только выравнивание (alignment).
 - [ ] Понятно [безопасность и полезность (Safety vs Utility)](#safety-vs-utility): безопасность сужает автономию (silent actions), не «вырезает» возможности (capabilities) модели.
 - [ ] Выбран слой в навигаторе и открыты соответствующие §§ частей I–IX.
-- [ ] Следующий шаг — [§34 Assessment](34-course-agent-assessment-defense.md), затем практикум §35–38.
+- [ ] Следующий шаг — [§34 оценка (Assessment)](34-course-agent-assessment-defense.md) (ограничения + [класс риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)), затем практикум §35–38.
 
 ## Литература
 
@@ -300,8 +371,10 @@ const SafetyNarrowsAutonomyNotCapability = true
 
 - [01 — Введение](../part-1-architecture-threats/01-introduction.md)
 - [02 — Threat Model](../part-1-architecture-threats/02-threat-model.md)
+- [13 — Шлюз к модели (AI Gateway) / вывод (inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
+- [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
-- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10; [оценка по классу риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)

@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Блок «оценка защитных ограничений (Guardrail assessment)» (#guardrail-assessment); мостик к §20 EV-10."
+обновлено: 2026-08-08
+изменения: "Оценка по классу риска R0–R3 (#agent-risk-assessment) — формат русский (English)."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -126,6 +126,38 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 Связь с ландшафтом: [§33 безопасность и полезность (Safety vs Utility)](33-course-ai-security-landscape.md#safety-vs-utility) — ограничения (rails) сужают автономию; оценка (assessment) проверяет, что сужение измеримо и не «ломает» легитимные сценарии без учёта ложных срабатываний (FP).
 
+<a id="agent-risk-assessment"></a>
+
+## Оценка по классу риска агента (Agent risk assessment, R0–R3)
+
+**Дополняет** [оценку защитных ограничений (Guardrail assessment)](#guardrail-assessment) / [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10), **не заменяет**: ограничения (rails) проверяют «сработали ли контроли»; R0–R3 — «агент как продукт с правильным классом и минимумом контролей».
+
+Канон лестницы и матрицы — [§25 Класс риска агента](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class); спецификация до запуска — [паспорт агента (agent passport)](../../templates/agent-passport.md). Здесь — учебные вопросы курса.
+
+**Вопросы оценки (assessment):**
+
+1. Назначен ли класс **R0 / R1 / R2 / R3** и есть ли обоснование?
+2. Есть ли человек-владелец (human owner) и заполненный **паспорт (passport)** (цель, данные, модели, инструменты — tools, аварийный стоп — kill-switch)?
+3. Для **R2+**: вывод модели (inference) идёт через [шлюз к модели (AI Gateway)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing), а не напрямую к SDK?
+4. Инструменты (tools) / MCP — через [шлюз инструментов (Tool Gateway)](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway) / [доверенный реестр (Trusted Registry)](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry)?
+5. Человек в контуре (HITL) / аварийный стоп (kill-switch) / журнал (audit) соответствуют классу (см. матрицу §25)?
+
+| Класс | Что спросить на курсе (кратко) |
+|---|---|
+| **R0** песочница (sandbox) | нет prod-данных / инструментов записи (write tools)? изолирован от prod? |
+| **R1** помощник (assistant) | паспорт (passport) + владелец (owner)? белый список инструментов (allowlist)? журнал (audit)? |
+| **R2** операционный (operational) | шлюз к модели (AI Gateway) + шлюз / реестр инструментов? HITL на запись (write)? аварийный стоп? красная команда (red team)? |
+| **R3** критический (critical) | всё из R2 + усиленный HITL, владелец реагирования на инциденты (IR owner), карта соответствия (compliance map) ([§21](../part-7-testing-compliance/21-compliance-standards.md))? |
+
+```text
+Набор тестов ограничений (guardrail suite) зелёный
+  ≠ класс риска назначен и контроли по классу закрыты.
+Нет паспорта (passport) / класса → производственный шлюз (production gate) §25 не пройден
+  (учебно: агент «не готов к релизу»).
+```
+
+Связь с ландшафтом: [§33 эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform) — куда «садится» агент при контролируемом использовании (controlled usage); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai) — что бывает без контура.
+
 ## Red team assessment
 
 До релиза: matrix → Expected (контроль срабатывает) → findings → regression ([§38](38-ai-agent-security-testing-workshop.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md)).
@@ -139,8 +171,9 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 3. На каждую High-область — Expected control и раздел канона; достаточно удержать одну границу в цепочке.
 4. Ограничения (Guardrails): жёсткий + мягкий отказ раздельно; не светить внутреннюю причину блокировки (block).
 5. Оценка ограничений (Guardrail assessment): набор тестов (suite) / FP·FN / зафиксированные пороги (frozen thresholds) / журнал изменений (changelog) → [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10).
-6. MCP / инструменты (tools): проверка (review) до подключения (connect); подставной исполнитель (confused deputy) в модели угроз (threat model).
-7. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
+6. Оценка по классу риска (Agent risk assessment, R0–R3): паспорт (passport) / владелец (owner) / шлюз (gateway) / реестр (registry) по [якорю](#agent-risk-assessment) → канон [§25](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class).
+7. MCP / инструменты (tools): проверка (review) до подключения (connect); подставной исполнитель (confused deputy) в модели угроз (threat model).
+8. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Пример (Go): область assessment → якоря конспекта
 
@@ -189,6 +222,17 @@ func GuardrailAssessmentHints() []string {
 	}
 }
 
+// RiskClassAssessmentHints — учебные вопросы (#agent-risk-assessment); матрица контролей — в §25.
+func RiskClassAssessmentHints() []string {
+	return []string{
+		"назначен класс R0–R3 и есть обоснование?",
+		"есть человек-владелец (human owner) и заполненный паспорт агента (agent passport)?",
+		"для R2+: вывод (inference) через шлюз к модели (AI Gateway), не прямой SDK?",
+		"инструменты (tools) / MCP через шлюз инструментов (Tool Gateway) / доверенный реестр (Trusted Registry)?",
+		"человек в контуре (HITL) / аварийный стоп (kill-switch) / журнал (audit) соответствуют классу (§25)?",
+	}
+}
+
 // GuardrailMode — hard block vs soft user-facing refusal.
 type GuardrailMode string
 
@@ -208,6 +252,7 @@ const (
 - [ ] Различаете жёсткую блокировку (hard block) и мягкий отказ (soft response).
 - [ ] [Оценка ограничений (Guardrail assessment)](#guardrail-assessment): есть ответы по набору тестов (suite) / FP·FN / порогам (thresholds) / журналу изменений (changelog).
 - [ ] Мостик к канону [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) понятен (здесь не дублируем подсчёт (scoring)).
+- [ ] [Оценка по классу риска R0–R3 (Agent risk assessment)](#agent-risk-assessment): класс, паспорт / владелец (passport / owner), шлюз / реестр (gateway / registry) по классу; не подменяет оценку защитных ограничений (Guardrail assessment).
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
 - [ ] Lethal trifecta проверен; есть план «сломать одно звено».
@@ -226,7 +271,9 @@ const (
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform)
+- [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class) — канон матрицы / производственный шлюз (production gate)
+- [Шаблоны — паспорт агента (agent passport)](../../templates/agent-passport.md)
 - [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
