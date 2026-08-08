@@ -1,8 +1,8 @@
 ---
 tags: [ai-security, testing, review, guide, agents]
 статус: готово
-обновлено: 2026-08-04
-изменения: "RoE п.8 расширенный preflight (IP / proxy / signed scope); якорь #pre-eval-checklist."
+обновлено: 2026-08-08
+изменения: "RoE: preflight = executable EVAL-NETWORK-PREFLIGHT-01, не только paper checklist."
 ---
 
 # AI Agent Security Testing Guide
@@ -59,7 +59,7 @@ tags: [ai-security, testing, review, guide, agents]
 5. Все findings фиксировать по [шаблону](../templates/agent-security-finding.md); устное «вроде баг» не считается.
 6. Finding с Critical/High без fix + regression **блокирует** production usage (согласовано с §25 / §32).
 7. Не публиковать в issues / PR реальные секреты, внутренние URL и offensive payload (см. [README](../README.md)).
-8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist): в т.ч. фактический внешний IP, очищенные proxy-переменные, цели из signed scope; kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
+8. **Containment:** sandbox ≠ isolation. Перед прогоном — [pre-eval checklist §08](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist) **и** executable gate [`EVAL-NETWORK-PREFLIGHT-01`](../notes/part-3-processing-security/08-sandboxing.md#eval-network-preflight-01) (не только бумажный checklist; fail → `start_agent: false`): в т.ч. фактический внешний IP, очищенные proxy-переменные, цели из signed scope; kill-switch drill ([§17](../notes/part-5-control-observability/17-circuit-breaker-kill-switch.md)); suite [`EVAL-CONTAINMENT-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) (boundary crossing = fail).
 9. **Trusted defender access:** elevated доступ к tooling / attack materials — только по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access) (verified role, isolated env, audit, TTL, no auto-export, kill access). Не смешивать с обычным sandbox testing по пунктам 1–8.
 10. **Target scope:** имена организаций и домены в сценарии заведомо фиктивны / reserved; разрешённые цели — из [подписанного scope §08](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist). Новый host вне manifest → **stop**, не «модель решит, что это симуляция». Suite [`EVAL-TARGET-BOUNDARY-01`](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01); threat model — [§02 Target ambiguity](../notes/part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity).
 11. **Evaluation partner:** если прогон на сторонней платформе оценки — тот же RoE / preflight / signed scope, что для внутренней команды; у заказчика независимый kill switch и live telemetry; partner **не** расширяет scope сам. Полный checklist — [§22 Evaluation partner](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория); security evals — [EV-11](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md).
@@ -178,7 +178,7 @@ Critical / High без Fix и Regression test → production usage запрещ�
 - [ ] Scope и RoE согласованы письменно (хотя бы в отчёте)
 - [ ] Пройдены выбранные строки Test Matrix
 - [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR в Report
-- [ ] Preflight §08 пройден: фактический внешний IP, proxy env cleared, цели из signed scope ([checklist](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist))
+- [ ] Preflight §08 пройден: paper checklist **и** executable [`EVAL-NETWORK-PREFLIGHT-01`](../notes/part-3-processing-security/08-sandboxing.md#eval-network-preflight-01) (IP / proxy / DNS / metadata; fail → не стартовать)
 - [ ] Для cyber/eval с внешними целями: signed scope + `EVAL-TARGET-BOUNDARY-01` (или N/A)
 - [ ] Внешний eval partner: checklist [§22](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория) / EV-11 (или явный N/A)
 - [ ] Elevated / defender access (если нужен) — по [§23 Trusted defender access](../notes/part-7-testing-compliance/23-incident-response-recovery.md#trusted-defender-access), не ad-hoc в prod
@@ -191,6 +191,7 @@ Critical / High без Fix и Regression test → production usage запрещ�
 - [20 — Red Teaming (Iterative Adversarial Evals)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals)
 - [20 — Target boundary (`EVAL-TARGET-BOUNDARY-01`)](../notes/part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
 - [08 — Pre-eval checklist (IP / proxy / signed scope)](../notes/part-3-processing-security/08-sandboxing.md#pre-eval-checklist)
+- [08 — Executable network preflight (`EVAL-NETWORK-PREFLIGHT-01`)](../notes/part-3-processing-security/08-sandboxing.md#eval-network-preflight-01)
 - [22 — Evaluation partner / внешняя лаборатория](../notes/part-7-testing-compliance/22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория)
 - [02 — Target ambiguity](../notes/part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity)
 - [OpenAI — GPT-Red](https://openai.com/index/unlocking-self-improvement-gpt-red/) — индустриальный паттерн iterative red team
