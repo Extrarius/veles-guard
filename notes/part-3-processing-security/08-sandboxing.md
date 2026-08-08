@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-04
-изменения: "Preflight: фактический внешний IP; proxy env cleared; якорь #pre-eval-checklist."
+обновлено: 2026-08-07
+изменения: "Уровень jailing между process и container; якорь #sandbox-jailing; связка cwd §28."
 ---
 
 # 08 — Sandboxing
@@ -96,6 +96,7 @@ flowchart LR
 | Output flooding | tool возвращает гигабайты текста | Medium | output cap |
 | Persistence | вредный файл остаётся после запуска | Medium | disposable sandbox |
 | Localhost RCE | локальный MCP/framework доступен со страницы browser tool агента | High | sandbox/devbox, auth на локальных сервисах |
+| Cwd escape / command outside workdir | allowlisted binary с cwd = `$HOME` / соседний репо | High | [jailing](#sandbox-jailing) + cwd check ([§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#cwd-safety-rule)) |
 
 ## Localhost is not a trust boundary
 
@@ -154,9 +155,25 @@ Eval на пересечение границ стенда: [`EVAL-CONTAINMENT-0
 |---|---|---|
 | In-process validation | только безопасные read-only tools | не защищает от RCE |
 | Separate process | парсеры, конвертеры, небольшие команды | нужна очистка env/fs |
+| Jailing | shell/code с ограничением FS/сети без полного container | не замена container/VM; нет ядра/hypervisor isolation |
 | Container | shell/code/browser tools | не абсолютная граница безопасности |
-| VM / microVM | выполнение чужого кода | дороже и сложнее |
+| VM / microVM | запуск чужого кода | дороже и сложнее |
 | WASM | ограниченные вычисления и плагины | не для всех workloads |
+
+<a id="sandbox-jailing"></a>
+
+### Jailing (между process и container)
+
+Ступень **выше** separate process и **ниже** полного container: процесс уже отделён, но политика жёстко режет FS и сеть. Таблицу [Sandbox controls](#sandbox-controls) не подменяет — задаёт уровень, на котором эти контроли применяются вместе.
+
+```text
+Минимальный env (без секретов приложения).
+RW только на явную cwd / temp workspace.
+Остальная ФС — read-only или недоступна.
+Network — deny-by-default / host allowlist.
+```
+
+`WorkDir` в `RunSandboxedCommand` ниже — необходимое условие, **не** весь jailing: одного `cmd.Dir` недостаточно без RO mounts, clean env и network policy. Для coding agent cwd shell — [§28 cwd safety](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#cwd-safety-rule).
 
 ## Go snippet: запуск команды с timeout и без shell
 
@@ -333,6 +350,8 @@ var Tools = map[string]ToolSpec{
 - [ ] Есть timeout.
 - [ ] Есть лимит CPU / memory / output.
 - [ ] Есть временная рабочая директория.
+- [ ] Для shell/code без полного container явно выбран уровень [jailing](#sandbox-jailing) (min env, RW cwd, RO остальная ФС, host allowlist) — или контейнер/VM выше.
+- [ ] RW scoped на cwd/workspace; команда с cwd вне workdir не допускается.
 - [ ] Доступ к сети запрещён или ограничен allowlist.
 - [ ] Файловая система read-only, где возможно.
 - [ ] Sandbox disposable: после задачи очищается.
@@ -353,6 +372,7 @@ var Tools = map[string]ToolSpec{
 
 ## См. также
 
+- [28 — Permissions, sandbox и approval](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#cwd-safety-rule) — cwd shell для coding agent
 - [07 — Parameter Validation и Schema Enforcement](07-parameter-validation-schema.md)
 - [10 — Secrets Management](10-secrets-management.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
