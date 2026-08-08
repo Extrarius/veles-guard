@@ -2,8 +2,8 @@
 tags: [ai-security, rbac, tool-permissions, excessive-agency, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Agent Identity + Safe Tool Binding: policy, JIT, checklist, пример Go."
+обновлено: 2026-08-08
+изменения: "Tool Gateway (#tool-gateway): 3 фазы до/во время/после; связка Runtime Trust Gap §19."
 ---
 
 # 06 — RBAC и Tool Permissions
@@ -157,6 +157,66 @@ Identity стабильна для lifecycle (onboard / rotate / suspend / decom
 - Read и write — разные roles и/или разные tools; delete / export / admin — approval или JIT.
 - Агенту доступен только **curated allowlist** (tools manifest): нельзя «подключить всё полезное» и считать каждый интеграционный риск изолированным.
 - Комбинация «разумных» доступов (email + files + tickets + repo) даёт **aggregate permission** шире суммы частей — полный разбор aggregate — backlog P2; минимум здесь: явный allowlist и review при добавлении tool.
+
+<a id="tool-gateway"></a>
+
+## Tool Gateway (3 фазы)
+
+Между предложением LLM и executor — **Tool Gateway** (не путать с [AI Gateway](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing): путь к **модели** vs путь к **tools**). Карточка tool/server — [Trusted Tool Registry §19](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry).
+
+```text
+LLM предлагает tool → Tool Gateway → executor.
+```
+
+| Фаза | Контроли |
+|---|---|
+| **До** | агент / инициатор, acting mode, read/write, параметры ([§07](07-parameter-validation-schema.md)), чувствительные данные / data class, опасная комбинация tools, approval |
+| **Во время** | rate limit, timeout, allowlist host/tool, sandbox ([§08](08-sandboxing.md)), resource limits |
+| **После** | фильтрация output, redaction, injection в ответе, **пускать ли в контекст** → [Runtime Trust Gap §19](../part-6-multi-agent-security/19-mcp-security.md#runtime-trust-gap) |
+
+### Go snippet: ToolGateway
+
+```go
+type ToolCall struct {
+	AgentID   string
+	Tool      string
+	Args      map[string]any
+	DataClass string // D0–D4 label when known
+}
+
+type ToolGateway struct {
+	// Registry lookup — see §19 Trusted Tool Registry
+	InRegistry func(tool string) bool
+	Authorize  func(agentID, tool string) error // identity / allowlist / approval
+	Validate   func(args map[string]any) error  // §07
+}
+
+// Before — фаза «до»: registry + identity/approval + schema.
+func (g ToolGateway) Before(call ToolCall) error {
+	if g.InRegistry != nil && !g.InRegistry(call.Tool) {
+		return fmt.Errorf("tool %q not in trusted registry", call.Tool)
+	}
+	if g.Authorize != nil {
+		if err := g.Authorize(call.AgentID, call.Tool); err != nil {
+			return err
+		}
+	}
+	if g.Validate != nil {
+		return g.Validate(call.Args)
+	}
+	return nil
+}
+
+// During: rate limit / timeout / sandbox — см. §05, §08 (не дублируем здесь).
+
+// AfterToolOutput — фаза «после»: filter/redact; admitToContext=false → не в prompt (§19 Runtime Trust Gap).
+func AfterToolOutput(raw string, injectLike bool) (admitToContext bool, safe string) {
+	if injectLike {
+		return false, ""
+	}
+	return true, raw // production: size/format/redaction
+}
+```
 
 ### JIT elevation
 
@@ -388,7 +448,8 @@ High-risk действия не выполняются автоматическ�
 - [ ] Tools разделены на read / write / delete / execute.
 - [ ] Для каждого tool задан allowlist ролей и scopes.
 - [ ] High-risk действия требуют human approval.
-- [ ] LLM не получает прямой доступ к executor.
+- [ ] LLM не получает прямой доступ к executor; вызовы идут через [Tool Gateway](#tool-gateway) (до / во время / после).
+- [ ] После tool call решается, пускать ли output в контекст ([Runtime Trust Gap §19](../part-6-multi-agent-security/19-mcp-security.md#runtime-trust-gap)).
 - [ ] Tool arguments проходят validation до исполнения.
 - [ ] Credentials привязаны к actor/session/scope.
 - [ ] У каждого production-агента отдельная identity + human owner (см. Identity checklist выше).
@@ -400,7 +461,7 @@ High-risk действия не выполняются автоматическ�
 
 ## Литература
 
-- [Список литературы](../literature.md#практические-руководства)
+- [Список литературы](../literature.md#практические-руководства) · [Стандарты](../literature.md#стандарты-и-фреймворки) — OWASP Securing Agentic Applications Guide 1.0
 - [Microsoft — Least privilege for AI agents: Identity, access, and tool binding](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/)
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
 - [OWASP Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -412,6 +473,9 @@ High-risk действия не выполняются автоматическ�
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [07 — Parameter Validation и Schema Enforcement](07-parameter-validation-schema.md)
+- [08 — Sandboxing](08-sandboxing.md) — фаза «во время» Tool Gateway
+- [13 — AI Gateway / inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) — не путать с Tool Gateway
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [19 — Trusted Tool Registry / Runtime Trust Gap](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry)
