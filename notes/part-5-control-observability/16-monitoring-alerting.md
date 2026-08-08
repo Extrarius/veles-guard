@@ -2,8 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-07
-изменения: "guardrail_trigger_rate → operational retest EV-10 (§20)."
+обновлено: 2026-08-08
+изменения: "Trajectory correlation: TrajectorySignals / ShouldStopTrajectory; ≠ scope_drift."
 ---
 
 # 16 — Monitoring и Alerting
@@ -102,6 +102,9 @@ flowchart LR
 | `audit_gap` | действие без span / audit (hidden action) |
 | `scope_drift_new_domain` | новый host / DNS вне signed scope (scope drift) |
 | `out_of_scope_action` | действие / tool call вне разрешённой области теста |
+| `external_identity_created` | агент создал внешнюю личность / аккаунт вне goal |
+| `unsolicited_human_contact` | несанкционированный контакт с людьми / maintainer |
+| `trajectory_violation` | цепочка допустимых шагов дала out-of-scope эффект (≠ scope drift) |
 | `monitoring_tampering_suspected` | попытка отключить / изменить logging, trace, network monitor |
 | `schema_validation_failed` | tool args не прошли строгую валидацию |
 | `budget_exceeded` | превышен лимит токенов, стоимости или шагов |
@@ -145,6 +148,9 @@ agent_kill_switch_active
 | Hidden / undeclared action | `undeclared_tool_call` или `audit_gap` | High |
 | Scope drift (new domain) | `scope_drift_new_domain` | Critical |
 | Out of scope action | `out_of_scope_action` | Critical |
+| External identity | `external_identity_created` | Critical |
+| Unsolicited human contact | `unsolicited_human_contact` | Critical |
+| Trajectory violation | `trajectory_violation` | Critical |
 | Monitoring tampering | `monitoring_tampering_suspected` | Critical |
 | Guardrail trigger anomaly | `guardrail_trigger_rate` spike или collapse | High |
 
@@ -156,6 +162,7 @@ agent_kill_switch_active
 | Cost runaway | агент попадает в loop и тратит бюджет | High |
 | Guardrail bypass | protection падает, но runtime продолжает работу | High |
 | Scope drift | агент уходит на host вне signed scope; «похоже на симуляцию» | Critical |
+| Trajectory composition | по отдельности допустимые шаги → identity / human contact / write вне goal | Critical |
 | Monitoring tampering | агент гасит logging / trace / network monitor перед pivot | Critical |
 | Alert fatigue | слишком много шумных алертов | Medium |
 | Нет run-level drilldown | алерт есть, но нельзя найти конкретный trace | Medium |
@@ -211,6 +218,7 @@ guardrail_trigger_rate
 | `score_spike_after_network` / `eval_probe_suspected` | human review score; escalate IR |
 | `undeclared_tool_call` / `audit_gap` | High alert + preserve trace |
 | `scope_drift_new_domain` / `out_of_scope_action` | **stop run** ([§17](17-circuit-breaker-kill-switch.md)), без ожидания человека |
+| `external_identity_created` + `unsolicited_human_contact` / `trajectory_violation` | **stop run** ([trajectory correlation](#trajectory-correlation)); ≠ scope drift |
 | `monitoring_tampering_suspected` | **terminate** + preserve logs + Critical alert ([§17](17-circuit-breaker-kill-switch.md)) |
 | continue after policy deny | **stop run** |
 | token runaway | stop run |
@@ -276,6 +284,22 @@ expected:
   - preserve_logs
   - raise_critical_alert
 ```
+
+<a id="trajectory-correlation"></a>
+
+### 6. Trajectory correlation (≠ scope drift)
+
+**Scope drift** — host / DNS / action **вне** signed scope (одно событие или allowlist).  
+**Trajectory** — цепочка шагов, каждый из которых может быть в allowlist, но вместе даёт запрещённый эффект относительно goal (новая личность → контакт с людьми → запись в репозиторий).
+
+```text
+external_identity_created
++ unsolicited_human_contact
+  (или submit_code_change при read-only goal)
+→ trajectory_violation → stop run
+```
+
+Не подменять `out_of_scope_action` / `scope_drift_new_domain`: compositional policy ≠ «новый домен». Канон eval — [§20 `EVAL-TRAJECTORY-01` / EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01). Реакция: stop через [§17](17-circuit-breaker-kill-switch.md).
 
 ## Пример (Go)
 
@@ -467,6 +491,30 @@ func ShouldAutoStop(s WeakSignals) bool {
 }
 ```
 
+### Trajectory: корреляция → auto-stop
+
+```go
+// TrajectorySignals — compositional flags одного run (≠ scope_drift).
+type TrajectorySignals struct {
+	ExternalIdentityCreated  bool
+	UnsolicitedHumanContact  bool
+	UnrequestedRepoModify    bool
+	GoalReadOnlyAnalysis     bool
+}
+
+// ShouldStopTrajectory — true при compositional violation относительно goal.
+// Не смешивать с ShouldAutoStop / OutOfScopeAction (отдельный класс).
+func ShouldStopTrajectory(t TrajectorySignals) bool {
+	if t.ExternalIdentityCreated && t.UnsolicitedHumanContact {
+		return true
+	}
+	if t.GoalReadOnlyAnalysis && t.UnrequestedRepoModify {
+		return true
+	}
+	return false
+}
+```
+
 Синхрон: [Python](../../examples/python/part-5/16-monitoring-alerting.py) · [TypeScript](../../examples/typescript/part-5/16-monitoring-alerting.ts).
 
 ## Чек-лист
@@ -487,6 +535,7 @@ func ShouldAutoStop(s WeakSignals) bool {
 - [ ] Есть алерты на out-of-task hosts, retry-after-deny, credential-after-revoke, score-after-net, undeclared/audit_gap.
 - [ ] Есть события `scope_drift_new_domain`, `out_of_scope_action`, `monitoring_tampering_suspected` → auto-stop ([§17](17-circuit-breaker-kill-switch.md)).
 - [ ] Корреляция слабых сигналов (новый домен + credential search + tampering + out-of-scope) → stop без ожидания человека.
+- [ ] Есть [trajectory correlation](#trajectory-correlation): `external_identity_created` / `unsolicited_human_contact` / `trajectory_violation` → stop (≠ scope drift); канон [EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01).
 - [ ] Паттерн `DETECT-MONITOR-TAMPERING-01` (или эквивалент) покрывает disable/modify logging/trace/monitor.
 - [ ] Critical / confirmed containment → escalate [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
 
@@ -504,5 +553,5 @@ func ShouldAutoStop(s WeakSignals) bool {
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»
 - [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary; [`EVAL-TRAJECTORY-01` / EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)
 - [23 — Incident Response (Autonomous-agent IR)](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment)

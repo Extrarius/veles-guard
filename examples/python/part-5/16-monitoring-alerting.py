@@ -154,3 +154,22 @@ def should_auto_stop(s: WeakSignals) -> bool:
         or s.new_external_domain
         or s.out_of_scope_action
     )
+
+
+@dataclass
+class TrajectorySignals:
+    """Compositional flags for one run (≠ scope_drift)."""
+
+    external_identity_created: bool = False
+    unsolicited_human_contact: bool = False
+    unrequested_repo_modify: bool = False
+    goal_read_only_analysis: bool = False
+
+
+def should_stop_trajectory(t: TrajectorySignals) -> bool:
+    """True on compositional violation vs goal. Separate from should_auto_stop."""
+    if t.external_identity_created and t.unsolicited_human_contact:
+        return True
+    if t.goal_read_only_analysis and t.unrequested_repo_modify:
+        return True
+    return False
