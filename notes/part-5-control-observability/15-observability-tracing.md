@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Поля audit inference через AI Gateway: model, provider, inference_location, data_class, redaction_result."
+обновлено: 2026-08-08
+изменения: "Запрет логировать mapping депсевдонимизации (#no-pseudonym-mapping-in-logs); связь с §04 sanitization engine."
 ---
 
 # 15 — Observability и Tracing
@@ -172,9 +172,9 @@ Audit log отличается от обычного debug log.
 | `provider` | вендор / backend |
 | `inference_location` | `on_prem` / `external` / `specialized` |
 | `data_class` | класс данных, по которому выбран маршрут |
-| `redaction_result` | что снято / замаскировано до отправки в модель |
+| `redaction_result` | что снято / замаскировано до отправки в модель (типы / счётчики — **не** mapping token↔value) |
 
-Без этих полей нельзя доказать, **куда** ушёл контекст и по какому классу данных.
+Без этих полей нельзя доказать, **куда** ушёл контекст и по какому классу данных. Mapping депсевдонимизации — [#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs).
 
 Для eval / red-team runs (Evaluation Gaming, [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) дополнительно фиксируйте:
 
@@ -266,6 +266,10 @@ run_id → spans → tool calls → approvals → logs → metrics → final out
 - полные персональные данные;
 - полные документы без необходимости;
 - raw prompt с приватным контекстом.
+
+<a id="no-pseudonym-mapping-in-logs"></a>
+
+**Mapping депсевдонимизации не в логах.** При reversible pseudonymization ([§04 sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)) хранилище `token ↔ value` остаётся **внутри периметра** (отдельный store с ACL). В audit / trace / `redaction_result` — только факт и типы/счётчики сущностей, не таблица mapping и не сырые значения. Иначе логи становятся каналом восстановления PII.
 
 ### 3. События безопасности отдельно от debug
 
@@ -508,6 +512,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] У каждого agent run есть `run_id`.
 - [ ] Tool calls, policy decisions и approvals связаны одним trace.
 - [ ] Секреты и PII редактируются до записи в логи.
+- [ ] Mapping депсевдонимизации (token↔value) **не** попадает в logs / traces / `redaction_result` ([#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs)).
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
@@ -538,6 +543,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 ## См. также
 
 - [01 — Введение (AI Gateway)](../part-1-architecture-threats/01-introduction.md)
+- [04 — PII / sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)
 - [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [14 — Human-in-the-Loop](14-human-in-the-loop.md)
