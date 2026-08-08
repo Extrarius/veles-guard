@@ -2,8 +2,8 @@
 tags: [ai-security, pii, redaction, content-filtering, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-08-04
-изменения: "Якорь на §03 Guardrail pipeline (mask/normalize как ступень)."
+обновлено: 2026-08-07
+изменения: "Классы данных для AI D0–D4 (#ai-data-classes-d0-d4); маркировка источника; мост к §13 inference."
 ---
 
 # 04 — PII Redaction и Content Filtering
@@ -98,6 +98,81 @@ flowchart LR
 Важно: фильтрация только перед LLM недостаточна. Агент может передать исходный текст в tool или сохранить его в memory.
 
 Mask / normalize на входе — ступень [guardrail pipeline §03](03-prompt-injection-detection.md#guardrail-pipeline-router) (эвристики → block|mask|normalize → detector → judge). Канон router / taxonomy — там; здесь — механика redaction и content filtering.
+
+<a id="ai-data-classes-d0-d4"></a>
+
+## Классы данных для AI (D0–D4)
+
+Таблица «Что защищаем» выше — **типы** чувствительности (PII, secrets…). **D0–D4** — канон «что можно отдать **модели**» (inference). Каналы наружу (HTTP/email) — классы egress в [§13](../part-4-output-security/13-egress-control-data-exfiltration.md); не сливать enum'ы.
+
+| Класс | Смысл | В модель |
+|---|---|---|
+| **D0** Public | публичное | `external` / `internal` OK |
+| **D1** Internal | внутреннее без NDA / regulated | `internal` по умолчанию; `external` только по явной policy |
+| **D2** Confidential-NDA | коммерческая тайна / NDA | **только** `internal` (или `specialized`) inference |
+| **D3** Regulated | ПДн / отрасль / compliance | **только** `internal` + minimization / legal basis |
+| **D4** Secrets | ключи, токены, пароли | **никогда** (`reject`) |
+
+```text
+D4 никогда в модель.
+D2–D3 — только внутренний inference.
+NDA регуляркой не ловится — маркируем источник.
+```
+
+Минимизация: в контекст модели — нужные поля / summary, не «весь документ» и не сырое вложение целиком ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#resource-ai-labels)).
+
+Мост к egress-классам §13 (ориентир, не идентичность кода):
+
+| D* (модель) | Близкий egress-класс §13 |
+|---|---|
+| D0 | Public |
+| D1 | Internal |
+| D2 | Confidential |
+| D3 | Personal (+ legal basis) |
+| D4 | Secret |
+
+Маршрутизация AI Gateway: [§13 `#inference-routing`](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing).
+
+### Go snippet: AIDataClass → inference route
+
+```go
+type AIDataClass string
+
+const (
+	D0Public           AIDataClass = "d0_public"
+	D1Internal         AIDataClass = "d1_internal"
+	D2ConfidentialNDA  AIDataClass = "d2_confidential_nda"
+	D3Regulated        AIDataClass = "d3_regulated"
+	D4Secrets          AIDataClass = "d4_secrets"
+)
+
+// InferenceRoute — семантика как в §13 (internal|external|specialized|reject).
+type InferenceRoute string
+
+const (
+	RouteInternal    InferenceRoute = "internal"
+	RouteExternal    InferenceRoute = "external"
+	RouteSpecialized InferenceRoute = "specialized"
+	RouteReject      InferenceRoute = "reject"
+)
+
+func AllowedInference(dc AIDataClass) (InferenceRoute, error) {
+	switch dc {
+	case D4Secrets:
+		return RouteReject, errors.New("D4 secrets must never reach a model")
+	case D3Regulated, D2ConfidentialNDA:
+		return RouteInternal, nil
+	case D1Internal:
+		return RouteInternal, nil
+	case D0Public:
+		return RouteExternal, nil
+	default:
+		return RouteReject, errors.New("unknown AI data class")
+	}
+}
+```
+
+Синхрон: [Python](../../examples/python/part-2/04-pii-redaction-content-filtering.py) · [TypeScript](../../examples/typescript/part-2/04-pii-redaction-content-filtering.ts).
 
 ## Подходы и контрмеры
 
@@ -345,6 +420,9 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 ## Чек-лист
 
 - [ ] Есть список sensitive data для проекта.
+- [ ] Задана лестница [D0–D4](#ai-data-classes-d0-d4); D4 не уходит в модель; D2–D3 — только internal inference.
+- [ ] Источники с NDA / regulated **маркированы** (не надеяться на regex).
+- [ ] В контекст модели уходит минимизированный набор полей / summary.
 - [ ] PII и secrets обрабатываются разными правилами.
 - [ ] Secrets блокируются или полностью редактируются.
 - [ ] PII маскируется до LLM, memory и logs.
@@ -365,6 +443,7 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 ## См. также
 
 - [03 — Prompt Injection Detection](03-prompt-injection-detection.md)
+- [09 — Memory / RAG (атрибуты ресурса)](../part-3-processing-security/09-memory-isolation-context-sanitization.md#resource-ai-labels)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
-- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [13 — Egress / inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
