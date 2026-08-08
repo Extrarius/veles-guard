@@ -17,6 +17,42 @@ enum EgressChannel {
   AgentMessage = "agent_message",
 }
 
+/** Канон «что можно отдать модели» (§04 #ai-data-classes-d0-d4). Не путать с DataClass egress. */
+enum AIDataClass {
+  D0Public = "d0_public",
+  D1Internal = "d1_internal",
+  D2ConfidentialNDA = "d2_confidential_nda",
+  D3Regulated = "d3_regulated",
+  D4Secrets = "d4_secrets",
+}
+
+enum InferenceRoute {
+  Internal = "internal",
+  External = "external",
+  Specialized = "specialized",
+  Reject = "reject",
+}
+
+/** Учебная политика AI Gateway по канону D0–D4 (§04). */
+function routeInference(dc: AIDataClass): InferenceRoute {
+  if (dc === AIDataClass.D4Secrets) {
+    throw new Error("D4 secrets must not reach any model");
+  }
+  if (
+    dc === AIDataClass.D3Regulated ||
+    dc === AIDataClass.D2ConfidentialNDA ||
+    dc === AIDataClass.D1Internal
+  ) {
+    return InferenceRoute.Internal;
+  }
+  if (dc === AIDataClass.D0Public) {
+    return InferenceRoute.External;
+  }
+  throw new Error("unknown AI data class");
+}
+
+export { routeInference, InferenceRoute, AIDataClass };
+
 interface EgressRequest {
   userId: string;
   tenantId: string;

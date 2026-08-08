@@ -2,8 +2,8 @@
 tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Lethal trifecta (egress leg) + GitLab Duo image/URL exfil anchor."
+обновлено: 2026-08-07
+изменения: "Inference routing на каноне D0–D4 (§04); RouteInference(AIDataClass); учёт part-two."
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
@@ -484,6 +484,77 @@ egress_policy:
     review_personal_data_taint: true
 ```
 
+<a id="inference-routing"></a>
+
+## Маршрутизация inference (AI Gateway)
+
+Отдельно от HTTP/email **egress** allowlist: путь агента к **модели** (completion / embedding) идёт только через AI Gateway ([§01](../part-1-architecture-threats/01-introduction.md)). Это не Tool Gateway.
+
+```text
+Ошибка классификации = утечка:
+данные ушли во внешнюю модель, хотя должны были остаться internal / быть отклонены.
+```
+
+Решения маршрута: `internal` | `external` | `specialized` | `reject`.
+
+Канон классов для **модели** — [D0–D4 в §04](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4). Классы egress (`Public`…`Secret`) выше в разделе — каналы **наружу**; не сливать enum'ы. Мост:
+
+| D* (§04) | Допустимый маршрут inference |
+|---|---|
+| D0 Public | `external` или `internal` |
+| D1 Internal | `internal` (по умолчанию); `external` только по явной policy |
+| D2 Confidential-NDA | `internal` или `specialized`; не silent `external` |
+| D3 Regulated | `internal` / `specialized` + minimization; иначе `reject` / approval |
+| D4 Secrets | **`reject`** — секреты не уходят в модель |
+
+| Режим развёртывания | Смысл |
+|---|---|
+| **on-prem / private** | модели только во внутреннем контуре |
+| **external provider** | все вызовы к внешнему API (через gateway, с policy) |
+| **combined** | gateway выбирает backend по классу данных и политике |
+
+### Go snippet: RouteInference
+
+```go
+// AIDataClass — канон §04 (#ai-data-classes-d0-d4); не путать с DataClass egress выше.
+type AIDataClass string
+
+const (
+	D0Public          AIDataClass = "d0_public"
+	D1Internal        AIDataClass = "d1_internal"
+	D2ConfidentialNDA AIDataClass = "d2_confidential_nda"
+	D3Regulated       AIDataClass = "d3_regulated"
+	D4Secrets         AIDataClass = "d4_secrets"
+)
+
+type InferenceRoute string
+
+const (
+	RouteInternal    InferenceRoute = "internal"
+	RouteExternal    InferenceRoute = "external"
+	RouteSpecialized InferenceRoute = "specialized"
+	RouteReject      InferenceRoute = "reject"
+)
+
+// RouteInference — учебная политика AI Gateway по канону D0–D4 (§04).
+func RouteInference(dc AIDataClass) (InferenceRoute, error) {
+	switch dc {
+	case D4Secrets:
+		return RouteReject, errors.New("D4 secrets must not reach any model")
+	case D3Regulated, D2ConfidentialNDA:
+		return RouteInternal, nil // или specialized по org policy
+	case D1Internal:
+		return RouteInternal, nil
+	case D0Public:
+		return RouteExternal, nil
+	default:
+		return RouteReject, errors.New("unknown AI data class")
+	}
+}
+```
+
+Синхрон: [Python](../../examples/python/part-4/13-egress-control-data-exfiltration.py) · [TypeScript](../../examples/typescript/part-4/13-egress-control-data-exfiltration.ts).
+
 ## Практические правила
 
 1. **Default deny** — если destination неизвестен, блокировать.
@@ -530,10 +601,13 @@ Egress Control запрещает отправить секрет наружу, 
 - [ ] Untrusted source + outbound к третьей стороне не silent: allowlist и/или approval.
 - [ ] Ответ агента не рендерит произвольные external img/URL (markdown/HTML exfil).
 - [ ] Проверен lethal trifecta: private + untrusted + egress не в одном path ([§02](../part-1-architecture-threats/02-threat-model.md)).
+- [ ] Вызовы модели идут через AI Gateway; маршрут inference задан по [D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4) ([#inference-routing](#inference-routing)).
+- [ ] D4 → `reject` для inference; D2–D3 → только `internal`/`specialized`; ошибка классификации = риск утечки во внешнюю модель.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
+- [Microsoft Learn — Generative AI gateway capabilities](https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities)
 - [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [Legit Security — Remote Prompt Injection in GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo)
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
@@ -544,10 +618,11 @@ Egress Control запрещает отправить секрет наружу, 
 
 ## См. также
 
+- [01 — Введение (AI Gateway)](../part-1-architecture-threats/01-introduction.md)
 - [02 — Threat Model (trifecta / blast radius)](../part-1-architecture-threats/02-threat-model.md)
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
-- [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
+- [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
-- [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
+- [15 — Observability (поля inference)](../part-5-control-observability/15-observability-tracing.md#inference-audit-fields)
