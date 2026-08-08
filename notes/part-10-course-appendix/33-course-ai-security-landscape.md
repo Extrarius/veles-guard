@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-08-08
-изменения: "Роли и суп токенов (#token-soup) — формат русский (English)."
+изменения: "SDLC↔lifecycle, one-pager platform, 7× what-to-log."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -126,6 +126,21 @@ INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXEC
 | Красная команда (Red Team) | атаковать себя регулярно | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [§38](38-ai-agent-security-testing-workshop.md) |
 | Наблюдение (Observe) | лог достаточный для расследования | [§15](../part-5-control-observability/15-observability-tracing.md), [§16](../part-5-control-observability/16-monitoring-alerting.md), [§23](../part-7-testing-compliance/23-incident-response-recovery.md) |
 
+<a id="sdlc-vs-agent-lifecycle"></a>
+
+### Классический SDLC и учебный lifecycle агента
+
+| | Классический цикл разработки (SDLC) | Учебный lifecycle контролей агента (таблица выше) |
+|---|---|---|
+| Объект | релизы кода, пайплайн сборки (build) | стадии, на которых живут **контроли** (design → tools → … → observe) |
+| «Готово» | тесты / merge / deploy прошли | на каждой стадии есть явный контроль и владелец |
+| Риск | дефект в коде / конфиге | недоверенный контекст + инструменты (tools) + исходящий трафик (egress) в одном пути |
+
+```text
+Это учебная карта стадий — не отдельный стандарт и не бренд «ADLC»
+рядом с OWASP / NIST. Канон контролей — части I–IX.
+```
+
 ## Обзор фреймворков (Frameworks walkthrough)
 
 Каждый фреймворк — ответ на **свой** вопрос. Не подменять один другим.
@@ -238,6 +253,8 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 
 Ответ на [теневой ИИ (Shadow AI) / контролируемое использование (controlled)](#shadow-ai): агент **не** ходит к моделям, инструментам (tools) и внешним сервисам напрямую — только через платформенные точки (канон в частях I–IX, здесь карта курса).
 
+**One-pager (на один экран):** агент → ограничения данных (data guardrails) → шлюз к модели (AI Gateway) → шлюз инструментов (Tool Gateway) / доверенный реестр (Trusted Registry) → песочница (sandbox) → журнал (audit) / политика (policy) / аварийный стоп (kill-switch) → модель | tools | egress. Прямой SDK / MCP «мимо» шлюза — антипаттерн.
+
 ```text
 Ограничения данных (Data Guardrails) → Шлюз к модели (AI Gateway)
   → Шлюз инструментов (Tool Gateway) → Доверенный реестр (Trusted Registry)
@@ -285,6 +302,22 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 | Журналы (Logs) | вызовы инструментов и аргументы (tool calls + args) с редактированием (redaction), идентификаторы пользователя / сессии (user / session ids), метки времени (timestamps); не хранить секреты |
 | Метрики (Metrics) | токены на пользователя (tokens / user), задержка (latency), частота срабатывания ограничений (guardrail trigger rate), частота отказов (refusal rate), доля ПДн на выходе (PII-in-output rate) |
 | Оповещения (Alerts) | паттерны обхода ограничений (jailbreak) и многоходовая эскалация (multi-turn); аномальный расход токенов (tokens); рост отказов (refusal); ПДн (PII) на выходе |
+
+<a id="what-to-log"></a>
+
+### Что логировать у агента (учебные 7 полей)
+
+Компактный минимум для курса — канон полей и redaction в [§15](../part-5-control-observability/15-observability-tracing.md) (в т.ч. [поля inference / routing](../part-5-control-observability/15-observability-tracing.md#inference-audit-fields)):
+
+1. идентификатор прогона / корреляции (run / correlation id);
+2. агент / личность (agent / identity);
+3. вызовы инструментов (tool calls): имя + решение политики (policy decision);
+4. модель / провайдер / место вывода (model / provider / inference location) — маршрутизация (routing);
+5. идентификаторы фрагментов RAG / извлечения (RAG / retrieval chunk ids) или явный N/A;
+6. подтверждения / человек в контуре (approvals / HITL);
+7. исходящий трафик / внешние хосты (egress / external hosts).
+
+Не логировать секреты и mapping депсевдонимизации (см. §15).
 
 Канон: [§15](../part-5-control-observability/15-observability-tracing.md), [§16](../part-5-control-observability/16-monitoring-alerting.md). Kill-switch / IR — [§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md), [§23](../part-7-testing-compliance/23-incident-response-recovery.md) (здесь не дублируем playbook).
 
@@ -363,7 +396,9 @@ func PlatformHops() []string {
 
 - [ ] Понятен разрыв безопасности (security gap): внедрение vs контур контроля.
 - [ ] Для политики GenAI назван режим [запрет / разрешение / контролируемое (ban / allow / controlled)](#shadow-ai) и риск теневого ИИ (Shadow AI) при запрете без альтернативы.
-- [ ] Понятна [эталонная платформа (reference platform)](#reference-platform): агент не ходит к моделям / инструментам (tools) напрямую.
+- [ ] Понятна [эталонная платформа (reference platform)](#reference-platform): one-pager путь; агент не ходит к моделям / инструментам (tools) напрямую.
+- [ ] Понятен контраст [SDLC ↔ учебный lifecycle агента](#sdlc-vs-agent-lifecycle): не бренд «ADLC», канон — части I–IX.
+- [ ] Названы [7 учебных полей журнала агента](#what-to-log) (вкл. RAG chunks / routing) со ссылкой на §15.
 - [ ] Умеете указать слой системы для своей угрозы (interface / app / AI-data / agents / assurance).
 - [ ] Для одной системы прошли вопрос → framework → результат (хотя бы NIST + OWASP + ATLAS).
 - [ ] На сценарии assistant+RAG зафиксированы harm, residual risk и risk owner.
@@ -391,7 +426,8 @@ func PlatformHops() []string {
 - [13 — Шлюз к модели (AI Gateway) / вывод (inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
-- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10; [оценка по классу риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10; [оценка по классу риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment); [PR→CI→exfil](34-course-agent-assessment-defense.md#pr-ci-exfil-trace); [анти-паттерны](34-course-agent-assessment-defense.md#anti-patterns-course)
+- [SDLC ↔ lifecycle](#sdlc-vs-agent-lifecycle); [что логировать у агента](#what-to-log); [эталонная платформа](#reference-platform)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)

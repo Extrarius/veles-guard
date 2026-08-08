@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-08-08
-изменения: "Assessment: self-approval / forged reasoning; мини-сценарий #5 — русский (English)."
+изменения: "PR→CI→exfil trace, 8 анти-паттернов."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -66,6 +66,22 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 3. Какую **одну** границу удержать, чтобы цепочка оборвалась?
 
 Правило защиты: атакующему нужны все звенья; достаточно сломать одно (недоверенное = данные, не команды — untrusted = data not commands; запись вне белого списка (allowlist) → подтверждение (approval); нет секретов (secrets) у агента; нет исходящего трафика (egress)). Учебные прецеденты по звеньям: [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) (Duo / утечка через изображение — image exfil), [§19](../part-6-multi-agent-security/19-mcp-security.md) (GitHub MCP), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) (CurXecute).
+
+<a id="pr-ci-exfil-trace"></a>
+
+### Учебный след: недоверенный PR → CI → утечка (exfil)
+
+Пошаговый путь без полезных нагрузок (payloads) — на каждом шаге, **где рвётся** цепочка:
+
+| Шаг | Что происходит | Где рвётся |
+|---|---|---|
+| 1 | Недоверенный PR / issue (текст, комментарий) попадает в контекст агента или CI | [недоверенный вход PR/issue](../part-9-ai-coding-security/29-prompt-injection-via-code-comments-docs.md#pr-issue-untrusted-input): **данные ≠ команды** (data ≠ commands) |
+| 2 | Агент / job читает закрытый контекст (репо, secrets env, соседние файлы) | нет секретов (secrets) у агента; изоляция среды; least privilege |
+| 3 | Модель предлагает tool / shell / MCP / запись в workflow | allowlist инструментов (tools); schema; **не** always-allow |
+| 4 | Действие уходит во внешний канал (HTTP, публичный артефакт, render URL) | [egress](../part-4-output-security/13-egress-control-data-exfiltration.md); deny-by-default |
+| 5 | Запись / merge / privileged MCP без человека | [HITL](../part-5-control-observability/14-human-in-the-loop.md) на write; review gate |
+
+Канон по звеньям: [§19](../part-6-multi-agent-security/19-mcp-security.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md), [§29](../part-9-ai-coding-security/29-prompt-injection-via-code-comments-docs.md#pr-issue-untrusted-input), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md). Цель упражнения — назвать **одно** звено, которое удержите в своём контуре.
 
 ## Матрица assessment → части I–IX
 
@@ -247,6 +263,21 @@ const (
 
 Синхрон: [Python](../../examples/python/part-10/34-course-agent-assessment-defense.py) · [Bash](../../examples/bash/part-10/34-course-agent-assessment-defense.sh) · [TypeScript](../../examples/typescript/part-10/34-course-agent-assessment-defense.ts) · [C++](../../examples/cpp/part-10/34-course-agent-assessment-defense.cpp) · [Java](../../examples/java/part-10/34-course-agent-assessment-defense.java).
 
+<a id="anti-patterns-course"></a>
+
+## Анти-паттерны курса (8)
+
+Учебная сводка «чего не делать» — детали в частях I–IX и [§33 эталонная платформа](33-course-ai-security-landscape.md#reference-platform):
+
+1. Доверять только system prompt как защите.
+2. Always-allow / `*` на инструменты (tools).
+3. SDK модели или MCP «мимо» шлюза / реестра (gateway / registry).
+4. Тело PR / issue как инструкции агенту (вместо правила data ≠ commands).
+5. Сырой ход рассуждения (raw CoT) как единственный источник истины (SoT).
+6. Нет человека в контуре (HITL) на запись (write) / привилегированных действиях.
+7. Секреты (secrets) в среде или контексте агента.
+8. Логировать mapping псевдонимов / депсевдонимизацию (см. [§33 what-to-log](33-course-ai-security-landscape.md#what-to-log), §15).
+
 ## Чек-лист
 
 - [ ] Понятно, что агент = input + output + knowledge + tools, не только chat.
@@ -260,6 +291,8 @@ const (
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
 - [ ] Lethal trifecta проверен; есть план «сломать одно звено».
+- [ ] Пройден [учебный след PR→CI→exfil](#pr-ci-exfil-trace): названо звено «где рвётся».
+- [ ] Проверены [8 анти-паттернов курса](#anti-patterns-course) на своём агенте (или N/A с причиной).
 - [ ] Capability / blast radius зафиксированы до матрицы областей.
 - [ ] Следующий шаг — практикум §35–38 или Testing Guide.
 
@@ -275,7 +308,8 @@ const (
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup); [SDLC ↔ lifecycle](33-course-ai-security-landscape.md#sdlc-vs-agent-lifecycle); [что логировать](33-course-ai-security-landscape.md#what-to-log)
+- [Учебный след PR→CI→exfil](#pr-ci-exfil-trace); [анти-паттерны курса](#anti-patterns-course)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class) — канон матрицы / производственный шлюз (production gate)
 - [Шаблоны — паспорт агента (agent passport)](../../templates/agent-passport.md)
 - [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10); [путаница ролей (EV-12)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12)
