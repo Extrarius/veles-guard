@@ -3,11 +3,7 @@ tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-08
-<<<<<<< Updated upstream
-изменения: "PR/issue как недоверенный вход (#pr-issue-untrusted-input): рамка, pre-scan, Go helpers."
-=======
-изменения: "Связка: agent-generated PR/issue — те же untrusted checks; §18 artifact poisoning."
->>>>>>> Stashed changes
+изменения: "PR/issue untrusted (#pr-issue-untrusted-input); agent-generated PR/issue → §18 artifact poisoning."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -422,12 +418,9 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 - [ ] PR содержит trace/run_id agent task.
 - [ ] CI/security gates обязательны.
 - [ ] Security-sensitive diff требует owner review.
-<<<<<<< Updated upstream
 - [ ] Тело PR/issue для Security Review Agent — [untrusted data в явной рамке](#pr-issue-untrusted-input), не инструкции.
 - [ ] Pre-scan PR/issue text до действий review-агента; framing — первый барьер, не последний (§28 / §31 / §13 / §02).
-=======
 - [ ] Agent-generated PR / issue проходит те же untrusted checks, что human-authored ([§27](27-repository-instructions-attack-surface.md); межагентный канал — [§18](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
->>>>>>> Stashed changes
 
 ## Литература
 
@@ -455,11 +448,7 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 - [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
-<<<<<<< Updated upstream
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [28 — Coding agent permissions](28-coding-agent-permissions-sandbox-approval.md)
 - [31 — CI/CD, MCP, Skills](31-ci-cd-mcp-skills-production-path.md)
 - [32 — AI Coding Security Checklist](32-ai-coding-security-checklist.md) — `AC-CR-12` / `AC-CR-13` / `AC-RT-10`
-=======
-- [27 — Repository Instructions Attack Surface](27-repository-instructions-attack-surface.md)
->>>>>>> Stashed changes
