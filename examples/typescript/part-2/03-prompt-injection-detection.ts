@@ -77,6 +77,30 @@ function detectPromptInjection(input: string): DetectionResult {
   return result;
 }
 
+type GuardrailRoute = "strict" | "block";
+
+interface GuardrailRouteDecision {
+  categoryHint: string;
+  maxSimilarity: number;
+  matchedPatterns: string[];
+  riskSignal: Severity;
+  route: GuardrailRoute;
+}
+
+/** Map heuristic DetectionResult into a structured router decision. */
+function routeFromDetection(det: DetectionResult): GuardrailRouteDecision {
+  const matchedPatterns = det.signals.map((s) => s.name);
+  const route: GuardrailRoute =
+    det.risk === Severity.High || !det.allowed ? "block" : "strict";
+  return {
+    categoryHint: "prompt_injection",
+    maxSimilarity: 0,
+    matchedPatterns,
+    riskSignal: det.risk,
+    route,
+  };
+}
+
 interface ContextBlock {
   source: string;
   trustLevel: string; // trusted / untrusted
@@ -175,9 +199,17 @@ function validateDocumentRef(raw: string): DocumentRef {
 
 export {
   detectPromptInjection,
+  routeFromDetection,
   buildAgentContext,
   requiresPolicy,
   requiresApproval,
   validateDocumentRef,
 };
-export type { SinkKind, DetectionResult, ContextBlock, DocumentRef };
+export type {
+  SinkKind,
+  DetectionResult,
+  ContextBlock,
+  DocumentRef,
+  GuardrailRoute,
+  GuardrailRouteDecision,
+};

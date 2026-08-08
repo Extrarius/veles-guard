@@ -108,3 +108,30 @@ const RULES: Rule[] = [
   new Rule("Blocked egress attempts", "egress_blocked", 1, Severity.High),
   new Rule("Budget runaway", "budget_exceeded", 1, Severity.High),
 ];
+
+/** Weak signals for one run (scope drift / monitoring tampering). */
+interface WeakSignals {
+  newExternalDomain?: boolean;
+  credentialSearch?: boolean;
+  monitoringTampering?: boolean;
+  outOfScopeAction?: boolean;
+  continueAfterDeny?: boolean;
+  realSecretAccess?: boolean;
+}
+
+/**
+ * True on emergency-stop hard trigger. Stop via §17.
+ * Correlation (new domain + credential search + tampering + out-of-scope)
+ * is covered by these flags; credentialSearch alone does not stop.
+ */
+function shouldAutoStop(s: WeakSignals): boolean {
+  return Boolean(
+    s.monitoringTampering ||
+      s.continueAfterDeny ||
+      s.realSecretAccess ||
+      s.newExternalDomain ||
+      s.outOfScopeAction,
+  );
+}
+
+export { shouldAutoStop, type WeakSignals };

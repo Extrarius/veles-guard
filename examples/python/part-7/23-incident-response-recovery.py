@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class Severity(str, Enum):
@@ -114,6 +114,7 @@ def build_containment_plan(signal: Signal) -> List[ContainmentAction]:
 def autonomous_containment_steps() -> List[str]:
     """Ordered IR path for containment / pivot (see §23 playbook)."""
     return [
+        "stop_all_parallel_evals",
         "stop_agent",
         "revoke_credentials",
         "block_egress",
@@ -124,6 +125,18 @@ def autonomous_containment_steps() -> List[str]:
         "notify_affected",
         "regression_eval",
     ]
+
+
+def time_to_agent_containment(
+    first_violation: Optional[datetime], stopped_at: Optional[datetime]
+) -> timedelta:
+    """TTAC = agent_stopped_at − first_policy_violation_at (illustrative)."""
+    if first_violation is None or stopped_at is None:
+        return timedelta(0)
+    d = stopped_at - first_violation
+    if d.total_seconds() < 0:
+        return timedelta(0)
+    return d
 
 
 def validate_incident(incident: Incident) -> None:

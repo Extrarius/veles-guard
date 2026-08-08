@@ -63,8 +63,22 @@ tags: [ai-security, шаблон, incident]
 - **Tool-trace artifact** (путь / ID; не user summary): `<...>`
 - **User-facing summary vs actual actions:** `<совпадает / расхождения: …>`
 - **Pivot check** (hosts / systems contacted): `<...>`
+- **Parallel evals stopped:** `<все связанные сессии остановлены / список ID / N/A>`
+- **Timestamps:**
+  - `first_policy_violation_at`: `<ISO-8601 / N/A>`
+  - `first_external_connection_at`: `<ISO-8601 / N/A>`
+  - `first_detection_at`: `<ISO-8601 / N/A>`
+  - `agent_stopped_at`: `<ISO-8601 / N/A>`
+- **TTAC** (`agent_stopped_at − first_policy_violation_at`): `<duration / N/A>`
+- **affected_external_targets:** `<hosts / orgs / N/A>`
+- **evaluation_partner:** `<имя / N/A>`
+- **scope_manifest_version:** `<... / N/A>`
+- **network_policy_version:** `<... / N/A>`
+- **credentials_exposed:** `<yes/no; какие классы — без значений>`
+- **notifications_sent:** `<кому / когда; затронутые организации>`
+- **regression_eval_added:** `<EVAL-CONTAINMENT-01 / suite ID / N/A>`
 - **Regression eval ID:** `<EVAL-CONTAINMENT-01 / suite / N/A>`
-- **Notify:** кого уведомили: `<...>`
+- **Notify (затронутые организации / третьи стороны):** `<...>`
 
 ## 7. Postmortem (follow-up)
 

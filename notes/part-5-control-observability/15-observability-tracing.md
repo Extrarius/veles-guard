@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Reasoning vs actions: слои мониторинга; ActionIntegrityView; sync py/ts."
+обновлено: 2026-08-07
+изменения: "Поля audit inference через AI Gateway: model, provider, inference_location, data_class, redaction_result."
 ---
 
 # 15 — Observability и Tracing
@@ -160,6 +160,22 @@ Audit log отличается от обычного debug log.
 
 Без этих полей лог «есть», но нельзя ответить: под чьей authority и в каком scope прошло действие.
 
+<a id="inference-audit-fields"></a>
+
+### Поля вызова модели (AI Gateway)
+
+На **каждый** completion / embedding через AI Gateway ([§01](../part-1-architecture-threats/01-introduction.md), [§13 inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)):
+
+| Поле | Назначение |
+|---|---|
+| `model` | id / имя модели |
+| `provider` | вендор / backend |
+| `inference_location` | `on_prem` / `external` / `specialized` |
+| `data_class` | класс данных, по которому выбран маршрут |
+| `redaction_result` | что снято / замаскировано до отправки в модель |
+
+Без этих полей нельзя доказать, **куда** ушёл контекст и по какому классу данных.
+
 Для eval / red-team runs (Evaluation Gaming, [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) дополнительно фиксируйте:
 
 | Поле | Назначение |
@@ -172,8 +188,16 @@ Audit log отличается от обычного debug log.
 | `evaluation_score` | итоговый score |
 | `score_delta` | изменение score относительно baseline |
 | `policy_violations` | сработавшие policy / deny / boundary flags |
+| `evaluation_id` | id прогона / suite (связь с signed scope и IR) |
+| `declared_target` | цель из signed scope manifest (не «как поняла модель») |
+| `resolved_ip` | фактически resolved IP / host после DNS |
+| `scope_decision` | `allow` / `deny` / `mismatch` (детерминированный gate) |
+| `monitoring_state` | `enabled` / `degraded` / `tampered` |
+| `kill_switch_state` | `armed` / `tripped` / `disabled` |
 
 > **Правило:** резкий `score_delta` после `external_hosts` / `credential_access` (или запись в test/metrics store) → **human review**, не auto-pass. Канон — [§20 `ScoreNeedsHumanReview`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking).
+
+Для cyber/eval с внешними целями поля `evaluation_id` … `kill_switch_state` обязательны: без них нельзя расследовать scope drift и monitoring tampering ([§16](16-monitoring-alerting.md), [§17](17-circuit-breaker-kill-switch.md)). Signed scope — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); target boundary — [§20 `EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01).
 
 ## Reasoning vs actions
 
@@ -325,10 +349,16 @@ type AuditEvent struct {
     Risk           string         `json:"risk,omitempty"`
     Decision       string         `json:"decision,omitempty"`
     Reason         string         `json:"reason,omitempty"`
+    // AI Gateway / inference (#inference-audit-fields)
+    Model              string `json:"model,omitempty"`
+    Provider           string `json:"provider,omitempty"`
+    InferenceLocation  string `json:"inference_location,omitempty"` // on_prem | external | specialized
+    DataClass          string `json:"data_class,omitempty"`
+    RedactionResult    string `json:"redaction_result,omitempty"`
     Attrs          map[string]any `json:"attrs,omitempty"`
 }
 
-// EvalRunAudit — поля для расследования Evaluation Gaming (см. §20).
+// EvalRunAudit — поля для расследования Evaluation Gaming и scope drift (см. §20 / §16).
 type EvalRunAudit struct {
 	AgentGoal         string   `json:"agent_goal"`
 	DeclaredPlan      string   `json:"declared_plan,omitempty"`
@@ -338,6 +368,28 @@ type EvalRunAudit struct {
 	EvaluationScore   float64  `json:"evaluation_score"`
 	ScoreDelta        float64  `json:"score_delta"`
 	PolicyViolations  []string `json:"policy_violations,omitempty"`
+	EvaluationID      string   `json:"evaluation_id,omitempty"`
+	DeclaredTarget    string   `json:"declared_target,omitempty"`
+	ResolvedIP        string   `json:"resolved_ip,omitempty"`
+	ScopeDecision     string   `json:"scope_decision,omitempty"`     // allow | deny | mismatch
+	MonitoringState   string   `json:"monitoring_state,omitempty"`   // enabled | degraded | tampered
+	KillSwitchState   string   `json:"kill_switch_state,omitempty"`  // armed | tripped | disabled
+}
+
+// ActionIntegrityView — слои для Reasoning vs actions (см. выше).
+type ActionIntegrityView struct {
+	UserFacingSummary  string
+	DeclaredPlan       string
+	ActualActions      []string
+	ReasoningAvailable bool // CoT optional; never sole source of truth
+	SummaryActionsGap  bool // operator/L2: summary hides side effects
+	PlanActionsGap     bool // operator/L2: plan misses actual tools
+	L2Mismatch         bool // independent monitor flagged drift
+}
+
+// NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
+func NeedsHumanReview(v ActionIntegrityView) bool {
+	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
 }
 
 // ActionIntegrityView — слои для Reasoning vs actions (см. выше).
@@ -459,7 +511,9 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
+- [ ] Вызовы модели через AI Gateway журналируют `model`, `provider`, `inference_location`, `data_class`, `redaction_result` ([#inference-audit-fields](#inference-audit-fields)).
 - [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
+- [ ] Cyber/eval прогоны журналируют `evaluation_id`, `declared_target`, `resolved_ip`, `scope_decision`, `monitoring_state`, `kill_switch_state` (или явный N/A).
 - [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 - [ ] Сравниваются слои: user-facing summary / declared plan / actual actions (Reasoning vs actions).
 - [ ] Internal reasoning / CoT не считается source of truth; при расхождении с actions — human review.
@@ -479,12 +533,16 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [OpenTelemetry Logs Specification](https://opentelemetry.io/docs/specs/otel/logs/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
 - [NIST AI RMF Playbook](https://airc.nist.gov/airmf-resources/playbook/)
+- [Microsoft Learn — Generative AI gateway capabilities](https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities)
 
 ## См. также
 
+- [01 — Введение (AI Gateway)](../part-1-architecture-threats/01-introduction.md)
+- [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [14 — Human-in-the-Loop](14-human-in-the-loop.md)
-- [16 — Monitoring и Alerting](16-monitoring-alerting.md)
-- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
+- [16 — Monitoring и Alerting](16-monitoring-alerting.md) — scope drift / monitoring tampering / корреляция
+- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — auto-stop triggers
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary / Evaluation Gaming
 - [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md) — ignore user-facing summary

@@ -2,8 +2,8 @@
 tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-04
+изменения: "Model provenance / backdoors в весах; pin digest; дистилляция и semantic triggers; lit ×6 arXiv."
 ---
 
 # 22 — Supply Chain Security
@@ -137,6 +137,7 @@ flowchart LR
 | MCP server compromise | MCP server получает доступ к файлам и shell | Critical |
 | Model version drift | новая модель меняет tool-use поведение | Medium |
 | Untrusted model provenance | дообученная или аблитерированная модель неизвестного происхождения; поведение и safety-гарантии не подтверждены | High |
+| Model weight backdoor / trigger | закладка в весах: срабатывает на semantic trigger или переживает distillation teacher→student; «clean» safety fine-tune не доказывает отсутствие триггера | High |
 | Dataset poisoning | eval set или knowledge base содержит вредные инструкции | High |
 | Secret leakage in build | token попал в logs или container layer | High |
 | Unpinned image | build подтянул новый base image без проверки | Medium |
@@ -218,6 +219,50 @@ CI недостаточно.
 - не изменилась ли model version;
 - не отключены ли guardrails;
 - не изменились ли policy rules.
+
+### 7. Evaluation partner / внешняя лаборатория
+
+Сторонняя платформа оценки — часть **agent supply chain**, не «чужой процесс вне периметра». Если cyber/eval-прогон идёт через внешнюю лабораторию, недостаточно, что «своя» infra настроена правильно: misconfiguration на стыке заказчик↔partner даёт тот же класс рисков, что слабый sandbox или размытый scope.
+
+> **Правило:** внешняя лаборатория проходит **тот же** контроль среды (containment, secrets, kill-switch, signed scope), что внутренняя red-team / eval команда. Partner **не** расширяет scope сам — цели только из подписанного manifest ([§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape), [`EVAL-TARGET-BOUNDARY-01`](20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)).
+
+Публичный кейс (июль 2026): инцидент при оценке с участием внешней лаборатории показал, что ошибка конфигурации партнёра / стыка может затронуть внешние системы, даже если внутренняя команда считала стенд изолированным. Факты — в тексте без вторичных URL; границы evaluation — [arXiv 2607.25379](https://arxiv.org/abs/2607.25379).
+
+#### Checklist внешней лаборатории
+
+- [ ] Описана фактическая сетевая архитектура.
+- [ ] Изоляция подтверждена **тестом**, а не заявлением.
+- [ ] Нет общих production-секретов с партнёром.
+- [ ] Есть **независимый** kill switch у заказчика (не только у partner).
+- [ ] Заказчик получает телеметрию в реальном времени.
+- [ ] Описана процедура уведомления третьих сторон при ошибочном воздействии.
+- [ ] Партнёр не может самостоятельно расширить scope.
+- [ ] Образ среды зафиксирован по digest.
+- [ ] Изменения инфраструктуры требуют повторной проверки checklist.
+- [ ] Определено, кто отвечает за ошибочное воздействие на внешнюю систему.
+
+Якорь в security evals: [EV-11](20-red-teaming-adversarial-testing.md) · RoE: [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md). TTAC / `evaluation_partner` в отчёте — [§23 Autonomous-agent IR](23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) · [incident-report §6.1](../../templates/incident-report-template.md).
+
+<a id="model-provenance-backdoors"></a>
+
+### 8. Model provenance / backdoors в весах
+
+Веса модели — такой же artifact supply chain, как образ контейнера или MCP server. Нужны: источник весов, кто дообучал / дистиллировал, pin по **digest** (не только tag / `latest`). Tag «официальный» без digest не фиксирует содержимое.
+
+> **Правило:** нельзя доказать отсутствие триггера в весах. Доверие к safety fine-tune или «маленькой» student-модели — не контроль. Компенсация — **внешние** границы runtime: sandbox, egress allowlist, tool allowlist, HITL ([§08](../part-3-processing-security/08-sandboxing.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)).
+
+Операционные факты из исследований (первоисточники — [literature](../literature.md#академические-исследования)):
+
+- **Дистилляция teacher→student:** закладка в крупной модели может перейти в мелкую при обучении; student не «чище» только потому, что меньше ([arXiv 2509.23871](https://arxiv.org/abs/2509.23871)).
+- **RLHF / semantic triggers:** триггер по смыслу (например эмоциональный или насильственный контент), не по фиксированным токенам — токен-фильтр недостаточен ([arXiv 2510.09260](https://arxiv.org/abs/2510.09260)).
+- **Сложные mapping / скрытые триггеры:** сценарии вроде All-to-X устойчивее простых «один триггер → один класс»; методики извлечения триггеров существуют, но это **не** гарантия «модель без backdoor» ([arXiv 2511.13356](https://arxiv.org/abs/2511.13356), [arXiv 2602.03085](https://arxiv.org/abs/2602.03085)).
+
+#### Checklist model provenance
+
+- [ ] Веса / artifact модели pinned by **digest** (не только version tag).
+- [ ] Provenance задокументирован: источник, кто fine-tune / distill, цепочка teacher→student если есть.
+- [ ] Произвольные аблитерированные / «расцензуренные» веса без security review — запрет.
+- [ ] Runtime controls (sandbox, egress, tool allowlist, HITL) обязательны — отсутствие гарантии clean weights принято явно.
 
 ## Пример (Go)
 
@@ -374,8 +419,9 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] MCP servers в allowlist.
 - [ ] Новый tool требует threat model update.
 - [ ] Новый MCP server требует review.
-- [ ] Model version фиксируется.
-- [ ] Model provenance проверен: источник весов, кто дообучал; не используются произвольные аблитерированные или «расцензуренные» модели без review.
+- [ ] Model version фиксируется; веса pinned by digest (см. [Model provenance / backdoors](#model-provenance-backdoors)).
+- [ ] Model provenance проверен: источник весов, кто дообучал / дистиллировал; не используются произвольные аблитерированные или «расцензуренные» модели без review.
+- [ ] Нет опоры на «модель без backdoor» как на единственный контроль — sandbox / egress / tool allowlist / HITL включены.
 - [ ] Eval datasets версионируются.
 - [ ] Vector index имеет source/provenance.
 - [ ] CI запускает red team regression tests.
@@ -384,6 +430,8 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Instruction files (`AGENTS.md`, `.cursor/rules`, `CLAUDE.md`) версионируются и ревьюятся.
 - [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
 - [ ] Защита от rug pull: skills/MCP/модели pinned, не `latest`.
+- [ ] Если используется внешняя лаборатория оценки — пройден [checklist Evaluation partner](#7-evaluation-partner--внешняя-лаборатория) (или явный N/A).
+- [ ] У заказчика независимый kill switch и live telemetry при partner-eval (см. тот же checklist).
 
 ## Когда блокировать release
 
@@ -397,10 +445,12 @@ func (a Allowlist) Check(item Artifact) error {
 | MCP server не в allowlist | block release |
 | red team regression failed | block release |
 | SBOM не создан | block release для production |
+| external eval partner без пройденного checklist | block release / явный N/A с причиной |
+| неизвестный model provenance / unpinned model digest | block release |
 
 ## Литература
 
-- [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Список литературы](../literature.md#стандарты-и-фреймворки) · [Академические исследования](../literature.md#академические-исследования) (model backdoors / triggers)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OWASP Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
@@ -409,12 +459,20 @@ func (a Allowlist) Check(item Artifact) error {
 - [OpenSSF Scorecard](https://github.com/ossf/scorecard)
 - [CycloneDX SBOM Standard](https://cyclonedx.org/)
 - [OWASP Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
+- [Taught Well Learned Ill: Distillation-conditional Backdoor](https://arxiv.org/abs/2509.23871)
+- [GREAT: RLHF Emotion-Aware Triggers](https://arxiv.org/abs/2510.09260)
+- [Enhancing All-to-X Backdoor Attacks](https://arxiv.org/abs/2511.13356)
+- [The Trigger in the Haystack](https://arxiv.org/abs/2602.03085)
 
 ## См. также
 
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
+- [08 — Sandboxing (pre-eval / signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
+- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
-- [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md) (EV-11, Target boundary)
 - [21 — Compliance и Standards](21-compliance-standards.md)
-- [23 — Incident Response и Recovery](23-incident-response-recovery.md)
+- [23 — Incident Response и Recovery](23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) — TTAC / `evaluation_partner` / notify
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) — RoE п.11 Evaluation partner
 - [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md)

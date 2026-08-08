@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-07
+изменения: "AI Gateway / inference proxy: компонент агента, DFD Agent→Gateway→LLM, правило без прямого вызова модели."
 ---
 
 # 01 — Введение: что такое AI-агент и чем он опасен
@@ -59,16 +59,24 @@ AI Agent = LLM + Context + Memory + Tools + Planning Loop + Policy Layer
 2. **System / Developer Instructions** — управляющие правила поведения.
 3. **Context Builder** — сборка контекста из задачи, памяти, RAG и истории.
 4. **LLM Planner** — выбор следующего шага.
-5. **Tool Router** — маршрутизация вызовов к инструментам.
-6. **Tools** — API, shell, база данных, браузер, почта, файловая система.
-7. **Memory** — краткосрочная или долгосрочная память агента.
-8. **Policy Layer** — права, scopes, лимиты, sandbox, approval.
-9. **Observability** — логи, trace, audit trail, метрики.
-10. **Output** — ответ пользователю или результат действия во внешней системе.
+5. **AI Gateway / inference proxy** — единая точка вызовов модели (completion / embedding): auth, quota, policy, audit; маршрутизация по классу данных — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing).
+6. **Tool Router** — маршрутизация вызовов к инструментам.
+7. **Tools** — API, shell, база данных, браузер, почта, файловая система.
+8. **Memory** — краткосрочная или долгосрочная память агента.
+9. **Policy Layer** — права, scopes, лимиты, sandbox, approval.
+10. **Observability** — логи, trace, audit trail, метрики.
+11. **Output** — ответ пользователю или результат действия во внешней системе.
 
 Критичная мысль:
 
 > LLM не должна напрямую выполнять действие. Между решением модели и реальным tool call должен быть слой политики.
+
+```text
+Агент не ходит в модель напрямую.
+Все completion / embedding — только через AI Gateway (inference proxy).
+```
+
+AI Gateway ≠ Tool Gateway: первый — путь к **моделям**, второй — к **инструментам** ([§06](../part-3-processing-security/06-rbac-tool-permissions.md) / [§19](../part-6-multi-agent-security/19-mcp-security.md)).
 
 Для LLM часто достаточно санитизации входа; у агента критичны этапы выбора инструмента, авторизации и исполнения — **угроза смещается вправо по конвейеру** (вход → план → tool call → наблюдение → выход).
 
@@ -81,8 +89,10 @@ flowchart LR
     User[External Entity: User] -->|Task / Prompt| Agent[Process: AI Agent]
     Agent -->|Answer / Action Result| User
 
-    Agent -->|Prompt / Context| LLM[External System: LLM Provider]
-    LLM -->|Completion / Plan| Agent
+    Agent -->|Prompt / Context| Gateway[Process: AI Gateway]
+    Gateway -->|Routed request| LLM[External System: LLM Provider]
+    LLM -->|Completion / Plan| Gateway
+    Gateway -->|Completion / Plan| Agent
 
     Agent -->|Read / Write| Memory[(Data Store: Memory)]
 
@@ -95,7 +105,8 @@ flowchart LR
 | Зона | Что может пойти не так |
 |---|---|
 | User → Agent | prompt injection, вредная задача, token bombing |
-| Agent → LLM | утечка приватного контекста внешнему провайдеру |
+| Agent → LLM (минуя gateway) | неуправляемая утечка контекста внешнему провайдеру; нет единой policy / audit / квот |
+| Agent → AI Gateway → LLM | ошибка классификации / маршрута = утечка; см. [§13 inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) |
 | Agent ↔ Memory | сохранение вредной инструкции, memory poisoning |
 | Agent → Tools | опасное действие, tool hijacking, misuse |
 | Tools → Agent | poisoned tool output, подмена результата |
@@ -206,10 +217,14 @@ type Step struct {
 	ToolCall    *ToolCall
 }
 
+// LLMClient — вызовы модели. В продукте это AI Gateway (inference proxy),
+// не прямой SDK внешнего провайдера (MustUseInferenceGateway).
 type LLMClient interface {
 	Plan(ctx context.Context, task string) (Step, error)
 	Summarize(ctx context.Context, task string, observation string) (string, error)
 }
+
+const MustUseInferenceGateway = true
 
 type Tool interface {
 	Call(ctx context.Context, args map[string]any) (string, error)
@@ -290,7 +305,8 @@ func (a *Agent) Run(ctx context.Context, task string) (string, error) {
 
 ## Чек-лист
 
-- [ ] Агент описан как набор компонентов: input, context, planner, tools, memory, policy, logs, output.
+- [ ] Агент описан как набор компонентов: input, context, planner, **AI Gateway**, tools, memory, policy, logs, output.
+- [ ] Агент не ходит в модель напрямую: все completion / embedding только через AI Gateway (inference proxy).
 - [ ] Для каждого tool указано, какие действия он может выполнять.
 - [ ] Для каждого tool указаны scopes / роли / ограничения.
 - [ ] Опасные действия требуют human approval.
@@ -308,7 +324,10 @@ func (a *Agent) Run(ctx context.Context, task string) (string, error) {
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [Microsoft Learn — Data-flow diagram elements](https://learn.microsoft.com/en-us/training/modules/tm-create-a-threat-model-using-foundational-data-flow-diagram-elements/)
+- [Microsoft Learn — Generative AI gateway capabilities](https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities)
 
 ## См. также
 
+- [13 — Egress Control (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
+- [15 — Observability (поля inference)](../part-5-control-observability/15-observability-tracing.md#inference-audit-fields)
 - [02 — Модель угроз (Threat Model)](02-threat-model.md)

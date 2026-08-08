@@ -103,6 +103,7 @@ function buildContainmentPlan(signal: Signal): ContainmentAction[] {
 /** Ordered IR path for containment / pivot (see §23 playbook). */
 function autonomousContainmentSteps(): string[] {
   return [
+    "stop_all_parallel_evals",
     "stop_agent",
     "revoke_credentials",
     "block_egress",
@@ -114,6 +115,20 @@ function autonomousContainmentSteps(): string[] {
     "regression_eval",
   ];
 }
+
+/** TTAC = agent_stopped_at − first_policy_violation_at (ms; illustrative). */
+function timeToAgentContainment(
+  firstViolation: Date | undefined,
+  stoppedAt: Date | undefined,
+): number {
+  if (!firstViolation || !stoppedAt) {
+    return 0;
+  }
+  const d = stoppedAt.getTime() - firstViolation.getTime();
+  return d < 0 ? 0 : d;
+}
+
+export { autonomousContainmentSteps, timeToAgentContainment };
 
 function validateIncident(incident: Incident): void {
   if (!incident.id || !incident.title || !incident.owner) {
