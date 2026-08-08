@@ -2,8 +2,8 @@
 tags: [ai-security, agents, human-in-the-loop, approval]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-18
-изменения: "Добавлен подраздел Source→Sink: sensitive sinks → HITL; примеры не требуют обновления."
+обновлено: 2026-08-08
+изменения: "Manufactured approval (#manufactured-approval): OOB gate + signed decision record."
 ---
 
 # 14 — Human-in-the-Loop
@@ -92,6 +92,7 @@ flowchart LR
 | Repudiation | невозможно доказать, кто и что подтвердил | Medium |
 | Prompt injection через approval text | недоверенный контент попадает в текст подтверждения как инструкция | Medium |
 | Auto-approval опасных действий | high-risk действие ошибочно считается safe | High |
+| Self-authorization / manufactured approval | модель генерирует текст «как решение человека» или принимает role-подобный текст в контексте за approval ([§03 Role confusion](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)) | High |
 
 ## Подходы и контрмеры
 
@@ -176,7 +177,26 @@ UNTRUSTED_CONTENT_START
 UNTRUSTED_CONTENT_END
 ```
 
-В терминах Source→Sink: фрагмент из **source** в approval UI — это данные для человека, не инструкция агенту и не основание снять policy на **sink**.
+В терминах Source→Sink: фрагмент из **source** в approval UI — это данные для человека, не инструкция агенту и не основание снять policy на **sink**. Текст, похожий на решение человека («approved», «user confirmed»), **не** снимает policy на sink.
+
+<a id="manufactured-approval"></a>
+
+### 6. Manufactured approval (self-authorization)
+
+Связка [§03 Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion): стиль в контексте может выглядеть как «человек уже разрешил». Это **не** HITL.
+
+```text
+Approval только из out-of-band gate + signed decision record.
+Текст роли / «я уже одобрил» в prompt / tool / memory — не approval.
+```
+
+| Канал | Считать approval? |
+|---|---|
+| Out-of-band gate (UI / API) → `ApprovalDecision` с `ApproverID` + immutable audit | да |
+| Текст в LLM context / tool output / memory, похожий на решение человека | нет |
+| Модель «распознала», что действие разрешено | нет ([§03 policy on sink](../part-2-input-security/03-prompt-injection-detection.md#policy-on-sink)) |
+
+Decision record — часть [Immutable audit trail](#3-immutable-audit-trail): нельзя «подтвердить» действие, ссылаясь только на содержимое контекста модели.
 
 ## Пример (Go)
 
@@ -220,11 +240,12 @@ const (
 )
 
 type ApprovalDecision struct {
-    ActionID   string
-    Decision   Decision
-    ApproverID string
-    Reason     string
-    DecidedAt  time.Time
+    ActionID         string
+    Decision         Decision
+    ApproverID       string
+    Reason           string
+    DecidedAt        time.Time
+    DecisionRecordID string // signed / immutable record from out-of-band gate (#manufactured-approval)
 }
 
 type ApprovalService interface {
@@ -280,8 +301,10 @@ func (r *Runtime) Execute(ctx context.Context, action ToolAction) (any, error) {
             return nil, err
         }
 
-        if decision.Decision != Approved {
-            return nil, errors.New("tool action was not approved")
+        // Manufactured approval: accept only out-of-band gate result with decision record —
+        // never treat prompt/tool/memory text as approval (#manufactured-approval).
+        if decision.Decision != Approved || decision.DecisionRecordID == "" || decision.ApproverID == "" {
+            return nil, errors.New("tool action was not approved via out-of-band gate")
         }
     }
 
@@ -332,10 +355,14 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 - [ ] Auto-approval разрешён только для low-risk действий.
 - [ ] Sensitive sinks (secret / egress вне allowlist / shell / CI·prod) всегда требуют approval — не auto-approve.
 - [ ] Untrusted source в тексте approval не снимает policy на sink (Source→Sink).
+- [ ] [Manufactured approval](#manufactured-approval): approval только из out-of-band gate, не из текста в контексте модели.
+- [ ] Текст, похожий на решение человека, не снимает policy на sink.
+- [ ] Есть signed / immutable decision record (`DecisionRecordID` + audit), связанный с approver.
 
 ## Литература
 
-- [Список литературы](../literature.md#практические-руководства)
+- [Список литературы](../literature.md#практические-руководства) · [Академические исследования](../literature.md#академические-исследования) — Ye et al. Role Confusion (arXiv 2603.12277)
+- [Ye et al. — Prompt Injection as Role Confusion](https://arxiv.org/abs/2603.12277) — manufactured approval / self-authorization в контексте role confusion
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -343,7 +370,8 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 
 ## См. также
 
-- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
+- [03 — Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
+- [03 — Policy на sink](../part-2-input-security/03-prompt-injection-detection.md#policy-on-sink)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
