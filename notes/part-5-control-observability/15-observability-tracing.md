@@ -3,7 +3,7 @@ tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-08-08
-изменения: "Запрет логировать mapping депсевдонимизации (#no-pseudonym-mapping-in-logs); связь с §04 sanitization engine."
+изменения: "Forged CoT (#forged-cot): подделка reasoning на входе; ReasoningSource model vs context."
 ---
 
 # 15 — Observability и Tracing
@@ -199,6 +199,8 @@ Audit log отличается от обычного debug log.
 
 Для cyber/eval с внешними целями поля `evaluation_id` … `kill_switch_state` обязательны: без них нельзя расследовать scope drift и monitoring tampering ([§16](16-monitoring-alerting.md), [§17](17-circuit-breaker-kill-switch.md)). Signed scope — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); target boundary — [§20 `EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01).
 
+<a id="reasoning-vs-actions"></a>
+
 ## Reasoning vs actions
 
 Мониторинг агента должен сравнивать **несколько слоёв**, а не только финальный ответ или «рассуждение» модели.
@@ -208,12 +210,26 @@ Audit log отличается от обычного debug log.
 | User-facing answer / summary | ответ пользователю | низкое |
 | Declared plan | заявленный план | среднее (заявка) |
 | Actual tool actions | tool calls / egress / writes / audit spans | **высокое** (evidence) |
-| Internal reasoning / CoT | если вендор отдаёт трассу рассуждений | низкое–среднее; модель может скрывать или искажать |
+| Internal reasoning / CoT | если вендор отдаёт трассу рассуждений | низкое–среднее; модель может скрывать, искажать **или** принять подделку с входа |
 | Independent L2 monitor | отдельный checker по actions / traces (не тот же planner) | высокое как сигнал расхождения |
 
 > **Правило:** цепочка рассуждений и user-facing summary ≠ source of truth. Доверять сопоставлению `declared_plan` / `actual_actions` / audit spans; при расхождении — human review (IR: [§23](../part-7-testing-compliance/23-incident-response-recovery.md) — не опираться на user summary). Источник паттерна: [GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6).
 
-Не требуем логировать полный raw CoT (privacy / лимиты вендора). Если трасса рассуждений недоступна — опираемся на plan + actions + L2.
+Не требуем логировать полный raw CoT (privacy / лимиты вендора). Если трасса рассуждений недоступна — опираемся на plan + actions + L2. **Не** вводим CoTness / role probes как обязательный контроль.
+
+<a id="forged-cot"></a>
+
+### Forged CoT (подделка на входе)
+
+Связка [§03 Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion): CoT может быть **подделан на входе** (`user` / `tool`), не только неточен или скрыт моделью.
+
+```text
+При IR: помечать источник рассуждения —
+  model-produced  vs  context-injected  vs  unknown.
+Текст reasoning-стиля в контексте ≠ доказательство, что модель «думала» или «одобрила».
+```
+
+Если injected reasoning выглядит как «уже проверено / approved» — см. [§14 Manufactured approval](14-human-in-the-loop.md#manufactured-approval). Готовые forged-reasoning payload'ы не публикуем.
 
 ```mermaid
 flowchart TB
@@ -244,6 +260,7 @@ flowchart TB
 | Недостаточный retention | следы инцидента исчезли раньше расследования | Medium |
 | Нет eval integrity fields | score spike без `external_hosts` / `credential_access` / `score_delta` в audit | High |
 | Доверие к reasoning / summary вместо tool trace | CoT или user summary «всё ок», а tools уже сделали egress / write | High |
+| Forged / injected CoT на входе | reasoning-стиль в `user`/`tool` принят за внутреннюю трассу модели ([#forged-cot](#forged-cot)) | High |
 
 ## Подходы и контрмеры
 
@@ -380,36 +397,31 @@ type EvalRunAudit struct {
 	KillSwitchState   string   `json:"kill_switch_state,omitempty"`  // armed | tripped | disabled
 }
 
-// ActionIntegrityView — слои для Reasoning vs actions (см. выше).
-type ActionIntegrityView struct {
-	UserFacingSummary  string
-	DeclaredPlan       string
-	ActualActions      []string
-	ReasoningAvailable bool // CoT optional; never sole source of truth
-	SummaryActionsGap  bool // operator/L2: summary hides side effects
-	PlanActionsGap     bool // operator/L2: plan misses actual tools
-	L2Mismatch         bool // independent monitor flagged drift
-}
+// ReasoningSource — откуда взялось «рассуждение» при IR (#forged-cot); не CoTness-score.
+type ReasoningSource string
 
-// NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
-func NeedsHumanReview(v ActionIntegrityView) bool {
-	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
-}
+const (
+	ReasoningFromModel   ReasoningSource = "model"
+	ReasoningFromContext ReasoningSource = "context" // injected / forged on input
+	ReasoningUnknown     ReasoningSource = "unknown"
+)
 
 // ActionIntegrityView — слои для Reasoning vs actions (см. выше).
 type ActionIntegrityView struct {
 	UserFacingSummary  string
 	DeclaredPlan       string
 	ActualActions      []string
-	ReasoningAvailable bool // CoT optional; never sole source of truth
-	SummaryActionsGap  bool // operator/L2: summary hides side effects
-	PlanActionsGap     bool // operator/L2: plan misses actual tools
-	L2Mismatch         bool // independent monitor flagged drift
+	ReasoningAvailable bool            // CoT optional; never sole source of truth
+	ReasoningSource    ReasoningSource // model | context | unknown — mark at IR time
+	SummaryActionsGap  bool            // operator/L2: summary hides side effects
+	PlanActionsGap     bool            // operator/L2: plan misses actual tools
+	L2Mismatch         bool            // independent monitor flagged drift
 }
 
 // NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
 func NeedsHumanReview(v ActionIntegrityView) bool {
-	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
+	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap ||
+		v.ReasoningSource == ReasoningFromContext
 }
 ```
 
@@ -520,8 +532,10 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
 - [ ] Cyber/eval прогоны журналируют `evaluation_id`, `declared_target`, `resolved_ip`, `scope_decision`, `monitoring_state`, `kill_switch_state` (или явный N/A).
 - [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
-- [ ] Сравниваются слои: user-facing summary / declared plan / actual actions (Reasoning vs actions).
+- [ ] Сравниваются слои: user-facing summary / declared plan / actual actions ([Reasoning vs actions](#reasoning-vs-actions)).
 - [ ] Internal reasoning / CoT не считается source of truth; при расхождении с actions — human review.
+- [ ] Учтён [Forged CoT](#forged-cot): reasoning может быть подделан на входе; при IR помечен `ReasoningSource` (model / context / unknown).
+- [ ] Нет требования логировать raw CoT; CoTness / role probes не используются как контроль.
 - [ ] Для high-risk агента есть independent L2 monitor (или явный N/A).
 - [ ] Есть retention policy для security logs.
 - [ ] Логи нельзя менять обычным пользователям агента.
@@ -531,7 +545,8 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 ## Литература
 
-- [Список литературы](../literature.md#инструменты)
+- [Список литературы](../literature.md#инструменты) · [Академические исследования](../literature.md#академические-исследования) — Ye et al. Role Confusion (arXiv 2603.12277)
+- [Ye et al. — Prompt Injection as Role Confusion](https://arxiv.org/abs/2603.12277) — CoT Forgery / forged reasoning на входе
 - [OpenAI — GPT-5.6 Deployment Safety Hub](https://deploymentsafety.openai.com/gpt-5-6) — user-facing ≠ full actions; reasoning ≠ SoT
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [OpenTelemetry Signals](https://opentelemetry.io/docs/concepts/signals/)
@@ -546,7 +561,8 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [04 — PII / sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)
 - [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
-- [14 — Human-in-the-Loop](14-human-in-the-loop.md)
+- [03 — Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
+- [14 — Manufactured approval](14-human-in-the-loop.md#manufactured-approval)
 - [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [16 — Monitoring и Alerting](16-monitoring-alerting.md) — scope drift / monitoring tampering / корреляция
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — auto-stop triggers
