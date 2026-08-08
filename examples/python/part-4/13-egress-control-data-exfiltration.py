@@ -107,6 +107,38 @@ class EgressPolicy:
         return bool(self.allowed_email_domains.get(domain))
 
 
+class AIDataClass(str, Enum):
+    """Канон «что можно отдать модели» (§04 #ai-data-classes-d0-d4). Не путать с DataClass egress."""
+
+    D0_PUBLIC = "d0_public"
+    D1_INTERNAL = "d1_internal"
+    D2_CONFIDENTIAL_NDA = "d2_confidential_nda"
+    D3_REGULATED = "d3_regulated"
+    D4_SECRETS = "d4_secrets"
+
+
+class InferenceRoute(str, Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+    SPECIALIZED = "specialized"
+    REJECT = "reject"
+
+
+def route_inference(dc: AIDataClass) -> InferenceRoute:
+    """Учебная политика AI Gateway по канону D0–D4 (§04)."""
+    if dc == AIDataClass.D4_SECRETS:
+        raise ValueError("D4 secrets must not reach any model")
+    if dc in (
+        AIDataClass.D3_REGULATED,
+        AIDataClass.D2_CONFIDENTIAL_NDA,
+        AIDataClass.D1_INTERNAL,
+    ):
+        return InferenceRoute.INTERNAL
+    if dc == AIDataClass.D0_PUBLIC:
+        return InferenceRoute.EXTERNAL
+    raise ValueError("unknown AI data class")
+
+
 def _contains(classes: List[DataClass], target: DataClass) -> bool:
     return target in classes
 

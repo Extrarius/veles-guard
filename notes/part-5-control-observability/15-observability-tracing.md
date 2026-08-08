@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Reasoning vs actions: слои мониторинга; ActionIntegrityView; sync py/ts."
+обновлено: 2026-08-04
+изменения: "Eval fields: evaluation_id, declared_target, resolved_ip, scope_decision, monitoring_state, kill_switch_state."
 ---
 
 # 15 — Observability и Tracing
@@ -172,8 +172,16 @@ Audit log отличается от обычного debug log.
 | `evaluation_score` | итоговый score |
 | `score_delta` | изменение score относительно baseline |
 | `policy_violations` | сработавшие policy / deny / boundary flags |
+| `evaluation_id` | id прогона / suite (связь с signed scope и IR) |
+| `declared_target` | цель из signed scope manifest (не «как поняла модель») |
+| `resolved_ip` | фактически resolved IP / host после DNS |
+| `scope_decision` | `allow` / `deny` / `mismatch` (детерминированный gate) |
+| `monitoring_state` | `enabled` / `degraded` / `tampered` |
+| `kill_switch_state` | `armed` / `tripped` / `disabled` |
 
 > **Правило:** резкий `score_delta` после `external_hosts` / `credential_access` (или запись в test/metrics store) → **human review**, не auto-pass. Канон — [§20 `ScoreNeedsHumanReview`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking).
+
+Для cyber/eval с внешними целями поля `evaluation_id` … `kill_switch_state` обязательны: без них нельзя расследовать scope drift и monitoring tampering ([§16](16-monitoring-alerting.md), [§17](17-circuit-breaker-kill-switch.md)). Signed scope — [§08](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape); target boundary — [§20 `EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01).
 
 ## Reasoning vs actions
 
@@ -328,7 +336,7 @@ type AuditEvent struct {
     Attrs          map[string]any `json:"attrs,omitempty"`
 }
 
-// EvalRunAudit — поля для расследования Evaluation Gaming (см. §20).
+// EvalRunAudit — поля для расследования Evaluation Gaming и scope drift (см. §20 / §16).
 type EvalRunAudit struct {
 	AgentGoal         string   `json:"agent_goal"`
 	DeclaredPlan      string   `json:"declared_plan,omitempty"`
@@ -338,6 +346,28 @@ type EvalRunAudit struct {
 	EvaluationScore   float64  `json:"evaluation_score"`
 	ScoreDelta        float64  `json:"score_delta"`
 	PolicyViolations  []string `json:"policy_violations,omitempty"`
+	EvaluationID      string   `json:"evaluation_id,omitempty"`
+	DeclaredTarget    string   `json:"declared_target,omitempty"`
+	ResolvedIP        string   `json:"resolved_ip,omitempty"`
+	ScopeDecision     string   `json:"scope_decision,omitempty"`     // allow | deny | mismatch
+	MonitoringState   string   `json:"monitoring_state,omitempty"`   // enabled | degraded | tampered
+	KillSwitchState   string   `json:"kill_switch_state,omitempty"`  // armed | tripped | disabled
+}
+
+// ActionIntegrityView — слои для Reasoning vs actions (см. выше).
+type ActionIntegrityView struct {
+	UserFacingSummary  string
+	DeclaredPlan       string
+	ActualActions      []string
+	ReasoningAvailable bool // CoT optional; never sole source of truth
+	SummaryActionsGap  bool // operator/L2: summary hides side effects
+	PlanActionsGap     bool // operator/L2: plan misses actual tools
+	L2Mismatch         bool // independent monitor flagged drift
+}
+
+// NeedsHumanReview — L2 / plan-actions / summary-actions gap → human review.
+func NeedsHumanReview(v ActionIntegrityView) bool {
+	return v.L2Mismatch || v.SummaryActionsGap || v.PlanActionsGap
 }
 
 // ActionIntegrityView — слои для Reasoning vs actions (см. выше).
@@ -460,6 +490,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
 - [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
+- [ ] Cyber/eval прогоны журналируют `evaluation_id`, `declared_target`, `resolved_ip`, `scope_decision`, `monitoring_state`, `kill_switch_state` (или явный N/A).
 - [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
 - [ ] Сравниваются слои: user-facing summary / declared plan / actual actions (Reasoning vs actions).
 - [ ] Internal reasoning / CoT не считается source of truth; при расхождении с actions — human review.
@@ -484,7 +515,8 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [14 — Human-in-the-Loop](14-human-in-the-loop.md)
-- [16 — Monitoring и Alerting](16-monitoring-alerting.md)
-- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
+- [16 — Monitoring и Alerting](16-monitoring-alerting.md) — scope drift / monitoring tampering / корреляция
+- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — auto-stop triggers
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary / Evaluation Gaming
 - [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md) — ignore user-facing summary

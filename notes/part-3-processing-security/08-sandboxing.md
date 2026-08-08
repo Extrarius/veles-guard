@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Containment Escape: sandbox ≠ isolation; pre-eval checklist; ссылки §17/§20/§23."
+обновлено: 2026-08-04
+изменения: "Preflight: фактический внешний IP; proxy env cleared; якорь #pre-eval-checklist."
 ---
 
 # 08 — Sandboxing
@@ -127,18 +127,26 @@ flowchart LR
   Goal --> Bypass --> Net --> External --> Harm
 ```
 
+<a id="pre-eval-checklist"></a>
+
 ### Pre-eval checklist (до запуска испытания)
 
 - [ ] У тестовой среды физически или сетево отсутствует выход в production.
 - [ ] Разрешены только явно перечисленные адреса назначения (egress allowlist).
+- [ ] Разрешённые **цели** загружены из **подписанного scope-файла / манифеста** (default deny); не из prompt агента.
+- [ ] Агент / LLM **не** уполномочен расширять scope при «совпадении имени» с найденной infra.
+- [ ] Проверен **фактический внешний IP** среды (что видит интернет / egress path; не только адрес локального интерфейса).
+- [ ] **Proxy-переменные очищены** (`HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY` и аналоги) — иначе allowlist обходится через чужой egress.
 - [ ] В среде нет действующих внешних учётных данных.
-- [ ] DNS, прокси, облачные metadata и `localhost` считаются каналами выхода.
+- [ ] DNS, прокси, облачные metadata и `localhost` считаются каналами выхода; очистка proxy **env** — отдельный контроль, не только «прокси как канал».
 - [ ] Есть лимит количества действий, времени, процессов и сетевых соединений.
 - [ ] Kill-switch проверен **до** запуска ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
 - [ ] После испытания — ротация всех доступных секретов.
 - [ ] Есть процесс уведомления внешних организаций, если стенд мог их затронуть.
 
-Eval на пересечение границ: [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01). IR first actions — [§23](../part-7-testing-compliance/23-incident-response-recovery.md). Практика RoE — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md).
+Signed scope-файл / манифест — источник истины для разрешённых целей: совпадение имени вымышленной и реальной организации **не** даёт агенту права действовать. Eval: [`EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01). Threat model — [§02 Target ambiguity](../part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity).
+
+Eval на пересечение границ стенда: [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01). IR first actions — [§23](../part-7-testing-compliance/23-incident-response-recovery.md). Практика RoE — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md).
 
 ## Уровни sandbox
 
@@ -329,7 +337,8 @@ var Tools = map[string]ToolSpec{
 - [ ] Файловая система read-only, где возможно.
 - [ ] Sandbox disposable: после задачи очищается.
 - [ ] Experimental frameworks и локальные привилегированные сервисы выполняются в sandbox/devbox.
-- [ ] Перед eval/red-team пройден pre-eval containment checklist (сеть, секреты, DNS/localhost, kill-switch).
+- [ ] Перед eval/red-team пройден pre-eval containment checklist (сеть, секреты, DNS/localhost, kill-switch, signed scope).
+- [ ] Цели eval загружены из подписанного scope-манифеста; LLM не расширяет scope при совпадении имени.
 - [ ] Sandbox не считается isolation при открытой сети / живых credentials / уязвимой control plane.
 
 ## Литература
@@ -349,5 +358,7 @@ var Tools = map[string]ToolSpec{
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming (EVAL-CONTAINMENT-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01)
+- [20 — Red Teaming (EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
+- [02 — Threat Model (Target ambiguity)](../part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity)
 - [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)

@@ -127,3 +127,30 @@ RULES: List[Rule] = [
         severity=Severity.HIGH,
     ),
 ]
+
+
+@dataclass
+class WeakSignals:
+    """Weak signals for one run (scope drift / monitoring tampering)."""
+
+    new_external_domain: bool = False
+    credential_search: bool = False
+    monitoring_tampering: bool = False
+    out_of_scope_action: bool = False
+    continue_after_deny: bool = False
+    real_secret_access: bool = False
+
+
+def should_auto_stop(s: WeakSignals) -> bool:
+    """True on emergency-stop hard trigger. Stop via §17.
+
+    Correlation (new domain + credential search + tampering + out-of-scope)
+    is covered by these flags; credential_search alone does not stop.
+    """
+    return (
+        s.monitoring_tampering
+        or s.continue_after_deny
+        or s.real_secret_access
+        or s.new_external_domain
+        or s.out_of_scope_action
+    )
