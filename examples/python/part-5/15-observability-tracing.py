@@ -38,6 +38,12 @@ class AuditEvent:
     risk: str = ""
     decision: str = ""
     reason: str = ""
+    # AI Gateway / inference (§15 #inference-audit-fields)
+    model: str = ""
+    provider: str = ""
+    inference_location: str = ""  # on_prem | external | specialized
+    data_class: str = ""
+    redaction_result: str = ""
     attrs: Dict[str, Any] = field(default_factory=dict)
 
 
