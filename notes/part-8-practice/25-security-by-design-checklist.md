@@ -2,8 +2,8 @@
 tags: [ai-security, agents, checklist, security-by-design, review]
 часть: "Часть VIII — Практика"
 статус: готово
-обновлено: 2026-07-19
-изменения: "C-08/C-09: verified CTI/MCP + machine-readable OSCAL evidence; ссылка на §21."
+обновлено: 2026-08-08
+изменения: "Класс риска агента R0–R3 (#agent-risk-class), паспорт, production gate."
 ---
 
 # 25 — Security-by-Design чек-лист
@@ -319,12 +319,80 @@ Design Review → Pre-Release Review → Production Review
 
 Подробный AI-coding чек-лист — в [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md).
 
+<a id="agent-risk-class"></a>
+
+## Класс риска агента (R0–R3)
+
+Агент — **продукт**: до запуска есть класс риска, human owner и заполненный [passport](../../templates/agent-passport.md). Не путать с уровнями Skill Security ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) `prototype`…`regulated`) — там риск **skills/MCP на endpoint**, здесь — риск **агента как системы**.
+
+| Класс | Смысл |
+|---|---|
+| **R0** sandbox | локальный эксперимент; нет prod-данных / write tools |
+| **R1** assistant | помощь пользователю; в основном read; ограниченный blast radius |
+| **R2** operational | бизнес-workflow; write tools / внешние системы |
+| **R3** critical | высокий удар / regulated / необратимые действия |
+
+Матрица обязательных контролей (минимум по классу; детали — в разделах конспекта):
+
+| Контроль | R0 | R1 | R2 | R3 |
+|---|---|---|---|---|
+| Owner + passport | — | обязателен | обязателен | обязателен |
+| Identity / allowlist tools ([§06](../part-3-processing-security/06-rbac-tool-permissions.md)) | желательно | обязателен | обязателен | обязателен |
+| AI Gateway / inference proxy ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)) | — | желательно | обязателен | обязателен |
+| Tool Gateway + Trusted Registry ([§06](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway) / [§19](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry)) | — | базовая allowlist | обязателен | обязателен |
+| HITL на write / high-risk ([§14](../part-5-control-observability/14-human-in-the-loop.md)) | — | по риску tool | обязателен | обязателен + усиленный |
+| Kill-switch + audit ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md) / [§15](../part-5-control-observability/15-observability-tracing.md)) | — | audit | оба | оба + IR owner |
+| Red team / evals ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)) | — | smoke | обязателен | расширенный + compliance map [§21](../part-7-testing-compliance/21-compliance-standards.md) |
+
+Рамка процесса: [NIST AI RMF 1.0](../literature.md#стандарты-и-фреймворки). Для R3 — также compliance / EU AI Act через [§21](../part-7-testing-compliance/21-compliance-standards.md).
+
+### Go snippet: RequiredControls по классу
+
+```go
+package agentrisk
+
+type AgentRiskClass string
+
+const (
+	R0Sandbox      AgentRiskClass = "R0"
+	R1Assistant    AgentRiskClass = "R1"
+	R2Operational  AgentRiskClass = "R2"
+	R3Critical     AgentRiskClass = "R3"
+)
+
+// RequiredControls — минимальный набор имён контролей для класса (иллюстративно).
+func RequiredControls(class AgentRiskClass) []string {
+	switch class {
+	case R0Sandbox:
+		return []string{"non_prod_isolation"}
+	case R1Assistant:
+		return []string{"owner_passport", "identity_allowlist", "audit_log"}
+	case R2Operational:
+		return []string{
+			"owner_passport", "identity_allowlist", "ai_gateway",
+			"tool_gateway_registry", "hitl_write", "kill_switch", "audit_log", "red_team",
+		}
+	case R3Critical:
+		return []string{
+			"owner_passport", "identity_allowlist", "ai_gateway",
+			"tool_gateway_registry", "hitl_write_strict", "kill_switch", "audit_log",
+			"ir_owner", "red_team_extended", "compliance_map",
+		}
+	default:
+		return nil
+	}
+}
+```
+
 ## Production gate
 
 Минимальный gate перед production:
 
 ```text
 BLOCK release if:
+- нет класса риска R0–R3;
+- нет владельца / заполненного agent passport;
+- для R2+ inference в обход AI Gateway / proxy;
 - нет DFD/threat model;
 - high-risk tools без approval;
 - нет schema validation;
@@ -449,21 +517,23 @@ func Export(items []Item) ([]byte, error) {
 
 ## Литература
 
-- [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Список литературы](../literature.md#стандарты-и-фреймворки) — NIST AI RMF 1.0; Generative AI Profile
 - [OWASP Securing Agentic Applications Guide 1.0](https://genai.owasp.org/resource/securing-agentic-applications-guide-1-0/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
-- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
+- [NIST AI Risk Management Framework 1.0](https://www.nist.gov/itl/ai-risk-management-framework)
 - [MITRE ATLAS](https://atlas.mitre.org/)
 - [OpenAI Agents SDK — Guardrails and Human Review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)
 
 ## См. также
 
+- [Шаблоны — Agent passport](../../templates/agent-passport.md)
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
-- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
-- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
+- [13 — AI Gateway / inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
-- [21 — Compliance: MCP → OSCAL](../part-7-testing-compliance/21-compliance-standards.md#case-study-mcp--knowledge-graph--nist-oscal)
+- [21 — Compliance](../part-7-testing-compliance/21-compliance-standards.md) — EU AI Act / OSCAL при R3
 - [24 — End-to-End: безопасный агент на Go](24-end-to-end-secure-agent-go.md)
+- [31 — Skill Security уровни](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) — не путать с R0–R3 агента
 - [32 — AI Coding Security Checklist](../part-9-ai-coding-security/32-ai-coding-security-checklist.md)
