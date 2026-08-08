@@ -2,8 +2,8 @@
 tags: [ai-security, output-validation, fact-checking, guardrails, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-08-05
-изменения: "Streaming output guardrail: проверка по чанкам, stream_first vs validate_first, StreamChunkGuard."
+обновлено: 2026-08-08
+изменения: "Якорь Post-model (#post-model-control-point) = точка 5 из §04 five control points."
 ---
 
 # 11 — Output Validation и Fact-Checking
@@ -45,6 +45,10 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 - источником для другого агента.
 
 Поэтому output validation — это не “красивый финальный фильтр”, а **граница безопасности между моделью и внешним миром**.
+
+<a id="post-model-control-point"></a>
+
+Это **точка 5 (Post-model)** из [пяти точек контроля §04](../part-2-input-security/04-pii-redaction-content-filtering.md#five-control-points): после ответа модели, до пользователя / downstream. Не заменяет Pre-context / Pre-LLM / Pre-tool / Pre-memory·Pre-log.
 
 Выходной gate — зеркальный layered path к входному [guardrail pipeline §03](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router): эвристики / schema → filter (PII, secrets, safety) → более тяжёлые проверки. Validation полного ответа до выпуска за Output Gate — канон ниже; для SSE/token stream дополнительно — [проверка по чанкам](#streaming-output-guardrail).
 
@@ -567,7 +571,7 @@ func (g *StreamChunkGuard) advanceContext(chunk string) {
 ## См. также
 
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router) — входной layered path; выход зеркален
-- [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
+- [04 — PII / five control points](../part-2-input-security/04-pii-redaction-content-filtering.md#five-control-points)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [12 — Hallucination Detection](12-hallucination-detection.md)
