@@ -2,8 +2,8 @@
 tags: [ai-security, memory-isolation, context-sanitization, rag-security, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Атрибуты ресурса для AI (#resource-ai-labels); access-aware RAG; minimize attachments; связь с D0–D4 §04."
+обновлено: 2026-08-08
+изменения: "Context smuggling: strip role-claims (#strip-role-claims); связка Role confusion §03."
 ---
 
 # 09 — Memory Isolation и Context Sanitization
@@ -78,11 +78,42 @@ flowchart LR
 |---|---|---:|---|
 | Memory poisoning | вредная инструкция сохранена как факт | High | sanitizer, approval, trust labels |
 | Cross-user leakage | память одного пользователя попала другому | High | tenant/user/session isolation |
-| Context smuggling | untrusted text вставлен как system instruction | High | role separation, quoting |
+| Context smuggling | untrusted text вставлен как system instruction | High | role separation, quoting, [strip role-claims](#strip-role-claims) |
 | Secret persistence | токен сохранён в memory | High | secret detection, never-store policy |
 | Stale memory | старое решение используется как актуальное | Medium | TTL, source metadata |
 | Tool output poisoning | внешний API вернул инструкцию агенту | Medium | treat tool output as untrusted |
 | RAG injection | документ содержит скрытые команды | High | chunk labels, [retrieval rails](#retrieval-rails) |
+
+<a id="strip-role-claims"></a>
+
+### Strip role-claims (усиление Context smuggling)
+
+При записи в memory и при сборке контекста из недоверенного текста **вырезать** role-теги и role-подобные префиксы (`User:`, `System:`, `Assistant:`, fake `think` markers и т.п.), чтобы стиль не выдавал чужую роль. Канон угрозы — [§03 Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion). Strip — санитизация данных, не замена политики на sink.
+
+```go
+package agentsec
+
+import (
+	"regexp"
+	"strings"
+)
+
+// roleClaimLine — строка, целиком похожая на role prefix / fake think marker (иллюстративно).
+var roleClaimLine = regexp.MustCompile(`(?im)^\s*(user|system|assistant|tool(\s*output)?)\s*:\s*|</?think>`)
+
+// StripRoleClaims — перед memory write / inject untrusted блока в prompt.
+func StripRoleClaims(s string) string {
+	lines := strings.Split(s, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if roleClaimLine.MatchString(line) {
+			continue
+		}
+		out = append(out, line)
+	}
+	return strings.TrimSpace(strings.Join(out, "\n"))
+}
+```
 
 ## Правила хранения памяти
 
@@ -512,6 +543,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [ ] Provenance пропущенных chunks сохраняется для grounded-проверки ответа ([§12](../part-4-output-security/12-hallucination-detection.md)).
 - [ ] Есть TTL для временного контекста.
 - [ ] Есть sanitizer перед записью в long-term memory.
+- [ ] Untrusted текст проходит [strip role-claims](#strip-role-claims) до memory write / inject в prompt.
 - [ ] Есть audit для memory write/update/delete.
 - [ ] Есть механизм удаления памяти.
 - [ ] Context builder явно маркирует untrusted блоки.
@@ -529,7 +561,8 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 
 ## См. также
 
-- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router) — входной layered path; retrieval — отдельный stage
+- [03 — Prompt Injection / Role confusion](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) — стиль ≠ тег; strip role-claims здесь
+- [03 — Guardrail pipeline](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router) — входной layered path; retrieval — отдельный stage
 - [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
 - [11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md) — Output Gate
 - [12 — Hallucination Detection](../part-4-output-security/12-hallucination-detection.md) — grounded vs evidence chunks
