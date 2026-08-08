@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Lethal trifecta + blast-radius assessment; break-one-link rule."
+обновлено: 2026-08-07
+изменения: "Блок «оценка защитных ограничений (Guardrail assessment)» (#guardrail-assessment); мостик к §20 EV-10."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -57,47 +57,74 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 ### Blast radius и lethal trifecta (assessment)
 
-Перед матрицей областей зафиксируйте **что агент умеет** (text → read → write → shell → CI/deploy) и где наибольший blast radius — [§02](../part-1-architecture-threats/02-threat-model.md).
+Перед матрицей областей зафиксируйте **что агент умеет** (текст → чтение → запись → оболочка → CI / развёртывание — text → read → write → shell → CI / deploy) и где наибольший радиус поражения (blast radius) — [§02](../part-1-architecture-threats/02-threat-model.md).
 
-**Lethal trifecta** ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)): private data + untrusted content + outbound в одном path. Assessment-вопросы:
+**Смертельная тройка (Lethal trifecta)** ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)): закрытые данные (private data) + недоверенный контент (untrusted content) + исходящий канал (outbound) в одном пути (path). Вопросы оценки (assessment):
 
-1. Есть ли private data в контексте при чтении untrusted issue/PR/email?
-2. Есть ли outbound (HTTP, public PR, render img/URL) в том же run?
+1. Есть ли закрытые данные (private data) в контексте при чтении недоверенного issue / PR / email (untrusted)?
+2. Есть ли исходящий канал (outbound) — HTTP, публичный PR, отрисовка img / URL (render) — в том же прогоне (run)?
 3. Какую **одну** границу удержать, чтобы цепочка оборвалась?
 
-Правило защиты: атакующему нужны все звенья; достаточно сломать одно (untrusted = data not commands; write вне allowlist → approval; нет secrets у агента; нет egress). Учебные прецеденты по звеньям: [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) (Duo / image exfil), [§19](../part-6-multi-agent-security/19-mcp-security.md) (GitHub MCP), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) (CurXecute).
+Правило защиты: атакующему нужны все звенья; достаточно сломать одно (недоверенное = данные, не команды — untrusted = data not commands; запись вне белого списка (allowlist) → подтверждение (approval); нет секретов (secrets) у агента; нет исходящего трафика (egress)). Учебные прецеденты по звеньям: [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) (Duo / утечка через изображение — image exfil), [§19](../part-6-multi-agent-security/19-mcp-security.md) (GitHub MCP), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) (CurXecute).
 
 ## Матрица assessment → части I–IX
 
 | Область | Что оценивать (безопасно) | Канон |
 |---|---|---|
-| **Input** | Direct / indirect prompt injection; обход инструкций через роли | [§03](../part-2-input-security/03-prompt-injection-detection.md) |
-| **Output** | Небезопасный вывод (разметка, скрипты, утечки) до рендера / доверия UI | [§11](../part-4-output-security/11-output-validation-fact-checking.md), [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) |
-| **Knowledge / RAG** | Отравление документов в базе; retrieval вне ACL; exfil через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
-| **Tools / MCP** | Вредоносный / отравленный tool; **confused deputy** (агент действует с чужими правами по подсказке) | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
-| **Assurance** | Red team / evals до релиза; LLM-as-judge только как доп. слой | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md), [Testing Guide](../../guides/ai-agent-security-testing-guide.md), [§38](38-ai-agent-security-testing-workshop.md) |
+| **Вход (Input)** | прямое / косвенное внедрение инструкций (direct / indirect prompt injection); обход инструкций через роли | [§03](../part-2-input-security/03-prompt-injection-detection.md) |
+| **Выход (Output)** | Небезопасный вывод (разметка, скрипты, утечки) до отрисовки (render) / доверия интерфейсу (UI) | [§11](../part-4-output-security/11-output-validation-fact-checking.md), [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) |
+| **Знания / RAG (Knowledge / RAG)** | Отравление документов в базе; извлечение (retrieval) вне списков контроля доступа (ACL); утечка (exfil) через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
+| **Инструменты / MCP (Tools / MCP)** | Вредоносный / отравленный инструмент (tool); **подставной исполнитель (confused deputy)** — агент действует с чужими правами по подсказке | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
+| **Уверенность (Assurance)** | Красная команда / оценки (red team / evals) до релиза; LLM-as-judge только как доп. слой; **ограничение (guardrail) как объект** — набор тестов (suite) `EVAL-GUARDRAIL-01` / EV-10 (ложные срабатывания / пропуски (FP/FN), пороги, журнал изменений (changelog)) | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10), [Testing Guide](../../guides/ai-agent-security-testing-guide.md), [§38](38-ai-agent-security-testing-workshop.md) |
 
 Карта «тема × стандарт»: [notes/mapping.md](../mapping.md).
 
-### Мини-сценарии (учебные, без payloads)
+### Мини-сценарии (учебные, без полезных нагрузок — payloads)
 
-1. **Indirect injection через документ** — в knowledge base попадает текст с инструкциями для модели → проверить access-aware retrieval и изоляцию контекста (§09).
-2. **Insecure output** — модель возвращает разметку, опасную при render в UI → sanitize / CSP / не доверять raw HTML (§11).
-3. **Confused deputy** — сообщение (например, email) маскируется под «системное» и толкает агента вызвать привилегированный tool от имени пользователя → least privilege + confirmation (§19, §06, §14).
-4. **Malicious MCP** — description/schema скрывает побочный эффект → review до install ([§36](36-mcp-skill-review-workshop.md), §19).
+1. **Косвенное внедрение через документ (Indirect injection)** — в базу знаний (knowledge base) попадает текст с инструкциями для модели → проверить извлечение с учётом прав (access-aware retrieval) и изоляцию контекста (§09).
+2. **Небезопасный выход (Insecure output)** — модель возвращает разметку, опасную при отрисовке (render) в интерфейсе (UI) → очистка (sanitize) / политика безопасности контента (CSP) / не доверять сырому HTML (raw HTML) (§11).
+3. **Подставной исполнитель (Confused deputy)** — сообщение (например, email) маскируется под «системное» и толкает агента вызвать привилегированный инструмент (tool) от имени пользователя → минимальные привилегии (least privilege) + подтверждение (confirmation) (§19, §06, §14).
+4. **Вредоносный MCP (Malicious MCP)** — описание / схема (description / schema) скрывает побочный эффект → проверка (review) до установки (install) ([§36](36-mcp-skill-review-workshop.md), §19).
 
-## Guardrails: hard block vs soft response
+## Ограничения (Guardrails): жёсткая блокировка (hard block) vs мягкий отказ (soft response)
 
-Внешний safety-слой (classifier / policy) ≠ «модель сама откажется».
+Внешний слой безопасности (safety-слой: классификатор / политика — classifier / policy) ≠ «модель сама откажется».
 
 | Режим | Поведение | Зачем |
 |---|---|---|
-| **Hard block** | Запрос/ответ отсекается классификатором; дальше пайплайн не идёт (или только безопасный stub) | Не дать вредоносному вводу/выводу дойти до tools / UI |
-| **Soft response** | После hard block пользователь получает **вежливый отказ** без раскрытия внутренней причины фильтра и без «system notification» в ответе | UX; не обучать атакующего точной логике блокировки |
+| **Жёсткая блокировка (Hard block)** | Запрос/ответ отсекается классификатором; дальше конвейер (pipeline) не идёт (или только безопасная заглушка — stub) | Не дать вредоносному вводу/выводу дойти до инструментов (tools) / интерфейса (UI) |
+| **Мягкий отказ (Soft response)** | После жёсткой блокировки (hard block) пользователь получает **вежливый отказ** без раскрытия внутренней причины фильтра и без «системного уведомления (system notification)» в ответе | удобство использования (UX); не обучать атакующего точной логике блокировки |
 
-Классификаторы (ориентир): moderation APIs, Llama Guard и аналоги — см. [literature.md](../literature.md) (Moderation / classifiers). Канон детекции на входе — [§03](../part-2-input-security/03-prompt-injection-detection.md); фильтрация контента — [§04](../part-2-input-security/04-pii-redaction-content-filtering.md).
+Классификаторы (ориентир): API модерации (moderation APIs), Llama Guard и аналоги — см. [literature.md](../literature.md) (модерация / классификаторы — Moderation / classifiers). Канон детекции на входе — [§03](../part-2-input-security/03-prompt-injection-detection.md); фильтрация контента — [§04](../part-2-input-security/04-pii-redaction-content-filtering.md).
 
-> **Правило:** hard block — решение политики; soft response — представление пользователю. Не подменять hard block «надеждой, что модель сама откажется».
+> **Правило:** жёсткая блокировка (hard block) — решение политики; мягкий отказ (soft response) — представление пользователю. Не подменять жёсткую блокировку «надеждой, что модель сама откажется».
+
+<a id="guardrail-assessment"></a>
+
+## Оценка защитных ограничений (Guardrail assessment)
+
+Курс оценивает **наличие процесса** вокруг ограничений (rails) — не заменяет канон набора тестов (suite) / подсчёта (scoring) в [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10).
+
+**Вопросы оценки (assessment):**
+
+1. Какие ограничения (rails) есть на пути (вход / извлечение / выход / потоковая передача — input / retrieval / output / streaming)?
+2. Есть ли набор тестов (suite) с легитимными (benign) **и** известными атакующими (known-attack) кейсами?
+3. Измерены ли ложные срабатывания / пропуски (FP / FN) (и задержка / стоимость (latency / cost), если ограничение дорогое)?
+4. Пороги **зафиксированы (frozen)** к конкретному прогону набора (suite run) (не «подкрутили в проде»)?
+5. Есть ли журнал изменений (changelog) при смене шаблона / модели / порога (pattern / model / threshold)?
+
+| Класс кейса (кратко) | Зачем в оценке (assessment) |
+|---|---|
+| легитимный (benign) | контроль ложных срабатываний (FP) |
+| известные атаки (known attacks) | контроль пропусков (FN) |
+| граница / RAG / инструмент / обфускация (edge / RAG / tool / obfuscation) | покрытие границ — детали в §20 |
+
+```text
+Есть жёсткий / мягкий отказ (hard / soft) ≠ ограничение (guardrail) протестировано.
+Нет набора тестов (suite) + метрик + журнала изменений (changelog) → EV-10 не закрыт.
+```
+
+Связь с ландшафтом: [§33 безопасность и полезность (Safety vs Utility)](33-course-ai-security-landscape.md#safety-vs-utility) — ограничения (rails) сужают автономию; оценка (assessment) проверяет, что сужение измеримо и не «ломает» легитимные сценарии без учёта ложных срабатываний (FP).
 
 ## Red team assessment
 
@@ -107,12 +134,13 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 ## Подходы и контрмеры
 
-1. Зафиксировать capability / blast radius и trifecta ([§02](../part-1-architecture-threats/02-threat-model.md)).
+1. Зафиксировать возможности (capability) / радиус поражения (blast radius) и смертельную тройку (trifecta) ([§02](../part-1-architecture-threats/02-threat-model.md)).
 2. Составить матрицу областей (таблица выше) под *свой* агент — вычеркнуть N/A.
 3. На каждую High-область — Expected control и раздел канона; достаточно удержать одну границу в цепочке.
-4. Guardrails: hard + soft раздельно; не светить внутреннюю причину block.
-5. MCP/tools: review до connect; confused deputy в threat model.
-6. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
+4. Ограничения (Guardrails): жёсткий + мягкий отказ раздельно; не светить внутреннюю причину блокировки (block).
+5. Оценка ограничений (Guardrail assessment): набор тестов (suite) / FP·FN / зафиксированные пороги (frozen thresholds) / журнал изменений (changelog) → [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10).
+6. MCP / инструменты (tools): проверка (review) до подключения (connect); подставной исполнитель (confused deputy) в модели угроз (threat model).
+7. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Пример (Go): область assessment → якоря конспекта
 
@@ -144,9 +172,20 @@ func HandbookRefs(area Area) ([]string, error) {
 	case AreaToolsMCP:
 		return []string{"§06", "§14", "§19"}, nil
 	case AreaAssurance:
-		return []string{"§20", "§38"}, nil
+		return []string{"§20", "§20 EV-10", "§38"}, nil
 	default:
 		return nil, fmt.Errorf("unknown area %q", area)
+	}
+}
+
+// GuardrailAssessmentHints — учебные вопросы курса (#guardrail-assessment); подсчёт (scoring) — в §20.
+func GuardrailAssessmentHints() []string {
+	return []string{
+		"ограничения (rails) на пути: input / retrieval / output / streaming?",
+		"набор тестов (suite): легитимные (benign) + известные атаки (known-attack)?",
+		"измерены ложные срабатывания / пропуски (FP / FN)?",
+		"пороги зафиксированы (frozen) к прогону набора (suite run)?",
+		"журнал изменений (changelog) при смене rail / threshold?",
 	}
 }
 
@@ -166,7 +205,9 @@ const (
 - [ ] Понятно, что агент = input + output + knowledge + tools, не только chat.
 - [ ] Для своего агента заполнена матрица областей (или N/A с причиной).
 - [ ] Есть ссылка на канон I–IX по каждой High-области.
-- [ ] Различаете hard block и soft response.
+- [ ] Различаете жёсткую блокировку (hard block) и мягкий отказ (soft response).
+- [ ] [Оценка ограничений (Guardrail assessment)](#guardrail-assessment): есть ответы по набору тестов (suite) / FP·FN / порогам (thresholds) / журналу изменений (changelog).
+- [ ] Мостик к канону [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) понятен (здесь не дублируем подсчёт (scoring)).
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
 - [ ] Lethal trifecta проверен; есть план «сломать одно звено».
@@ -185,11 +226,11 @@ const (
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility)
+- [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
 - [03 — Prompt Injection](../part-2-input-security/03-prompt-injection-detection.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
-- [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
