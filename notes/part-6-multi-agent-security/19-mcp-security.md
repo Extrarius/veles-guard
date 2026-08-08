@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-29
-изменения: "GitHub MCP toxic flow (Invariant); trifecta cross-link; §34 anchor."
+обновлено: 2026-08-08
+изменения: "Trusted Tool Registry (#trusted-tool-registry): endpoint, tool_type, allowed models/data classes, review policy."
 ---
 
 # 19 — MCP Security
@@ -174,6 +174,8 @@ flowchart LR
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
+
+<a id="runtime-trust-gap"></a>
 
 ## Runtime Trust Gap (connect-time review ≠ runtime output)
 
@@ -356,9 +358,32 @@ MCP server не должен быть обходным путём вокруг e
 - errors;
 - policy rule id.
 
+<a id="trusted-tool-registry"></a>
+
+## Trusted Tool Registry
+
+Allowlist имени сервера недостаточен. В registry — **карточка** MCP server / tool-пакета с полями для review и runtime policy. Канон вызова через [Tool Gateway §06](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway).
+
+| Поле | Смысл |
+|---|---|
+| `endpoint` | URL / transport endpoint сервера |
+| `tool_type` | `read_only` \| `write` \| `external` \| `internal` |
+| `allowed_models` | какие модели / inference paths могут вызывать tools этого сервера |
+| `allowed_data_classes` | допустимые [D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4) в args/контексте |
+| `reviewed_at` | дата последнего security review |
+| `known_risks` | известные риски (кратко) |
+| `update_policy` | как обновлять (pin version; max age review; re-review triggers) |
+| + базовые | id, name, version, origin, owner, allowed_tools/domains/roots, risk, reviewed |
+
+```text
+Нет записи / reviewed=false / review просрочен по update_policy → deny call.
+```
+
+Ориентир процесса review: [OWASP Securing Agentic Applications Guide 1.0](../literature.md#стандарты-и-фреймворки).
+
 ## Пример (Go)
 
-### Registry MCP-серверов
+### Registry MCP-серверов (Trusted Tool Registry)
 
 ```go
 package mcpsecurity
@@ -382,30 +407,51 @@ const (
 	RiskCritical RiskLevel = "Critical"
 )
 
+type ToolType string
+
+const (
+	ToolReadOnly ToolType = "read_only"
+	ToolWrite    ToolType = "write"
+	ToolExternal ToolType = "external"
+	ToolInternal ToolType = "internal"
+)
+
 type MCPServer struct {
-	ID             string
-	Name           string
-	Version        string
-	Origin         string
-	Owner          string
-	AllowedTools   []string
-	AllowedDomains []string
-	AllowedRoots   []string
-	Risk            RiskLevel
-	Reviewed        bool
+	ID                  string
+	Name                string
+	Version             string
+	Origin              string
+	Owner               string
+	Endpoint            string
+	ToolType            ToolType
+	AllowedTools        []string
+	AllowedDomains      []string
+	AllowedRoots        []string
+	AllowedModels       []string // empty = inherit org default deny-list policy
+	AllowedDataClasses  []string // D0–D4 labels from §04
+	Risk                RiskLevel
+	Reviewed            bool
+	ReviewedAt          time.Time
+	KnownRisks          []string
+	UpdatePolicyDays    int // max age of review; 0 = no expiry check
 }
 
 type Registry struct {
 	Servers map[string]MCPServer
 }
 
-func (r Registry) Get(serverID string) (MCPServer, error) {
+func (r Registry) Get(serverID string, now time.Time) (MCPServer, error) {
 	s, ok := r.Servers[serverID]
 	if !ok {
 		return MCPServer{}, fmt.Errorf("mcp server is not allowlisted: %s", serverID)
 	}
 	if !s.Reviewed {
 		return MCPServer{}, fmt.Errorf("mcp server is not reviewed: %s", serverID)
+	}
+	if s.UpdatePolicyDays > 0 && !s.ReviewedAt.IsZero() {
+		if now.Sub(s.ReviewedAt) > time.Duration(s.UpdatePolicyDays)*24*time.Hour {
+			return MCPServer{}, fmt.Errorf("mcp server review expired: %s", serverID)
+		}
 	}
 	return s, nil
 }
@@ -442,7 +488,7 @@ type Policy struct {
 }
 
 func (p Policy) Allow(call MCPToolCall) (MCPServer, error) {
-	server, err := p.Registry.Get(call.ServerID)
+	server, err := p.Registry.Get(call.ServerID, call.Time)
 	if err != nil {
 		return MCPServer{}, err
 	}
@@ -616,8 +662,9 @@ func isLoopbackOrPrivateHost(host string) bool {
 
 ## MCP Security Checklist
 
-- [ ] MCP servers подключаются только из allowlist.
-- [ ] У каждого MCP server есть owner и review status.
+- [ ] MCP servers подключаются только из [Trusted Tool Registry](#trusted-tool-registry).
+- [ ] У каждой записи: endpoint, tool_type, allowed_models, allowed_data_classes, reviewed_at, known_risks, update_policy (+ owner/risk).
+- [ ] Нет записи / `reviewed=false` / просрочен review → deny call.
 - [ ] Tool discovery не даёт автоматического доступа к tools.
 - [ ] Tool metadata не считается security policy.
 - [ ] Все tool calls проходят schema validation.
@@ -659,7 +706,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 
 ## Литература
 
-- [Список литературы](../literature.md#mcp)
+- [Список литературы](../literature.md#mcp) · [Стандарты](../literature.md#стандарты-и-фреймворки) — OWASP Securing Agentic Applications Guide 1.0
 - [Invariant Labs — GitHub MCP Exploited](https://invariantlabs.ai/blog/mcp-github-vulnerability)
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
@@ -672,7 +719,8 @@ func isLoopbackOrPrivateHost(host string) bool {
 ## См. также
 
 - [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
-- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
+- [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
+- [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
