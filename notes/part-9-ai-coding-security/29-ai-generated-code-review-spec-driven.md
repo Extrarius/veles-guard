@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-08
-изменения: "PR/issue как недоверенный вход (#pr-issue-untrusted-input): рамка, pre-scan, Go helpers."
+изменения: "PR/issue untrusted (#pr-issue-untrusted-input); agent-generated PR/issue → §18 artifact poisoning."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -420,6 +420,7 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 - [ ] Security-sensitive diff требует owner review.
 - [ ] Тело PR/issue для Security Review Agent — [untrusted data в явной рамке](#pr-issue-untrusted-input), не инструкции.
 - [ ] Pre-scan PR/issue text до действий review-агента; framing — первый барьер, не последний (§28 / §31 / §13 / §02).
+- [ ] Agent-generated PR / issue проходит те же untrusted checks, что human-authored ([§27](27-repository-instructions-attack-surface.md); межагентный канал — [§18](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
 
 ## Литература
 
@@ -444,6 +445,7 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
