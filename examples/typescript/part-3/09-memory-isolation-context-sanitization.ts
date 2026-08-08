@@ -98,6 +98,139 @@ function buildPrompt(
   return parts.join("");
 }
 
+// --- Retrieval rails (before LLM inject) ---
+
+interface RetrievedChunk {
+  id: string;
+  source: string;
+  text: string;
+  score: number;
+}
+
+interface RetrievalPolicy {
+  allowedSources: string[];
+  maxK: number;
+  minScore: number;
+}
+
+class NoSafeChunksError extends Error {
+  constructor(message = "no safe retrieved chunks after retrieval rails") {
+    super(message);
+    this.name = "NoSafeChunksError";
+  }
+}
+
+function applyRetrievalRails(
+  chunks: RetrievedChunk[],
+  policy: RetrievalPolicy,
+  check?: (chunk: RetrievedChunk) => void,
+): RetrievedChunk[] {
+  if (policy.maxK <= 0) {
+    throw new Error("maxK must be > 0");
+  }
+
+  const allowed = new Set(policy.allowedSources);
+  const out: RetrievedChunk[] = [];
+
+  for (const chunk of chunks) {
+    if (chunk.score < policy.minScore) {
+      continue;
+    }
+    if (allowed.size > 0 && !allowed.has(chunk.source)) {
+      continue;
+    }
+    if (check) {
+      try {
+        check(chunk);
+      } catch {
+        continue; // drop / quarantine
+      }
+    }
+    out.push(chunk);
+  }
+
+  if (out.length === 0) {
+    throw new NoSafeChunksError();
+  }
+
+  out.sort((a, b) => b.score - a.score);
+  return out.slice(0, policy.maxK);
+}
+
+// --- Resource labels / access-aware RAG (§09 #resource-ai-labels) ---
+
+enum AIDataClass {
+  D0Public = "d0_public",
+  D1Internal = "d1_internal",
+  D2ConfidentialNDA = "d2_confidential_nda",
+  D3Regulated = "d3_regulated",
+  D4Secrets = "d4_secrets",
+}
+
+enum InferenceRoute {
+  Internal = "internal",
+  External = "external",
+  Specialized = "specialized",
+  Reject = "reject",
+}
+
+interface ResourceMeta {
+  id: string;
+  owner: string;
+  aiAllowed: boolean;
+  externalAIAllowed: boolean;
+  containsPII: boolean;
+  containsSecrets: boolean;
+  dataClass: AIDataClass;
+  cacheAllowed: boolean;
+  allowedFields: string[];
+}
+
+function canRetrieveForUser(
+  meta: ResourceMeta,
+  userId: string,
+  grantedOwners?: Set<string>,
+): boolean {
+  if (!meta.aiAllowed || meta.containsSecrets || meta.dataClass === AIDataClass.D4Secrets) {
+    return false;
+  }
+  if (meta.owner === userId) {
+    return true;
+  }
+  return Boolean(grantedOwners?.has(meta.owner));
+}
+
+function canSendToModel(meta: ResourceMeta, route: InferenceRoute): boolean {
+  if (!meta.aiAllowed || meta.dataClass === AIDataClass.D4Secrets || meta.containsSecrets) {
+    return false;
+  }
+  if (route === InferenceRoute.External && !meta.externalAIAllowed) {
+    return false;
+  }
+  if (
+    route === InferenceRoute.External &&
+    (meta.dataClass === AIDataClass.D2ConfidentialNDA ||
+      meta.dataClass === AIDataClass.D3Regulated)
+  ) {
+    return false;
+  }
+  return route !== InferenceRoute.Reject;
+}
+
+/** Allowlist fields only — no full-attachment passthrough. */
+function minimizeForContext(
+  meta: ResourceMeta,
+  fields: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of meta.allowedFields) {
+    if (k in fields) {
+      out[k] = fields[k];
+    }
+  }
+  return out;
+}
+
 export {
   TrustLevel,
   MemoryScope,
@@ -105,6 +238,13 @@ export {
   buildPrompt,
   containsSecret,
   looksLikePromptInjection,
+  applyRetrievalRails,
+  NoSafeChunksError,
+  AIDataClass,
+  InferenceRoute,
+  canRetrieveForUser,
+  canSendToModel,
+  minimizeForContext,
 };
 
-export type { MemoryRecord, ContextBlock };
+export type { MemoryRecord, ContextBlock, RetrievedChunk, RetrievalPolicy, ResourceMeta };
