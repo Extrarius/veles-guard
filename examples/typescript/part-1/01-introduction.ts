@@ -11,10 +11,13 @@ interface Step {
   toolCall?: ToolCall;
 }
 
+/** В продукте — AI Gateway (inference proxy), не прямой SDK провайдера. */
 interface LLMClient {
   plan(task: string): Step;
   summarize(task: string, observation: string): string;
 }
+
+const MUST_USE_INFERENCE_GATEWAY = true;
 
 interface Tool {
   call(args: Record<string, unknown>): string;

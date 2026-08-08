@@ -20,9 +20,14 @@ class Step:
 
 
 class LLMClient(Protocol):
+    """В продукте — AI Gateway (inference proxy), не прямой SDK провайдера."""
+
     def plan(self, task: str) -> Step: ...
 
     def summarize(self, task: str, observation: str) -> str: ...
+
+
+MUST_USE_INFERENCE_GATEWAY = True
 
 
 class Tool(Protocol):

@@ -7,6 +7,39 @@ enum EntityType {
   Secret = "SECRET",
 }
 
+/** Канон «что можно отдать модели» (§04 #ai-data-classes-d0-d4). */
+enum AIDataClass {
+  D0Public = "d0_public",
+  D1Internal = "d1_internal",
+  D2ConfidentialNDA = "d2_confidential_nda",
+  D3Regulated = "d3_regulated",
+  D4Secrets = "d4_secrets",
+}
+
+enum InferenceRoute {
+  Internal = "internal",
+  External = "external",
+  Specialized = "specialized",
+  Reject = "reject",
+}
+
+function allowedInference(dc: AIDataClass): InferenceRoute {
+  if (dc === AIDataClass.D4Secrets) {
+    throw new Error("D4 secrets must never reach a model");
+  }
+  if (
+    dc === AIDataClass.D3Regulated ||
+    dc === AIDataClass.D2ConfidentialNDA ||
+    dc === AIDataClass.D1Internal
+  ) {
+    return InferenceRoute.Internal;
+  }
+  if (dc === AIDataClass.D0Public) {
+    return InferenceRoute.External;
+  }
+  throw new Error("unknown AI data class");
+}
+
 interface Entity {
   type: EntityType;
   start: number;

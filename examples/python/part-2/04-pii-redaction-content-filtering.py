@@ -15,6 +15,33 @@ class EntityType(str, Enum):
     SECRET = "SECRET"
 
 
+class AIDataClass(str, Enum):
+    """Канон «что можно отдать модели» (§04 #ai-data-classes-d0-d4)."""
+
+    D0_PUBLIC = "d0_public"
+    D1_INTERNAL = "d1_internal"
+    D2_CONFIDENTIAL_NDA = "d2_confidential_nda"
+    D3_REGULATED = "d3_regulated"
+    D4_SECRETS = "d4_secrets"
+
+
+class InferenceRoute(str, Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+    SPECIALIZED = "specialized"
+    REJECT = "reject"
+
+
+def allowed_inference(dc: AIDataClass) -> InferenceRoute:
+    if dc == AIDataClass.D4_SECRETS:
+        raise ValueError("D4 secrets must never reach a model")
+    if dc in (AIDataClass.D3_REGULATED, AIDataClass.D2_CONFIDENTIAL_NDA, AIDataClass.D1_INTERNAL):
+        return InferenceRoute.INTERNAL
+    if dc == AIDataClass.D0_PUBLIC:
+        return InferenceRoute.EXTERNAL
+    raise ValueError("unknown AI data class")
+
+
 @dataclass
 class Entity:
     type: EntityType
