@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, sandbox, permissions, approval, shell]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлены permission modes, sandbox/approval controls и Go snippets."
+обновлено: 2026-08-07
+изменения: "Правило cwd: safe command вне workspace опасна; Action.Cwd + validatePath на RunShell; якорь #cwd-safety-rule."
 ---
 
 # 28 — Permissions, sandbox и approval для coding agents
@@ -106,6 +106,7 @@ flowchart LR
 | Shell abuse | агент запускает `curl | sh` | Critical |
 | Network exfiltration | агент отправляет secrets наружу | Critical |
 | Workspace escape | агент пишет вне рабочей директории | High |
+| Safe cmd, unsafe cwd | allowlisted `rm`/`git`/`npm` с cwd = `$HOME` / `/` / соседний репо | High |
 | Approval fatigue | разработчик подтверждает всё подряд | Medium/High |
 | Dependency install без review | агент ставит вредный пакет | High |
 | CI workflow edit без review | агент меняет pipeline и secrets access | Critical |
@@ -119,13 +120,24 @@ flowchart LR
 | Read source file | Low | log optionally |
 | Edit source file | Medium | workspace-write |
 | Run unit tests | Medium | approval optional |
-| Run shell command | High | approval + sandbox |
+| Run shell command | High | approval + sandbox + [cwd in workspace](#cwd-safety-rule) |
 | Install dependency | High | approval + dependency review |
 | Access network | High | approval + allowlist |
 | Change CI workflow | Critical | mandatory human review |
 | Read `.env` | Critical | block or explicit approval |
 | Commit / push branch | Medium/High | review gate |
 | Merge / deploy | Critical | agent must not do directly |
+
+<a id="cwd-safety-rule"></a>
+
+### Правило рабочей директории (cwd)
+
+```text
+Безопасная команда, выполненная вне рабочей директории, тоже опасна.
+Allowlist binary ≠ разрешение запускать её с произвольным cwd / path.
+```
+
+Allowlisted `rm`, `git`, `npm` с `cwd = $HOME` / `/` / соседний репозиторий — уже не «безопасный тест в workspace»: меняют чужие файлы, читают `.env` через относительные пути, трогают соседние репо. Для `RunShell` требовать `Cwd` внутри `WorkspaceRoot` (или явный deny); та же семантика, что у `validatePath` для read/write. Уровень изоляции FS/сети — [§08 jailing](../part-3-processing-security/08-sandboxing.md#sandbox-jailing).
 
 ## Go snippet: permission model
 
@@ -164,6 +176,7 @@ type Action struct {
 	Type    ActionType
 	Path    string
 	Command string
+	Cwd     string // обязателен для RunShell; должен лежать в WorkspaceRoot
 	URL     string
 }
 
@@ -189,6 +202,12 @@ func (p Policy) Allow(action Action) error {
 	case RunShell:
 		if p.Mode == ReadOnly {
 			return errors.New("shell denied in read-only mode")
+		}
+		if action.Cwd == "" {
+			return errors.New("shell cwd is required")
+		}
+		if err := p.validatePath(action.Cwd); err != nil {
+			return err
 		}
 		return requiresApproval("shell command requires approval")
 	case NetworkCall:
@@ -312,6 +331,7 @@ approval timeout → deny
 - [ ] Dependency install требует approval.
 - [ ] CI/CD changes требуют mandatory review.
 - [ ] Workspace escape блокируется.
+- [ ] Shell `Cwd` обязателен и проверяется на границы workspace ([cwd safety](#cwd-safety-rule)); allowlist binary ≠ произвольный cwd.
 - [ ] `.env` и secrets не читаются агентом.
 - [ ] Approval UI показывает команду, путь, URL и risk.
 - [ ] Approval timeout блокирует действие.
@@ -330,6 +350,6 @@ approval timeout → deny
 ## См. также
 
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
-- [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
+- [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#sandbox-jailing) — jailing (min env, RW cwd, RO FS)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
