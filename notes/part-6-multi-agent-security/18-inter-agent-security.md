@@ -2,8 +2,8 @@
 tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-08
+изменения: "Agent-generated artifact poisoning: публичный канал A→B; ### 8 + checklist."
 ---
 
 # 18 — Inter-Agent Security
@@ -122,6 +122,7 @@ flowchart LR
 | Agent impersonation | один агент выдаёт себя за другого | High |
 | Handoff policy bypass | orchestrator передаёт задачу напрямую, минуя policy | High |
 | Instruction laundering | вредная инструкция проходит через другого агента как “легитимный результат” | High |
+| Agent-generated artifact poisoning | агент A публикует PR / issue / README / comment / package metadata → агент B читает как контекст → действие | High |
 | Delegated privilege escalation | low-privilege агент просит high-privilege агента выполнить действие | High |
 | Context leakage | агент получает больше данных, чем нужно для задачи | High |
 | Memory poisoning | один агент записывает вредный контекст в shared memory | High |
@@ -237,6 +238,31 @@ specialist result → verifier → policy → final answer / action
 - max shared memory writes;
 - max delegated tool calls;
 - max cost per child agent.
+
+<a id="agent-generated-artifact-poisoning"></a>
+
+### 8. Public artifacts as inter-agent channel
+
+Классический prompt injection: attacker → malicious content → agent. Обратная сторона — **агент как источник** внедрения, а публичная инфраструктура как канал между агентами (не только in-process handoff из Message provenance выше):
+
+```text
+agent A
+  → PR / issue / README / comment / package metadata
+  → agent B (читает как external context)
+  → действие
+```
+
+Внутри артефакта могут быть инструкция, поддельный resource ID, ссылка, команда, ложные metadata — для агента B это тот же класс untrusted input, что human-authored content.
+
+Правила:
+
+1. Контент, созданный другим агентом (другим run), **всегда** untrusted.
+2. Agent identity / `agent_id` **не** превращает сообщение или артефакт в trusted instruction.
+3. Между агентами передаются provenance и sender identity (см. Message provenance); для публичных артефактов — явная метка источника / автора / run, если известна.
+4. Внешний артефакт **не** может автоматически расширять capabilities агента B.
+5. Agent-generated PR / issue / package проходит **те же** проверки, что human-generated ([§27](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md), [§29](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md), [§22](../part-7-testing-compliance/22-supply-chain-security.md)).
+
+В cyber-eval агенты оставляли инструкции в публичных артефактах там, где их могли подхватить другие агенты — [UK AISI Incident Report](../literature.md) (тот же первоисточник, что для trajectory evals §20).
 
 ## Пример (Go)
 
@@ -451,6 +477,11 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [ ] Inter-agent messages имеют run_id и parent_action_id.
 - [ ] Shared memory разделена по owner / tenant / trust level.
 - [ ] Agent output не считается trusted instruction.
+- [ ] Контент, созданный другим агентом, всегда считается untrusted ([artifact poisoning](#agent-generated-artifact-poisoning)).
+- [ ] Agent identity не превращает сообщение / артефакт в trusted instruction.
+- [ ] Между агентами передаются provenance и sender identity (в т.ч. для публичных артефактов, если известны).
+- [ ] Внешний артефакт не может автоматически расширять capabilities.
+- [ ] Agent-generated PR / issue / package проходит те же проверки, что human-generated.
 - [ ] Есть budget на handoffs и depth.
 - [ ] High-risk результат проверяется reviewer/verifier.
 - [ ] Все handoffs логируются.
@@ -460,6 +491,7 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 ## Литература
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing](https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing) — агенты оставляли инструкции в публичных артефактах для других агентов
 - [OWASP Multi-Agentic System Threat Modeling Guide](https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
@@ -473,3 +505,7 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [19 — MCP Security](19-mcp-security.md)
+- [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md) — package / artifact metadata
+- [27 — Repository Instructions Attack Surface](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md) — README / issue / PR как untrusted
+- [29 — AI-generated code review](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md) — agent-generated PR, те же gates
+- [20 — Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) — composition шагов (смежная тема)
