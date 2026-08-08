@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-08-08
-изменения: "Теневой ИИ (Shadow AI) / эталонная платформа — формат русский (English)."
+изменения: "Роли и суп токенов (#token-soup) — формат русский (English)."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -107,6 +107,8 @@ INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXEC
 | Инструменты / MCP (Tools / MCP) | что вызывает и с какими правами? | [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§19](../part-6-multi-agent-security/19-mcp-security.md) |
 | Исполнение / инфраструктура (Execution / Infra) | где действует (оболочка / CI / облако — shell, CI, cloud)? | [§08](../part-3-processing-security/08-sandboxing.md), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) |
 
+На слое вход / контекст (Input / Context) модель часто читает **стиль** текста как роль — метки канала не граница доверия; см. [роли и «суп токенов» (roles / token soup)](#token-soup).
+
 Приоритет границ по **радиусу поражения (blast radius)** и правилу проектирования (design rule) **смертельная тройка (lethal trifecta)** — [§02](../part-1-architecture-threats/02-threat-model.md); исходящий трафик (egress) — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md).
 
 ### Учебный жизненный цикл (lifecycle) контролей (не отдельный стандарт)
@@ -173,6 +175,19 @@ INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXEC
 | Код отделён от данных (в идеале) | Инструкции и данные — одни и те же токены |
 | Можно читать и ревьюить исходники контроля | Поведение частично в весах / контексте |
 | SAST / DAST / WAF закрывают известные классы | Нужны дополнительные слои: политика (policy), авторизация инструментов (tool authz), проверки выхода (output checks), человек в контуре (HITL) |
+
+<a id="token-soup"></a>
+
+### Роли и «суп токенов» (roles / token soup)
+
+Для модели контекст — **один поток** текста. Метки `system` / `user` / `tool` / `think` (и аналоги) — **теги (tags)**, а не граница доверия (trust boundary). Стиль недоверенного текста может перебить настоящий тег роли.
+
+```text
+Путаница ролей (role confusion) / подделка цепочки рассуждений (CoT Forgery):
+тег ≠ доверие. Политика на стоке (policy on sink), не «модель поняла роль».
+```
+
+Канон угрозы и stop-patterns — [§03 путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion). На курсе: оценка (assessment) — [§34](34-course-agent-assessment-defense.md#guardrail-assessment); набор тестов (suite) — [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12). Готовые полезные нагрузки (payloads) не публикуем.
 
 Аналогия с SQL-внедрением (SQL injection) полезна как «смешение инструкций и данных», но **не** как «уже решённая задача»: у естественного языка нет формальной грамматики для параметризованных запросов (parameterized queries). Поэтому полагаться только на «умный системный промпт (system prompt)» нельзя — нужны внешние контроли ([§03](../part-2-input-security/03-prompt-injection-detection.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)).
 
@@ -354,6 +369,7 @@ func PlatformHops() []string {
 - [ ] На сценарии assistant+RAG зафиксированы harm, residual risk и risk owner.
 - [ ] Модель считается недоверенной; названы внешние ограничения (guardrails), не только выравнивание (alignment).
 - [ ] Понятно [безопасность и полезность (Safety vs Utility)](#safety-vs-utility): безопасность сужает автономию (silent actions), не «вырезает» возможности (capabilities) модели.
+- [ ] Понятны [роли и «суп токенов» (roles / token soup)](#token-soup): теги ролей ≠ граница доверия; канон [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion).
 - [ ] Выбран слой в навигаторе и открыты соответствующие §§ частей I–IX.
 - [ ] Следующий шаг — [§34 оценка (Assessment)](34-course-agent-assessment-defense.md) (ограничения + [класс риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)), затем практикум §35–38.
 
@@ -371,6 +387,7 @@ func PlatformHops() []string {
 
 - [01 — Введение](../part-1-architecture-threats/01-introduction.md)
 - [02 — Threat Model](../part-1-architecture-threats/02-threat-model.md)
+- [03 — Путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
 - [13 — Шлюз к модели (AI Gateway) / вывод (inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)

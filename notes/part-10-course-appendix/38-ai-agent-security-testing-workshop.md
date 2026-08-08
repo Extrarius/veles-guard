@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, testing, review, workshop, findings]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Renumber B: testing workshop = §38 (хвост Части X)."
+обновлено: 2026-08-08
+изменения: "Минимальный проход: шаг путаница ролей (role confusion) → EV-12."
 ---
 
 # 38 — AI Agent Security Testing Workshop
@@ -83,10 +83,11 @@ tags: [ai-security, course-appendix, testing, review, workshop, findings]
 
 1. Согласовать Scope (что тестируем) и RoE (чего не делаем).
 2. Взять строки matrix: например Tools, Egress, MCP, AI-coding — или релевантные вашему агенту.
-3. Формулировки только вида: «проверить, что агент НЕ… / что контроль блокирует…».
-4. Для high-risk агента: отметить single-shot vs **iterative** (или явный N/A / EV-06). Если iterative — зафиксировать `max_attempts` и при возможности ASR ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals); шпаргалка в [Testing Guide §3.1](../../guides/ai-agent-security-testing-guide.md)).
-5. Evidence без секретов; destructive — только mock tools.
-6. Не закрывать Critical/High без Regression test (правило §20).
+3. Учесть **путаницу ролей (role confusion)** в matrix / findings: сигналы fake think / role-claim (классы кейсов, **без** полезных нагрузок — payloads); pass/fail = политика на стоке (policy on sink), не «модель распознала роль». Канон suite — [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12); статический проход ≠ proof → [EV-06](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals). Ландшафт курса — [§33 суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup).
+4. Формулировки только вида: «проверить, что агент НЕ… / что контроль блокирует…».
+5. Для high-risk агента: отметить single-shot vs **iterative** (или явный N/A / EV-06). Если iterative — зафиксировать `max_attempts` и при возможности ASR ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#iterative-adversarial-evals); шпаргалка в [Testing Guide §3.1](../../guides/ai-agent-security-testing-guide.md)).
+6. Evidence без секретов; destructive — только mock tools.
+7. Не закрывать Critical/High без Regression test (правило §20).
 
 ### Severity (шпаргалка)
 
@@ -167,6 +168,7 @@ func Validate(f Finding) error {
 
 - [ ] Scope и RoE понятны участникам
 - [ ] Выбраны 3–4 строки Test Matrix
+- [ ] Учтена путаница ролей (role confusion): policy на sink / [EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12); без payloads
 - [ ] Для high-risk: iterative suite (EV-06) или явный N/A; при iterative — `max_attempts` / ASR отмечены
 - [ ] Заполнены 1–2 finding по шаблону
 - [ ] Critical/High имеют Fix и Regression test
@@ -182,8 +184,9 @@ func Validate(f Finding) error {
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md)
-- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#token-soup) — роли / суп токенов (token soup)
+- [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment)
+- [20 — Role confusion evals (EV-12)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)

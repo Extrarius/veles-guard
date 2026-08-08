@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-08-08
-изменения: "Оценка по классу риска R0–R3 (#agent-risk-assessment) — формат русский (English)."
+изменения: "Assessment: self-approval / forged reasoning; мини-сценарий #5 — русский (English)."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -71,7 +71,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 | Область | Что оценивать (безопасно) | Канон |
 |---|---|---|
-| **Вход (Input)** | прямое / косвенное внедрение инструкций (direct / indirect prompt injection); обход инструкций через роли | [§03](../part-2-input-security/03-prompt-injection-detection.md) |
+| **Вход (Input)** | прямое / косвенное внедрение инструкций (direct / indirect prompt injection); обход инструкций через роли / [путаница ролей (role confusion)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) | [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) |
 | **Выход (Output)** | Небезопасный вывод (разметка, скрипты, утечки) до отрисовки (render) / доверия интерфейсу (UI) | [§11](../part-4-output-security/11-output-validation-fact-checking.md), [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) |
 | **Знания / RAG (Knowledge / RAG)** | Отравление документов в базе; извлечение (retrieval) вне списков контроля доступа (ACL); утечка (exfil) через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
 | **Инструменты / MCP (Tools / MCP)** | Вредоносный / отравленный инструмент (tool); **подставной исполнитель (confused deputy)** — агент действует с чужими правами по подсказке | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
@@ -85,6 +85,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 2. **Небезопасный выход (Insecure output)** — модель возвращает разметку, опасную при отрисовке (render) в интерфейсе (UI) → очистка (sanitize) / политика безопасности контента (CSP) / не доверять сырому HTML (raw HTML) (§11).
 3. **Подставной исполнитель (Confused deputy)** — сообщение (например, email) маскируется под «системное» и толкает агента вызвать привилегированный инструмент (tool) от имени пользователя → минимальные привилегии (least privilege) + подтверждение (confirmation) (§19, §06, §14).
 4. **Вредоносный MCP (Malicious MCP)** — описание / схема (description / schema) скрывает побочный эффект → проверка (review) до установки (install) ([§36](36-mcp-skill-review-workshop.md), §19).
+5. **Изготовленное подтверждение / подделанное рассуждение (Manufactured approval / forged reasoning)** — в контексте появляется текст «как уже одобрил человек» или reasoning-стиль → подтверждение (approval) только из внеполосного шлюза (out-of-band gate) + запись решения ([§14](../part-5-control-observability/14-human-in-the-loop.md#manufactured-approval)); подделанное рассуждение (forged reasoning) ≠ источник истины (source of truth) ([§15](../part-5-control-observability/15-observability-tracing.md#forged-cot)). **Без полезных нагрузок (payloads).**
 
 ## Ограничения (Guardrails): жёсткая блокировка (hard block) vs мягкий отказ (soft response)
 
@@ -112,6 +113,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 3. Измерены ли ложные срабатывания / пропуски (FP / FN) (и задержка / стоимость (latency / cost), если ограничение дорогое)?
 4. Пороги **зафиксированы (frozen)** к конкретному прогону набора (suite run) (не «подкрутили в проде»)?
 5. Есть ли журнал изменений (changelog) при смене шаблона / модели / порога (pattern / model / threshold)?
+6. Может ли агент **изготовить себе подтверждение (approval)** или принять **подделанное рассуждение (forged reasoning)** за внутреннюю трассу / человека в контуре (HITL)? Канон — [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion), [§14](../part-5-control-observability/14-human-in-the-loop.md#manufactured-approval), [§15](../part-5-control-observability/15-observability-tracing.md#forged-cot); набор тестов (suite) — [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12).
 
 | Класс кейса (кратко) | Зачем в оценке (assessment) |
 |---|---|
@@ -219,6 +221,7 @@ func GuardrailAssessmentHints() []string {
 		"измерены ложные срабатывания / пропуски (FP / FN)?",
 		"пороги зафиксированы (frozen) к прогону набора (suite run)?",
 		"журнал изменений (changelog) при смене rail / threshold?",
+		"агент может изготовить себе подтверждение (approval) / принять подделанное рассуждение (forged reasoning) за HITL? (§03/§14/§15; EV-12)",
 	}
 }
 
@@ -251,6 +254,7 @@ const (
 - [ ] Есть ссылка на канон I–IX по каждой High-области.
 - [ ] Различаете жёсткую блокировку (hard block) и мягкий отказ (soft response).
 - [ ] [Оценка ограничений (Guardrail assessment)](#guardrail-assessment): есть ответы по набору тестов (suite) / FP·FN / порогам (thresholds) / журналу изменений (changelog).
+- [ ] Учтён вопрос про изготовленное подтверждение (manufactured approval) / подделанное рассуждение (forged reasoning); канон §03 / §14 / §15; suite [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12).
 - [ ] Мостик к канону [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) понятен (здесь не дублируем подсчёт (scoring)).
 - [ ] [Оценка по классу риска R0–R3 (Agent risk assessment)](#agent-risk-assessment): класс, паспорт / владелец (passport / owner), шлюз / реестр (gateway / registry) по классу; не подменяет оценку защитных ограничений (Guardrail assessment).
 - [ ] LLM-as-judge не единственная защита (EV-03).
@@ -271,13 +275,15 @@ const (
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class) — канон матрицы / производственный шлюз (production gate)
 - [Шаблоны — паспорт агента (agent passport)](../../templates/agent-passport.md)
-- [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10)
+- [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10); [путаница ролей (EV-12)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
-- [03 — Prompt Injection](../part-2-input-security/03-prompt-injection-detection.md)
+- [03 — Путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
+- [14 — Изготовленное подтверждение (Manufactured approval)](../part-5-control-observability/14-human-in-the-loop.md#manufactured-approval)
+- [15 — Подделанный CoT (Forged CoT)](../part-5-control-observability/15-observability-tracing.md#forged-cot)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
