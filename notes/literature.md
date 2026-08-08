@@ -54,6 +54,7 @@ tags: [ai-security, конспект, литература]
 - **Zheng et al. — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena** — <https://arxiv.org/abs/2306.05685> — LLM-as-a-Judge как метод оценки ответов; в RT — доп. слой (не единственный gate; EV-03).
 - **OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness** — <https://openai.com/index/unlocking-self-improvement-gpt-red/> — iterative automated red-teaming pattern; канон процесса в §20 Iterative Adversarial Evals.
 - **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — containment escape / evaluation integrity из eval harness.
+- **UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing** — <https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing> — out-of-scope agent trajectory (identity / human contact / artifacts) при permissive cyber eval; опора §20 `EVAL-TRAJECTORY-01` / EV-13.
 - **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
