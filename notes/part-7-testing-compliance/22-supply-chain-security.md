@@ -2,8 +2,8 @@
 tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-08-04
-изменения: "Model provenance / backdoors в весах; pin digest; дистилляция и semantic triggers; lit ×6 arXiv."
+обновлено: 2026-08-08
+изменения: "Связка: agent-published package/README как канал → §18 artifact poisoning."
 ---
 
 # 22 — Supply Chain Security
@@ -142,6 +142,7 @@ flowchart LR
 | Secret leakage in build | token попал в logs или container layer | High |
 | Unpinned image | build подтянул новый base image без проверки | Medium |
 | No provenance | неизвестно, откуда взялся artifact | Medium |
+| Agent-published package / README as PI channel | агент публикует package metadata / README / comment → другой агент читает как trusted context | High |
 
 ## Подходы и контрмеры
 
@@ -428,6 +429,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Runtime проверяет hashes/versions для critical artifacts.
 - [ ] Есть rollback.
 - [ ] Instruction files (`AGENTS.md`, `.cursor/rules`, `CLAUDE.md`) версионируются и ревьюятся.
+- [ ] Agent-published package metadata / README / comments — untrusted instruction channel; те же gates, что для human ([§18 artifact poisoning](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
 - [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
 - [ ] Защита от rug pull: skills/MCP/модели pinned, не `latest`.
 - [ ] Если используется внешняя лаборатория оценки — пройден [checklist Evaluation partner](#7-evaluation-partner--внешняя-лаборатория) (или явный N/A).
@@ -470,6 +472,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [08 — Sandboxing (pre-eval / signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning) — agent-published metadata / README как PI-канал
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md) (EV-11, Target boundary)
 - [21 — Compliance и Standards](21-compliance-standards.md)
