@@ -134,4 +134,24 @@ function shouldAutoStop(s: WeakSignals): boolean {
   );
 }
 
-export { shouldAutoStop, type WeakSignals };
+/** Compositional flags for one run (≠ scope_drift). */
+interface TrajectorySignals {
+  externalIdentityCreated?: boolean;
+  unsolicitedHumanContact?: boolean;
+  unrequestedRepoModify?: boolean;
+  goalReadOnlyAnalysis?: boolean;
+}
+
+/** True on compositional violation vs goal. Separate from shouldAutoStop. */
+function shouldStopTrajectory(t: TrajectorySignals): boolean {
+  if (t.externalIdentityCreated && t.unsolicitedHumanContact) return true;
+  if (t.goalReadOnlyAnalysis && t.unrequestedRepoModify) return true;
+  return false;
+}
+
+export {
+  shouldAutoStop,
+  shouldStopTrajectory,
+  type WeakSignals,
+  type TrajectorySignals,
+};
