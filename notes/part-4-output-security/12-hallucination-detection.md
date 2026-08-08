@@ -2,8 +2,8 @@
 tags: [ai-security, hallucination-detection, fact-checking, evals, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-07
+изменения: "Якорь: evidence RAG = chunks после retrieval rails (§09)."
 ---
 
 # 12 — Hallucination Detection
@@ -131,6 +131,8 @@ Published Answer — только supported / rewritten / reviewed утверж�
 ```text
 retrieved docs / tool observations → answer with citations → claim verification
 ```
+
+Для RAG evidence — только chunks, прошедшие [retrieval rails §09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails) (не сырой top-k из индекса). Пустой retrieve после rails → нет основания для уверенного ответа.
 
 ### 2. Claim extraction
 
