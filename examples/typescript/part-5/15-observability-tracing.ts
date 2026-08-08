@@ -29,6 +29,12 @@ interface AuditEvent {
   risk?: string;
   decision?: string;
   reason?: string;
+  /** AI Gateway / inference (§15 #inference-audit-fields) */
+  model?: string;
+  provider?: string;
+  inferenceLocation?: string; // on_prem | external | specialized
+  dataClass?: string;
+  redactionResult?: string;
   attrs?: Record<string, unknown>;
 }
 
