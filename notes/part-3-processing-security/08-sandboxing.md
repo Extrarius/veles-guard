@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Уровень jailing между process и container; якорь #sandbox-jailing; связка cwd §28."
+обновлено: 2026-08-08
+изменения: "EVAL-NETWORK-PREFLIGHT-01 + таблица классов событий; preflight = executable."
 ---
 
 # 08 — Sandboxing
@@ -128,6 +128,15 @@ flowchart LR
   Goal --> Bypass --> Net --> External --> Harm
 ```
 
+СМИ часто смешивают разные классы — разделяйте явно:
+
+| Событие | Что произошло |
+|---|---|
+| Sandbox escape | агент обошёл техническую границу sandbox |
+| Containment failure | среда позволила воздействовать за пределами стенда |
+| Scope violation | агент действует по разрешённому каналу, но против запрещённой цели |
+| Egress misconfiguration | внешний канал существовал из-за ошибочной конфигурации |
+
 <a id="pre-eval-checklist"></a>
 
 ### Pre-eval checklist (до запуска испытания)
@@ -148,6 +157,60 @@ flowchart LR
 Signed scope-файл / манифест — источник истины для разрешённых целей: совпадение имени вымышленной и реальной организации **не** даёт агенту права действовать. Eval: [`EVAL-TARGET-BOUNDARY-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01). Threat model — [§02 Target ambiguity](../part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity).
 
 Eval на пересечение границ стенда: [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01). IR first actions — [§23](../part-7-testing-compliance/23-incident-response-recovery.md). Практика RoE — [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md).
+
+<a id="eval-network-preflight-01"></a>
+
+### Executable network preflight (`EVAL-NETWORK-PREFLIGHT-01`)
+
+Paper checklist выше обязателен, но **недостаточен**: preflight должен быть **executable check**, а не только список на бумаге. При fail — агент **не стартует** (`start_agent: false`). Runtime suite границ стенда — отдельно: `EVAL-CONTAINMENT-01` в §20.
+
+```yaml
+id: EVAL-NETWORK-PREFLIGHT-01
+checks:
+  dns_public: deny
+  ipv4_public: deny
+  ipv6_public: deny
+  http_proxy: absent
+  https_proxy: absent
+  all_proxy: absent
+  cloud_metadata: deny
+  localhost_privileged_services: deny
+on_failure:
+  start_agent: false
+```
+
+Иллюстративный checker по уже собранным флагам состояния среды (не live offensive scan):
+
+```go
+package agentsec
+
+// NetworkPreflightState — результаты env/network probes до start_agent.
+// true = нарушен deny/absent (публичный DNS/IP доступен, proxy задан, …).
+type NetworkPreflightState struct {
+	DNSPublic                   bool
+	IPv4Public                  bool
+	IPv6Public                  bool
+	HTTPProxyPresent            bool
+	HTTPSProxyPresent           bool
+	AllProxyPresent             bool
+	CloudMetadataReachable      bool
+	LocalhostPrivilegedServices bool
+}
+
+// FailsNetworkPreflight — true → не стартовать агента (EVAL-NETWORK-PREFLIGHT-01).
+func FailsNetworkPreflight(s NetworkPreflightState) bool {
+	return s.DNSPublic ||
+		s.IPv4Public ||
+		s.IPv6Public ||
+		s.HTTPProxyPresent ||
+		s.HTTPSProxyPresent ||
+		s.AllProxyPresent ||
+		s.CloudMetadataReachable ||
+		s.LocalhostPrivilegedServices
+}
+```
+
+Синхрон: [Python](../../examples/python/part-3/08-sandboxing.py) · [TypeScript](../../examples/typescript/part-3/08-sandboxing.ts).
 
 ## Уровни sandbox
 
@@ -357,13 +420,15 @@ var Tools = map[string]ToolSpec{
 - [ ] Sandbox disposable: после задачи очищается.
 - [ ] Experimental frameworks и локальные привилегированные сервисы выполняются в sandbox/devbox.
 - [ ] Перед eval/red-team пройден pre-eval containment checklist (сеть, секреты, DNS/localhost, kill-switch, signed scope).
+- [ ] Есть executable [`EVAL-NETWORK-PREFLIGHT-01`](#eval-network-preflight-01): fail → `start_agent: false` (не только бумажный checklist).
 - [ ] Цели eval загружены из подписанного scope-манифеста; LLM не расширяет scope при совпадении имени.
 - [ ] Sandbox не считается isolation при открытой сети / живых credentials / уязвимой control plane.
+- [ ] Различаете Sandbox escape / Containment failure / Scope violation / Egress misconfiguration.
 
 ## Литература
 
 - [Список литературы](../literature.md#инструменты)
-- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape из eval harness
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape / misconfigured egress из eval harness
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
 - [OWASP Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
@@ -381,4 +446,4 @@ var Tools = map[string]ToolSpec{
 - [20 — Red Teaming (EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
 - [02 — Threat Model (Target ambiguity)](../part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity)
 - [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md)
-- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md)
+- [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) — RoE: preflight executable

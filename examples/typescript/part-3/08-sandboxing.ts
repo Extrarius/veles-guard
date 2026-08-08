@@ -91,6 +91,32 @@ const TOOLS: Record<string, ToolSpec> = {
   },
 };
 
-export { runSandboxedCommand, TOOLS };
+/** EVAL-NETWORK-PREFLIGHT-01: env/network flags before start_agent. */
+interface NetworkPreflightState {
+  dnsPublic?: boolean;
+  ipv4Public?: boolean;
+  ipv6Public?: boolean;
+  httpProxyPresent?: boolean;
+  httpsProxyPresent?: boolean;
+  allProxyPresent?: boolean;
+  cloudMetadataReachable?: boolean;
+  localhostPrivilegedServices?: boolean;
+}
 
-export type { CommandPolicy, SandboxPolicy, ToolSpec };
+/** True → do not start agent. */
+function failsNetworkPreflight(s: NetworkPreflightState): boolean {
+  return Boolean(
+    s.dnsPublic ||
+      s.ipv4Public ||
+      s.ipv6Public ||
+      s.httpProxyPresent ||
+      s.httpsProxyPresent ||
+      s.allProxyPresent ||
+      s.cloudMetadataReachable ||
+      s.localhostPrivilegedServices,
+  );
+}
+
+export { runSandboxedCommand, TOOLS, failsNetworkPreflight };
+
+export type { CommandPolicy, SandboxPolicy, ToolSpec, NetworkPreflightState };
