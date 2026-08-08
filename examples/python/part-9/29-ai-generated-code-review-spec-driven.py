@@ -77,3 +77,45 @@ def can_merge(pr: PullRequest) -> bool:
     if requires_security_review(pr) and not pr.security_approved:
         return False
     return True
+
+
+# --- PR/issue as untrusted input (#pr-issue-untrusted-input) ---
+
+
+@dataclass
+class PRReviewInput:
+    title: str = ""
+    body: str = ""
+    comments: str = ""
+
+
+def wrap_untrusted(label: str, text: str) -> str:
+    """Explicit data frame; content is not policy/instructions."""
+    return f'BEGIN_UNTRUSTED_DATA label="{label}"\n{text}\nEND_UNTRUSTED_DATA\n'
+
+
+def scan_pr_text(s: str) -> list[str]:
+    """Heuristic hits only — not the §03 detector pipeline."""
+    lower = s.lower()
+    hits: list[str] = []
+    for p in (
+        "ignore previous",
+        "ignore all previous",
+        "disregard previous",
+        "system prompt",
+        "you are now",
+        "do not follow",
+    ):
+        if p in lower:
+            hits.append(f"instruction_override:{p}")
+    for ch in ("\u200b", "\u200c", "\u200d", "\ufeff"):
+        if ch in s:
+            hits.append("hidden_or_format_char")
+            break
+    return hits
+
+
+def prepare_review_context(inp: PRReviewInput) -> tuple[str, list[str]]:
+    raw = "\n".join(part for part in (inp.title, inp.body, inp.comments) if part).strip()
+    hits = scan_pr_text(raw)
+    return wrap_untrusted("pr_or_issue", raw), hits

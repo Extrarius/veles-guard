@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-29
-изменения: "CurXecute / CVE-2025-54135: MCP config write → RCE; §36 review link."
+обновлено: 2026-08-08
+изменения: "Якорь #curxecute + пункт чек-листа (CVE-2025-54135)."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -138,6 +138,8 @@ flowchart LR
 Dev-машина coding agent хранит secrets, tokens, SSH keys и часто примыкает к production (VPN, cloud creds, deploy access). **AutoJack** показывает: вредная страница → browser tool → `localhost` MCP/WebSocket без auth → RCE на хосте.
 
 В AI-coding контексте это особенно опасно: агент постоянно открывает внешние страницы (docs, issues, PR diffs), а локальные MCP/skills слушают loopback. Контрмеры: auth+authz на local MCP, egress блокирует loopback/private, experimental frameworks — в sandbox/devbox. Подробнее: [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack), [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary).
+
+<a id="curxecute"></a>
 
 ### Confirmed in the wild: CurXecute (MCP config → RCE)
 
@@ -342,6 +344,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Deploy environments protected.
 - [ ] MCP servers в allowlist.
 - [ ] MCP config changes требуют review.
+- [ ] Учтён [CurXecute / CVE-2025-54135](#curxecute): запись MCP config = high-risk write (approval + re-review), не «просто текст».
 - [ ] Skills/plugins pinned.
 - [ ] Skills/scripts проходят review.
 - [ ] Есть kill-switch per MCP server / skill.

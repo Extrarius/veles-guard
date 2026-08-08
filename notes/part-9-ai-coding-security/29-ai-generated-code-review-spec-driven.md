@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-09
-изменения: "Добавлены code review, spec-driven workflow и diff risk classifier; дополнен Security Review Agent (сравнение с SAST, security boundary)."
+обновлено: 2026-08-08
+изменения: "PR/issue как недоверенный вход (#pr-issue-untrusted-input): рамка, pre-scan, Go helpers."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -154,6 +154,7 @@ flowchart LR
 | Auth bypass | агент исправил ошибку через отключение проверки прав | Critical |
 | Logging sensitive data | агент добавил debug log с PII/secrets | High |
 | Prompt injection in docs | агент добавил вредные instructions в docs | High |
+| PR/issue as injection surface | title/body/comments PR или issue толкают review-агента ([#pr-issue-untrusted-input](#pr-issue-untrusted-input)) | High |
 
 ## Go snippet: diff risk classifier
 
@@ -315,6 +316,94 @@ Security Review Agent не должен иметь право сам merge/deplo
 
 Security Review Agent — это дополнительный reviewer, а не security boundary. Он не заменяет human review, SAST, dependency/secret scanning, branch protection, required checks, sandbox, approval и least privilege.
 
+<a id="pr-issue-untrusted-input"></a>
+
+### PR/issue как недоверенный вход
+
+Title / body / comments PR и issue — **untrusted data**, не инструкции агенту. В контекст Security Review Agent подавать только в **явной рамке** (`WrapUntrusted`), не как system / policy. Канон угрозы — [§03](../part-2-input-security/03-prompt-injection-detection.md); репозиторий враждебен по умолчанию — [§27](27-repository-instructions-attack-surface.md).
+
+```text
+Pre-scan до tool/actions: команды в адрес ИИ, скрытый/невидимый текст,
+  «ignore previous» / аналоги → fail-closed или human.
+Нет магической регулярки, отделяющей data от commands —
+  framing + policy на sink, не «умный парсер текста».
+```
+
+Эвристический `ScanPRText` — **сигналы**, не замена detector / pipeline §03.
+
+**Первый барьер, не последний.** Framing + pre-scan не отменяют:
+
+- permissions / sandbox / approval — [§28](28-coding-agent-permissions-sandbox-approval.md);
+- production path / MCP / skills — [§31](31-ci-cd-mcp-skills-production-path.md);
+- egress — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md);
+- threat model — [§02](../part-1-architecture-threats/02-threat-model.md).
+
+`CanMerge` / CI gates ниже — про merge артефакта; этот блок — про **вход** review-агента в текст PR/issue.
+
+### Go snippet: PR/issue untrusted framing
+
+```go
+package codereview
+
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
+// PRReviewInput — текст PR/issue для review-агента (не instructions).
+type PRReviewInput struct {
+	Title    string
+	Body     string
+	Comments string
+}
+
+// WrapUntrusted — явная рамка данных; модель не должна исполнять содержимое как policy.
+func WrapUntrusted(label, text string) string {
+	return fmt.Sprintf(
+		"BEGIN_UNTRUSTED_DATA label=%q\n%s\nEND_UNTRUSTED_DATA\n",
+		label, text,
+	)
+}
+
+// ScanPRText — эвристические hits (не §03 pipeline). Пустой slice = no signal.
+func ScanPRText(s string) []string {
+	lower := strings.ToLower(s)
+	var hits []string
+	for _, p := range []string{
+		"ignore previous",
+		"ignore all previous",
+		"disregard previous",
+		"system prompt",
+		"you are now",
+		"do not follow",
+	} {
+		if strings.Contains(lower, p) {
+			hits = append(hits, "instruction_override:"+p)
+		}
+	}
+	// Hidden / zero-width characters — сигнал, не декодирование payload.
+	for _, r := range s {
+		if r == '\u200b' || r == '\u200c' || r == '\u200d' || r == '\ufeff' ||
+			unicode.Is(unicode.Cf, r) {
+			hits = append(hits, "hidden_or_format_char")
+			break
+		}
+	}
+	return hits
+}
+
+// PrepareReviewContext — рамка + pre-scan; при hits — caller fail-closed / human.
+func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
+	raw := strings.TrimSpace(in.Title + "\n" + in.Body + "\n" + in.Comments)
+	hits = ScanPRText(raw)
+	framed = WrapUntrusted("pr_or_issue", raw)
+	return framed, hits
+}
+```
+
+Синхрон: [Python](../../examples/python/part-9/29-ai-generated-code-review-spec-driven.py) · [TypeScript](../../examples/typescript/part-9/29-ai-generated-code-review-spec-driven.ts).
+
 ## Чек-лист
 
 - [ ] Перед coding task есть intent/spec.
@@ -329,10 +418,19 @@ Security Review Agent — это дополнительный reviewer, а не 
 - [ ] PR содержит trace/run_id agent task.
 - [ ] CI/security gates обязательны.
 - [ ] Security-sensitive diff требует owner review.
+- [ ] Тело PR/issue для Security Review Agent — [untrusted data в явной рамке](#pr-issue-untrusted-input), не инструкции.
+- [ ] Pre-scan PR/issue text до действий review-агента; framing — первый барьер, не последний (§28 / §31 / §13 / §02).
 
 ## Литература
 
-- [Список литературы](../literature.md#практические-руководства)
+- [Список литературы](../literature.md#практические-руководства) · [Академические исследования](../literature.md#академические-исследования) · [Prompt Injection](../literature.md#prompt-injection)
+- [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) — untrusted content как data
+- [Choi et al. — Agent Data Injection (ADI)](https://arxiv.org/abs/2607.05120) — trusted format ≠ trusted data
+- [Indirect Prompt Injection](https://arxiv.org/abs/2302.12173)
+- [Design Patterns for Securing LLM Agents against Prompt Injections](https://arxiv.org/html/2506.08837v2)
+- [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
+- [Invariant Labs — GitHub MCP Exploited](https://invariantlabs.ai/blog/mcp-github-vulnerability) — public issue → toxic flow
+- [Legit Security — Remote Prompt Injection in GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo) — hidden prompt в MR
 - [Cursor — Security Review](https://cursor.com/docs/security-review)
 - [GitHub Copilot cloud agent](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent)
 - [GitHub Spec Kit](https://github.com/github/spec-kit)
@@ -342,6 +440,13 @@ Security Review Agent — это дополнительный reviewer, а не 
 
 ## См. также
 
+- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
+- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
+- [27 — Repository instructions](27-repository-instructions-attack-surface.md)
+- [28 — Coding agent permissions](28-coding-agent-permissions-sandbox-approval.md)
+- [31 — CI/CD, MCP, Skills](31-ci-cd-mcp-skills-production-path.md)
+- [32 — AI Coding Security Checklist](32-ai-coding-security-checklist.md) — `AC-CR-12` / `AC-CR-13` / `AC-RT-10`

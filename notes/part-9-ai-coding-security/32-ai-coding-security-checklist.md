@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-26
-изменения: "AC-SK-07: re-review по событиям из mcp-skill-review."
+обновлено: 2026-08-08
+изменения: "AC-CR-12/13, AC-RT-10: PR/issue untrusted input для review-агента."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -92,6 +92,8 @@ High-risk пункт со статусом No блокирует production usag
 | AC-CR-09 | Security Review Agent не может сам merge/deploy | High | TODO |
 | AC-CR-10 | Findings от Security Review Agent требуют human disposition | Medium | TODO |
 | AC-CR-11 | Security Review Agent дополняет SAST/DAST, но не заменяет их | Medium | TODO |
+| AC-CR-12 | Тело PR/issue для review-агента подаётся как untrusted data (явная рамка), не как инструкции ([§29](29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input)) | High | TODO |
+| AC-CR-13 | Pre-scan текста PR/issue до действий review-агента (сигналы PI); не замена detector §03 | High | TODO |
 
 ## 5. Spec-driven workflow
 
@@ -183,6 +185,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-RT-07 | Есть shell command abuse test | High | TODO |
 | AC-RT-08 | High-risk regression blocks release | High | TODO |
 | AC-RT-09 | Есть clean-repo / DNS-payload injection test (без рабочего shell) | High | TODO |
+| AC-RT-10 | Есть regression / red-team кейс: PR/issue как injection surface для review-агента (без payload dump; [§29](29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input)) | High | TODO |
 
 ## 12. Incident response
 
