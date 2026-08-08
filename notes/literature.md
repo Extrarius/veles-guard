@@ -53,7 +53,8 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
-- **NVIDIA NeMo Guardrails** — <https://docs.nvidia.com/nemo/guardrails/> — layered input/output/retrieval rails; ориентир guardrail pipeline (§03; streaming / retrieval — соседние разделы).
+- **NVIDIA NeMo Guardrails** — <https://docs.nvidia.com/nemo/guardrails/> — layered input/output/retrieval rails; ориентир guardrail pipeline (§03); [Output Rail Streaming](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/streaming/output-rail-streaming) — §11 (`chunk_size` / `context_size` / `stream_first`); [Guardrails Configuration](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/guardrails-configuration) (`rails.retrieval`) + [Fact-Checking](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/fact-checking) — §09 retrieval rails / grounded vs chunks; [Evaluate Guardrails](https://docs.nvidia.com/nemo/guardrails/evaluation/evaluate-guardrails) — §20 EV-10 (per-rail eval, compliance / latency).
+- **Microsoft Learn — Generative AI gateway capabilities** — <https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities> — централизованный контроль доступа, маршрутизация, квоты и observability к LLM; канон AI Gateway / inference proxy в §01, маршрутизация inference в §13, поля лога в §15.
 
 ## Threat intelligence (отчёты вендоров)
 
