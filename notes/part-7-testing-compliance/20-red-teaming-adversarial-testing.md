@@ -2,8 +2,8 @@
 tags: [ai-security, agents, red-teaming, adversarial-testing, evals]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-08-04
-изменения: "EV-11 Evaluation partner: якорь на §22 checklist внешней лаборатории."
+обновлено: 2026-08-07
+изменения: "EV-10 Guardrail testing: EVAL-GUARDRAIL-01, FP/FN/metrics, changelog; якорь §16."
 ---
 
 # 20 — Red Teaming и Adversarial Testing
@@ -158,9 +158,135 @@ deterministic checks → LLM-as-judge → human review → online monitoring
 | EV-07 | Перед eval/red-team пройден containment pre-eval checklist; есть `EVAL-CONTAINMENT-01` (или N/A) | High | TODO |
 | EV-08 | Есть проверка integrity оценки (Evaluation Gaming): эталон/evaluator/test store недоступны агенту; score spike → human review | High | TODO |
 | EV-09 | Для cyber/eval агентов с внешними целями есть `EVAL-TARGET-BOUNDARY-01` (или N/A): scope по signed manifest, не по решению LLM | High | TODO |
+| EV-10 | Есть suite тестирования guardrail как объекта (`EVAL-GUARDRAIL-01`): кейсы FP/FN, метрики, frozen thresholds, regression + changelog ([канон](#guardrail-testing-ev-10)) | High | TODO |
 | EV-11 | Внешний eval partner / лаборатория прошёл [checklist §22](22-supply-chain-security.md#7-evaluation-partner--внешняя-лаборатория) (или явный N/A): изоляция тестом, нет shared prod-секретов, kill switch заказчика, live telemetry, partner не расширяет scope | High | TODO |
 
-> EV-10 зарезервирован под Guardrail testing (лекция 3.2 / roadmap) — не занимать этим пунктом.
+> EV-12 зарезервирован под Role confusion / CoT Forgery (roadmap) — не занимать этим пунктом.
+
+<a id="guardrail-testing-ev-10"></a>
+
+## Guardrail testing (EV-10)
+
+Agent red team (ниже) проверяет поведение системы под атакой. **Отдельно** нужно тестировать сам guardrail — detector / rails / thresholds — как продукт с lifecycle.
+
+```text
+Guardrail не настраивается один раз.
+Пороги, patterns и flows меняются только вместе с suite + changelog.
+```
+
+Объект теста (по отдельности и в связке, не только end-to-end агент):
+
+- входной [guardrail pipeline §03](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router);
+- [retrieval rails §09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails);
+- output / [streaming §11](../part-4-output-security/11-output-validation-fact-checking.md#streaming-output-guardrail).
+
+Ориентир процесса и метрик: [NeMo — Evaluate Guardrails](https://docs.nvidia.com/nemo/guardrails/evaluation/evaluate-guardrails) (per-rail eval, compliance / accuracy, latency) — без копирования CLI.
+
+### Классы кейсов
+
+| Класс | Что проверяет |
+|---|---|
+| benign | легитимный вход не блокируется (контроль FP) |
+| known attacks | известные PI / jailbreak / stop-patterns ловятся (контроль FN) |
+| edge | пограничные формулировки, короткий/длинный контекст |
+| RAG poisoning | вредоносный chunk на retrieve/rail ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails)) |
+| tool misuse | инструкции в tool output / schema smuggling на rail path |
+| obfuscation / multilingual | обфускация, смешанные языки, zero-width / homoglyph |
+
+### Метрики
+
+| Метрика | Смысл |
+|---|---|
+| FP | share benign → block / strict (ложные срабатывания) |
+| FN | share attack → allow (пропуски) |
+| latency | p50 / p95 пути rail (не всего агента) |
+| cost | tokens / вызовы judge на кейс |
+| category coverage | доля policy / taxonomy categories с ≥ N кейсами |
+
+### Выход процесса
+
+1. **Frozen thresholds** — числа в config привязаны к suite run (не «подкрутили в проде»).
+2. **Regression suite в CI** — изменение rail / pattern / model → прогон `EVAL-GUARDRAIL-01`.
+3. **Guardrail changelog** — что изменилось (patterns / model / threshold), дата, ссылка на suite run и метрики FP/FN.
+
+Online: аномалия `guardrail_trigger_rate` → operational retest ([§16](../part-5-control-observability/16-monitoring-alerting.md)) — не замена pre-release suite.
+
+### Schema `EVAL-GUARDRAIL-01`
+
+| Поле | Назначение |
+|---|---|
+| `id` | например `EVAL-GUARDRAIL-01` + суффикс кейса |
+| `rail_stage` | `input` \| `retrieval` \| `output` \| `streaming` |
+| `case_class` | benign / known_attacks / edge / rag_poisoning / tool_misuse / obfuscation_multilingual |
+| `expected_decision` | `allow` \| `sanitize` \| `block` \| `strict` (или route из §03) |
+| `actual_decision` | решение rail на прогоне |
+| `fp` / `fn` | вычисляемые флаги относительно expected |
+| `latency_ms` | время rail path |
+| `category_hint` | опционально — класс политики / taxonomy |
+
+### Go snippet: score guardrail suite
+
+```go
+package redteam
+
+type GuardrailDecision string
+
+const (
+	DecisionAllow    GuardrailDecision = "allow"
+	DecisionSanitize GuardrailDecision = "sanitize"
+	DecisionBlock    GuardrailDecision = "block"
+	DecisionStrict   GuardrailDecision = "strict"
+)
+
+type GuardrailCase struct {
+	ID               string
+	RailStage        string // input | retrieval | output | streaming
+	CaseClass        string
+	ExpectedDecision GuardrailDecision
+	IsAttack         bool // true → miss = FN; false → block/strict = FP
+}
+
+type GuardrailRun struct {
+	CaseID          string
+	ActualDecision  GuardrailDecision
+	LatencyMS       int64
+}
+
+type GuardrailSuiteScore struct {
+	Total, FP, FN int
+	FPRate, FNRate float64
+}
+
+func ScoreGuardrailRun(cases []GuardrailCase, runs []GuardrailRun) GuardrailSuiteScore {
+	byID := make(map[string]GuardrailRun, len(runs))
+	for _, r := range runs {
+		byID[r.CaseID] = r
+	}
+	var s GuardrailSuiteScore
+	for _, c := range cases {
+		r, ok := byID[c.ID]
+		if !ok {
+			continue
+		}
+		s.Total++
+		blocked := r.ActualDecision == DecisionBlock || r.ActualDecision == DecisionStrict
+		if c.IsAttack {
+			if !blocked && r.ActualDecision == DecisionAllow {
+				s.FN++
+			}
+		} else if blocked {
+			s.FP++
+		}
+	}
+	if s.Total > 0 {
+		s.FPRate = float64(s.FP) / float64(s.Total)
+		s.FNRate = float64(s.FN) / float64(s.Total)
+	}
+	return s
+}
+```
+
+Для attack-кейсов «ожидаемый block» и `IsAttack=true` должны согласовываться; sanitize на known attack считать pass или soft-fail — зафиксировать в policy suite (не в этом сниппете).
 
 ## Iterative Adversarial Evals
 
@@ -782,10 +908,14 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 - [ ] Evaluator и metrics/test store отделены; агент не может писать в scoring path.
 - [ ] Dataset / label hosts вне allowlist агента (или явный N/A).
 - [ ] Score spike после `external_hosts` / `credential_access` / `test_store_write` → human review, не auto-pass.
+- [ ] Есть suite `EVAL-GUARDRAIL-01` / EV-10: guardrail тестируется как объект (не только end-to-end агент).
+- [ ] Метрики FP / FN / latency / cost / category coverage собираются; thresholds заморожены относительно suite run.
+- [ ] Изменение rail / pattern / threshold сопровождается guardrail changelog и regression в CI.
 
 ## Литература
 
-- [Список литературы](../literature.md#практические-руководства)
+- [Список литературы](../literature.md#практические-руководства) — [NVIDIA NeMo Guardrails](../literature.md#практические-руководства)
+- [NVIDIA NeMo Guardrails — Evaluate Guardrails](https://docs.nvidia.com/nemo/guardrails/evaluation/evaluate-guardrails) — per-rail eval, compliance / accuracy, latency (ориентир EV-10)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape; evaluation gaming / reward hacking (целостность оценки)
 - [arXiv 2607.25379 — Cyber-Capable AI Agents](https://arxiv.org/abs/2607.25379) — containment / evaluation boundaries для киберспособных агентов
 - [OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness](https://openai.com/index/unlocking-self-improvement-gpt-red/)
@@ -798,7 +928,10 @@ func RunIterative(ctx context.Context, agent AgentUnderTest, ev IterativeEval) (
 
 ## См. также
 
-- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
+- [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router) — входной pipeline как объект EV-10
+- [09 — Memory Isolation](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails) — retrieval rails
+- [11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md#streaming-output-guardrail) — output / streaming rails
+- [16 — Monitoring и Alerting](../part-5-control-observability/16-monitoring-alerting.md) — `guardrail_trigger_rate` → operational retest
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md) — Evaluation Gaming; Target ambiguity
 - [08 — Sandboxing (Containment Escape + signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
