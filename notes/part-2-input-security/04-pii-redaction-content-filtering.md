@@ -2,8 +2,8 @@
 tags: [ai-security, pii, redaction, content-filtering, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Классы данных для AI D0–D4 (#ai-data-classes-d0-d4); маркировка источника; мост к §13 inference."
+обновлено: 2026-08-08
+изменения: "Пять точек контроля (#five-control-points): Pre-context … Post-model → §11."
 ---
 
 # 04 — PII Redaction и Content Filtering
@@ -84,20 +84,111 @@ flowchart LR
 | Encrypt | Можно восстановить при наличии ключа | контролируемые внутренние процессы |
 | Block | Полностью отклоняет ввод | критичные секреты или запрещённый контент |
 
-## Где ставить фильтрацию
+Таблица выше — **тактики** замены символов / отклонения. Ниже — **политика sanitization engine**: какой режим выбрать и когда обращать псевдонимы. Не сливать в один enum.
 
-Минимум четыре точки:
+<a id="sanitization-engine"></a>
+
+## Sanitization engine (4 режима)
+
+| Режим | Смысл | Типичный выбор |
+|---|---|---|
+| **Removal** | вырезать значение | секреты (D4), запрещённые поля |
+| **Masking** | частично скрыть / тип-токен | телефоны, карты для UI/логов |
+| **Pseudonymization** | стабильный плейсхолдер (`[EMAIL_a3f2]`) | correlation внутри сессии/tenant |
+| **Generalization** | огрубить (город вместо адреса, год вместо DOB) | аналитика / external при минимизации |
+
+Правило выбора:
 
 ```text
-1. Pre-LLM: до отправки в модель
-2. Pre-tool: до передачи аргументов в tool
-3. Pre-memory: до сохранения в память
-4. Pre-log: до записи в логи / trace
+Secrets (D4) → removal / block.
+External inference → irreversible transform (нет mapping наружу).
+Internal + нужен restore для privileged tool → reversible pseudonym;
+mapping token↔value только внутри периметра.
 ```
 
-Важно: фильтрация только перед LLM недостаточна. Агент может передать исходный текст в tool или сохранить его в memory.
+Обратимость:
 
-Mask / normalize на входе — ступень [guardrail pipeline §03](03-prompt-injection-detection.md#guardrail-pipeline-router) (эвристики → block|mask|normalize → detector → judge). Канон router / taxonomy — там; здесь — механика redaction и content filtering.
+```text
+Reversible: mapping внутри периметра; депсевдонимизация после ответа / перед privileged tool.
+Irreversible: внешняя модель, экспорт, секреты — mapping не создаём или уничтожаем сразу.
+```
+
+**Quasi-identifiers:** комбинации косвенных признаков (ZIP + DOB + пол и т.п.) могут реидентифицировать субъект. Маскировать / обобщать **наборы** полей, не только прямые идентификаторы (email, паспорт). Опора: [NIST SP 800-188](../literature.md#стандарты-и-фреймворки).
+
+**LLM не DLP:**
+
+```text
+Нельзя: «попроси LLM вычистить PII» как единственный контроль.
+Нужно: детерминированные проверки + NER / secret scanner;
+LLM-judge только на спорном; решение — policy layer.
+```
+
+Mapping депсевдонимизации **не** писать в логи / traces — [§15](../part-5-control-observability/15-observability-tracing.md#no-pseudonym-mapping-in-logs).
+
+### Go snippet: SanitizeMode
+
+```go
+type SanitizeMode string
+
+const (
+	ModeRemoval          SanitizeMode = "removal"
+	ModeMasking          SanitizeMode = "masking"
+	ModePseudonymization SanitizeMode = "pseudonymization"
+	ModeGeneralization   SanitizeMode = "generalization"
+)
+
+// MappingStore — reversible pseudonym token↔value; не логировать содержимое store.
+type MappingStore interface {
+	Put(token, value string)
+	Get(token string) (string, bool)
+}
+
+func StablePseudonym(kind, value, tenantSecret string) string {
+	sum := sha256.Sum256([]byte(tenantSecret + "|" + kind + "|" + value))
+	return fmt.Sprintf("[%s_%x]", kind, sum[:3]) // короткий стабильный хвост
+}
+
+func ApplySanitize(mode SanitizeMode, kind, value string, store MappingStore, tenantSecret string) string {
+	switch mode {
+	case ModeRemoval:
+		return ""
+	case ModeMasking:
+		if len(value) <= 4 {
+			return "****"
+		}
+		return value[:2] + "***" + value[len(value)-2:]
+	case ModePseudonymization:
+		token := StablePseudonym(kind, value, tenantSecret)
+		if store != nil {
+			store.Put(token, value)
+		}
+		return token
+	case ModeGeneralization:
+		// учебный stub: политика generalization — доменно-специфична
+		return "[" + kind + "_GENERALIZED]"
+	default:
+		return "[REDACTED]"
+	}
+}
+```
+
+<a id="five-control-points"></a>
+
+## Где ставить фильтрацию
+
+Пять точек контроля (вход → обработка → выход):
+
+```text
+1. Pre-context: до сборки контекста (вложения, лишние поля, allowlist) — minimize / §09
+2. Pre-LLM: до отправки в модель
+3. Pre-tool: до передачи аргументов в tool
+4. Pre-memory / Pre-log: до memory и до логов / trace
+5. Post-model: после ответа модели — Output Gate §11
+```
+
+Фильтрация только перед LLM недостаточна: сырые данные уходят в tool/memory/logs, а вредный ответ — наружу без Output Gate. Post-model **не** заменяет входные точки; канон проверки ответа — [§11](../part-4-output-security/11-output-validation-fact-checking.md#post-model-control-point).
+
+Mask / normalize на входе — ступень [guardrail pipeline §03](03-prompt-injection-detection.md#guardrail-pipeline-router) (эвристики → block|mask|normalize → detector → judge). Канон router / taxonomy и решения вроде `route internal` / `reduce context` — [§03](03-prompt-injection-detection.md); здесь — механика redaction и content filtering.
 
 <a id="ai-data-classes-d0-d4"></a>
 
@@ -416,6 +507,8 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 | Удалять всё подряд | Агент теряет полезность |
 | Не хранить metadata redaction | Потом невозможно понять, что было изменено |
 | Доверять только regex | Regex не ловит все формы PII и secrets |
+| «LLM, вычисти PII» как DLP | Пропуск / галлюцинации; нет policy — нужен [sanitization engine](#sanitization-engine) |
+| Логировать mapping псевдонимов | Восстановление PII из логов ([§15](../part-5-control-observability/15-observability-tracing.md#no-pseudonym-mapping-in-logs)) |
 
 ## Чек-лист
 
@@ -423,27 +516,33 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 - [ ] Задана лестница [D0–D4](#ai-data-classes-d0-d4); D4 не уходит в модель; D2–D3 — только internal inference.
 - [ ] Источники с NDA / regulated **маркированы** (не надеяться на regex).
 - [ ] В контекст модели уходит минимизированный набор полей / summary.
+- [ ] Закрыты [пять точек контроля](#five-control-points) (Pre-context … Post-model), не только Pre-LLM.
+- [ ] Выбран режим [sanitization engine](#sanitization-engine) (removal / masking / pseudonymization / generalization) и правило обратимости.
+- [ ] Quasi-identifiers учтены как наборы полей, не только прямые ID.
+- [ ] PII-очистка не делегирована LLM как единственному контролю.
 - [ ] PII и secrets обрабатываются разными правилами.
 - [ ] Secrets блокируются или полностью редактируются.
 - [ ] PII маскируется до LLM, memory и logs.
 - [ ] Tool arguments проходят отдельную проверку.
-- [ ] Raw input не пишется в audit logs.
-- [ ] Есть redaction metadata: сколько и какие типы сущностей найдены.
+- [ ] Raw input не пишется в audit logs; mapping депсевдонимизации не логируется.
+- [ ] Есть redaction metadata: сколько и какие типы сущностей найдены (без сырых значений mapping).
 - [ ] Для опасного контента есть block / approval сценарий.
 - [ ] Пользователь получает понятное сообщение при блокировке.
 
 ## Литература
 
+- [Список литературы](../literature.md#стандарты-и-фреймворки) — NIST SP 800-188, ENISA Data Pseudonymisation
 - [Список литературы](../literature.md#инструменты)
-- OWASP LLM02:2025 Sensitive Information Disclosure — https://genai.owasp.org/llmrisk/llm02-insecure-output-handling/
+- OWASP LLM02:2025 Sensitive Information Disclosure — https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/
 - Microsoft Presidio — https://microsoft.github.io/presidio/
 - NIST Privacy Framework — https://www.nist.gov/privacy-framework
 - OpenAI Moderation — https://developers.openai.com/api/docs/guides/moderation
 
 ## См. также
 
-- [03 — Prompt Injection Detection](03-prompt-injection-detection.md)
+- [03 — Prompt Injection / decision set](03-prompt-injection-detection.md)
 - [09 — Memory / RAG (атрибуты ресурса)](../part-3-processing-security/09-memory-isolation-context-sanitization.md#resource-ai-labels)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
+- [11 — Output Gate (Post-model)](../part-4-output-security/11-output-validation-fact-checking.md#post-model-control-point)
 - [13 — Egress / inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
-- [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
+- [15 — Observability (mapping не в логах)](../part-5-control-observability/15-observability-tracing.md#no-pseudonym-mapping-in-logs)
