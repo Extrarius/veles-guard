@@ -2,8 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-04
-изменения: "Scope drift + monitoring tampering: корреляция слабых сигналов; DETECT-MONITOR-TAMPERING-01; ShouldAutoStop."
+обновлено: 2026-08-07
+изменения: "guardrail_trigger_rate → operational retest EV-10 (§20)."
 ---
 
 # 16 — Monitoring и Alerting
@@ -146,6 +146,7 @@ agent_kill_switch_active
 | Scope drift (new domain) | `scope_drift_new_domain` | Critical |
 | Out of scope action | `out_of_scope_action` | Critical |
 | Monitoring tampering | `monitoring_tampering_suspected` | Critical |
+| Guardrail trigger anomaly | `guardrail_trigger_rate` spike или collapse | High |
 
 ## Угроза / контекст
 
@@ -176,8 +177,11 @@ latency, CPU, memory
 Хороший минимум:
 
 ```text
-latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, approvals, breaker_state
+latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, approvals, breaker_state,
+guardrail_trigger_rate
 ```
+
+`guardrail_trigger_rate` (доля / частота block|strict|sanitize на rail path): аномальный **рост** (шум / FP / атака) или **падение** (bypass / сломанный detector) → не только page on-call, а **operational retest** suite [EV-10 / §20 Guardrail testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10). Online-сигнал не заменяет pre-release suite.
 
 ### 2. Алерт должен вести к trace
 
@@ -199,6 +203,7 @@ latency, errors, token usage, tool_denied, egress_blocked, secrets_detected, app
 |---|---|
 | один denied tool call | log only |
 | 10 denied calls за 5 минут | alert |
+| `guardrail_trigger_rate` anomaly | alert + **retest** [EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) |
 | `tool_retry_after_deny` | alert (sequence) + trace |
 | egress с secret | block + high alert |
 | `egress_destination_out_of_policy` | block + High; escalate IR |
@@ -469,6 +474,7 @@ func ShouldAutoStop(s WeakSignals) bool {
 - [ ] Есть security events для guardrails, policy, egress и tools.
 - [ ] Есть метрики по denied actions.
 - [ ] Есть метрики по prompt injection attempts.
+- [ ] Есть `guardrail_trigger_rate` (или эквивалент); anomaly → operational retest [EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10), не только on-call.
 - [ ] Есть метрики по secrets detected / redacted.
 - [ ] Есть метрики по token / cost budget.
 - [ ] Алерт содержит `run_id`.
