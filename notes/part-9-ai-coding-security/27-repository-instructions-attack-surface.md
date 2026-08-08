@@ -3,7 +3,11 @@ tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injec
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-08
+<<<<<<< Updated upstream
 изменения: "Связка: PR/issue для review-агента → §29 #pr-issue-untrusted-input."
+=======
+изменения: "Связка: автор README/issue/PR может быть агентом → §18 artifact poisoning."
+>>>>>>> Stashed changes
 ---
 
 # 27 — Репозиторий как источник инструкций
@@ -180,6 +184,8 @@ AGENTS.md
 README, issues, docs, comments = untrusted context
 ```
 
+Автор артефакта может быть **агентом** (другой run / другой product) — канал тот же; trust не повышается. Канон межагентного канала: [§18 Agent-generated artifact poisoning](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning).
+
 ### 3. Instruction priority
 
 ```text
@@ -322,6 +328,11 @@ func ValidateInstructionText(text string) error {
 
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
+- [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [26 — AI-coding agent: модель угроз](26-ai-coding-agent-threat-model.md)
+<<<<<<< Updated upstream
 - [29 — PR/issue как недоверенный вход (review-агент)](29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input)
+=======
+- [29 — AI-generated code review](29-ai-generated-code-review-spec-driven.md)
+>>>>>>> Stashed changes
