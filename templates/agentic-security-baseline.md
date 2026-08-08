@@ -31,6 +31,7 @@ tags: [ai-security, шаблон, baseline, mcp, skills]
 
 ## См. также
 
+- [agent-passport.md](agent-passport.md) — спецификация агента до запуска (класс риска R0–R3, owner)
 - [mcp-skill-review.md](mcp-skill-review.md) — форма ревью MCP server / agent skill
 - [mcp-server-review-template.md](mcp-server-review-template.md) — детальный review MCP-сервера
 - Учебные проверки: [examples/bash/verify-pins.sh](../examples/bash/verify-pins.sh), [examples/bash/check-allowed-tools.sh](../examples/bash/check-allowed-tools.sh)

@@ -16,6 +16,7 @@ tags: [ai-security, конспект, литература]
 - **Security Debt in LLM Agent Applications** (ASE 2025, Fudan University) — 221 уязвимость в 50 приложениях, средний CVSS 7.89; 76.5% уязвимостей — из-за LLM2Tool.
 - **Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection** — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
+- **Ye, Cui, Hadfield-Menell — Prompt Injection as Role Confusion** — <https://arxiv.org/abs/2603.12277> — ICML 2026; роль по стилю, не по тегу; CoT Forgery / inline role claim (§03).
 - **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
 - **Muth & Margraf — From Legacy Documentation to OSCAL: An MCP-Based Agent Pipeline for Threat-Informed Continuous Compliance** — <https://arxiv.org/abs/2607.08288> — MCP-grounded multi-agent pipeline: NL infra docs → knowledge graph → NIST OSCAL SSP/SAR; errors shift to entity extraction (human review).
 - **Cyber-Capable AI Agents: Vulnerabilities, Evaluation Containment, and Defensive Response** — <https://arxiv.org/abs/2607.25379> — обзор рисков киберспособных агентов и границ evaluation containment (в т.ч. target / sandbox boundaries).
@@ -33,7 +34,10 @@ tags: [ai-security, конспект, литература]
 - **OWASP — Agentic AI: Threats and Mitigations** — <https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/>
 - **OWASP — Securing Agentic Applications Guide 1.0** — <https://genai.owasp.org/resource/securing-agentic-applications-guide-1-0/>
 - **OWASP — Multi-Agentic System Threat Modeling Guide v1.0** — <https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/>
+- **NIST AI Risk Management Framework (AI RMF 1.0)** — <https://www.nist.gov/itl/ai-risk-management-framework> — рамка управления AI-рисками; класс риска агента R0–R3 / passport — §25.
 - **NIST AI Risk Management Framework: Generative AI Profile** — <https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence>
+- **NIST SP 800-188 — De-Identifying Government Datasets** — <https://csrc.nist.gov/pubs/sp/800/188/final> — de-identification, quasi-identifiers, governance; канон sanitization / pseudonymization в §04 (mapping не в логах — §15).
+- **ENISA — Data Pseudonymisation: Advanced Techniques and Use Cases** — <https://www.enisa.europa.eu/publications/data-pseudonymisation-advanced-techniques-and-use-cases> — псевдонимизация и обратимость; вместе с NIST SP 800-188 для §04 / §15.
 - **NIST OSCAL** — <https://pages.nist.gov/OSCAL/> — Open Security Controls Assessment Language; machine-readable SSP/SAR и обмен assessment evidence.
 - **MITRE ATLAS** — <https://atlas.mitre.org/>
 - **Google SAIF — Secure AI Framework** — <https://safety.google/intl/en_us/safety/saif/>
