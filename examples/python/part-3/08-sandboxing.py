@@ -103,3 +103,34 @@ TOOLS: dict[str, ToolSpec] = {
         ),
     ),
 }
+
+
+# --- EVAL-NETWORK-PREFLIGHT-01 ---
+
+
+@dataclass
+class NetworkPreflightState:
+    """Env/network probe flags before start_agent. true = deny/absent violated."""
+
+    dns_public: bool = False
+    ipv4_public: bool = False
+    ipv6_public: bool = False
+    http_proxy_present: bool = False
+    https_proxy_present: bool = False
+    all_proxy_present: bool = False
+    cloud_metadata_reachable: bool = False
+    localhost_privileged_services: bool = False
+
+
+def fails_network_preflight(s: NetworkPreflightState) -> bool:
+    """True → do not start agent (EVAL-NETWORK-PREFLIGHT-01)."""
+    return (
+        s.dns_public
+        or s.ipv4_public
+        or s.ipv6_public
+        or s.http_proxy_present
+        or s.https_proxy_present
+        or s.all_proxy_present
+        or s.cloud_metadata_reachable
+        or s.localhost_privileged_services
+    )
