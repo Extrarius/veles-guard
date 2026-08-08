@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injection]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-12
-изменения: "Добавлен кейс Clean Repo Attack (repository-as-instructions + сетевой payload)."
+обновлено: 2026-08-08
+изменения: "Связка: PR/issue для review-агента → §29 #pr-issue-untrusted-input."
 ---
 
 # 27 — Репозиторий как источник инструкций
@@ -161,6 +161,8 @@ flowchart LR
 ```
 
 Даже если репозиторий “свой”, вредный текст может попасть через внешний PR, issue, зависимость, generated docs, test fixture или compromised branch.
+
+Для Security Review Agent тело PR/issue — тот же класс: данные в явной рамке, не инструкции; pre-scan до действий — [§29 PR/issue как недоверенный вход](29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input).
 
 ### 2. Instruction files должны быть allowlisted
 
@@ -322,3 +324,4 @@ func ValidateInstructionText(text string) error {
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [26 — AI-coding agent: модель угроз](26-ai-coding-agent-threat-model.md)
+- [29 — PR/issue как недоверенный вход (review-агент)](29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input)

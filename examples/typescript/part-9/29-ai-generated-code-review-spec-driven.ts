@@ -82,4 +82,54 @@ function canMerge(pr: PullRequest): boolean {
   return true;
 }
 
-export {};
+/** PR/issue as untrusted input (#pr-issue-untrusted-input). */
+interface PRReviewInput {
+  title?: string;
+  body?: string;
+  comments?: string;
+}
+
+/** Explicit data frame; content is not policy/instructions. */
+function wrapUntrusted(label: string, text: string): string {
+  return `BEGIN_UNTRUSTED_DATA label="${label}"\n${text}\nEND_UNTRUSTED_DATA\n`;
+}
+
+/** Heuristic hits only — not the §03 detector pipeline. */
+function scanPRText(s: string): string[] {
+  const lower = s.toLowerCase();
+  const hits: string[] = [];
+  for (const p of [
+    "ignore previous",
+    "ignore all previous",
+    "disregard previous",
+    "system prompt",
+    "you are now",
+    "do not follow",
+  ]) {
+    if (lower.includes(p)) {
+      hits.push(`instruction_override:${p}`);
+    }
+  }
+  if (/[\u200b\u200c\u200d\ufeff]/.test(s)) {
+    hits.push("hidden_or_format_char");
+  }
+  return hits;
+}
+
+function prepareReviewContext(inp: PRReviewInput): { framed: string; hits: string[] } {
+  const raw = [inp.title, inp.body, inp.comments].filter(Boolean).join("\n").trim();
+  const hits = scanPRText(raw);
+  return { framed: wrapUntrusted("pr_or_issue", raw), hits };
+}
+
+export {
+  Risk,
+  classifyFile,
+  requiresSecurityReview,
+  canMerge,
+  wrapUntrusted,
+  scanPRText,
+  prepareReviewContext,
+};
+
+export type { ChangedFile, PullRequest, PRReviewInput };
