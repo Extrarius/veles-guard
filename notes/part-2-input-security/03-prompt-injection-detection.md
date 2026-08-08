@@ -2,8 +2,8 @@
 tags: [ai-security, prompt-injection, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-08-04
-изменения: "Guardrail pipeline + router (taxonomy of harms); якоря §04/§11; lit NeMo/AILuminate."
+обновлено: 2026-08-07
+изменения: "Якорь на §09 Retrieval rails (stage после retrieve)."
 ---
 
 # 03 — Prompt Injection Detection
@@ -284,7 +284,7 @@ Untrusted data:
 
 Связь с таблицей уровней выше: rule-based = эвристики; classifier / judge = поздние ступени. Tool-policy, context isolation и HITL остаются **вне** detector-pipeline — pipeline их не заменяет.
 
-Mask / normalize на ступени «очистки» — [§04](04-pii-redaction-content-filtering.md). Зеркальный layered path на выходе — [§11](../part-4-output-security/11-output-validation-fact-checking.md).
+Mask / normalize на ступени «очистки» — [§04](04-pii-redaction-content-filtering.md). Зеркальный layered path на выходе — [§11](../part-4-output-security/11-output-validation-fact-checking.md). После RAG retrieve — отдельный stage [retrieval rails §09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#retrieval-rails) (filter/mask chunks до LLM); это не часть входного detector-pipeline выше.
 
 **Router** возвращает структурированный результат (не свободный текст модели). Категория вреда задаёт политику — ориентир taxonomy: [MLCommons AILuminate](https://mlcommons.org/ailuminate/) / [arXiv 2503.05731](https://arxiv.org/abs/2503.05731) (полную таксономию в раздел не копируем).
 
