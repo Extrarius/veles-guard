@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Renumber B: hub = §35 (после assessment §34)."
+обновлено: 2026-08-12
+изменения: "Практикум baseline: filled sample + fixtures в examples/course; Yes только с путём к артефакту."
 ---
 
 # 35 — Course Appendix: практикум по безопасности AI-агентов, MCP и Skills
@@ -78,11 +78,11 @@ tags: [ai-security, course-appendix, mcp, skills, workshop]
 | # | Артефакт | Путь |
 |---|---|---|
 | 1 | Проверка MCP / навыка (MCP / Skill Review), воркшоп | [templates/course/mcp-skill-review.md](../../templates/course/mcp-skill-review.md) → [templates/mcp-skill-review.md](../../templates/mcp-skill-review.md) |
-| 2 | Минимальные правила безопасности агента (Agentic Security Baseline), воркшоп | [templates/course/agentic-security-baseline.md](../../templates/course/agentic-security-baseline.md) → [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md) |
+| 2 | Минимальные правила безопасности агента (Agentic Security Baseline), воркшоп | [templates/course/agentic-security-baseline.md](../../templates/course/agentic-security-baseline.md) → [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md); образец Evidence: [baseline-evidence-filled.md](../../examples/course/baseline-evidence-filled.md) |
 | 3 | Политика разрешённых инструментов (Allowed Tools Policy) | [templates/course/allowed-tools-policy.md](../../templates/course/allowed-tools-policy.md) |
 | 4 | Проверки в CI: фиксация версий (pin) и белый список (allowlist) | [examples/github-actions/agent-security.example.yml](../../examples/github-actions/agent-security.example.yml), [examples/bash/](../../examples/bash/) |
 | 5 | Карточка инцидента (Incident Card): MCP / навык (Skill) | [templates/course/incident-card-mcp-skill.md](../../templates/course/incident-card-mcp-skill.md) |
-| 6 | Учебные «плохо / хорошо» (bad vs good) | [examples/course/](../../examples/course/) |
+| 6 | Учебные «плохо / хорошо» (bad vs good) и baseline fixtures | [examples/course/](../../examples/course/), [baseline-fixtures/](../../examples/course/baseline-fixtures/) |
 | 7 | Воркшоп проверки (review) | [§36](36-mcp-skill-review-workshop.md) |
 | 8 | Воркшоп минимальных правил (baseline) | [§37](37-agentic-security-baseline-workshop.md) |
 | 9 | Гайд проверки агента + воркшоп findings | [guides/ai-agent-security-testing-guide.md](../../guides/ai-agent-security-testing-guide.md) → [§38](38-ai-agent-security-testing-workshop.md) |
@@ -96,7 +96,7 @@ tags: [ai-security, course-appendix, mcp, skills, workshop]
 | 8–14 | Цепочка поставок (supply chain) | `latest`, скрипты установки (install scripts), фиксация версии (pin) + хеш (hash); смотреть «плохой» навык (Bad skill) |
 | 14–20 | Среда выполнения (runtime) | разрешённые инструменты (allowed-tools), песочница (sandbox), исходящий трафик (egress), не от root (non-root), секреты (secrets) |
 | 20–25 | CI и перечень компонентов (inventory) | Пример workflow + bash; ориентиры: mcp-scan, promptfoo, сканеры вендоров (не обязательны) |
-| 25–30 | Один набор минимальных правил (baseline) | Заполнить 8 правил из [agentic-security-baseline.md](../../templates/agentic-security-baseline.md) |
+| 25–30 | Один набор минимальных правил (baseline) | Открыть [baseline-evidence-filled.md](../../examples/course/baseline-evidence-filled.md); заполнить 8 правил — **Да (Yes)** только с путём к артефакту |
 
 Дальше — углубление в [§36](36-mcp-skill-review-workshop.md), [§37](37-agentic-security-baseline-workshop.md) и [§38](38-ai-agent-security-testing-workshop.md).
 
