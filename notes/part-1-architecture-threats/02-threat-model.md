@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Trajectory composition: allowed action ≠ allowed trajectory; якорь §20 EV-13."
+обновлено: 2026-08-12
+изменения: "Trajectory composition: allowed action ≠ allowed trajectory; якорь §20 EV-13; исправлена форма «скомпрометированный»."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -67,7 +67,7 @@ tags: [ai-security, конспект]
 | Внешний автор документа | внедряет indirect prompt injection в PDF, web page, email |
 | Внешний сервис | возвращает poisoned tool output |
 | Инсайдер | пытается расширить доступ агента или извлечь данные |
-| Компрометированный tool / MCP server | подменяет описание инструмента, схему или результат |
+| Скомпрометированный tool / MCP server | подменяет описание инструмента, схему или результат |
 | Другой агент | передаёт вредное сообщение в multi-agent workflow |
 | AI-driven attacker | использует автономного агента для разведки, генерации эксплойтов, перебора учётных данных и lateral movement на скорости машины |
 | Agentic Threat Actor (ATA) | capability атаки доставляется AI-агентом end-to-end (не human-driven toolkit): recon → credentials → pivot → destructive playbook |
