@@ -1,0 +1,3 @@
+{"ts":"2026-08-12T12:01:03Z","run_id":"ws-37-001","actor":"docs-summarizer","tool":"read_file","args_redacted":{"path":"./docs/README.md"},"result":"ok","fs":"read", "net":"none"}
+{"ts":"2026-08-12T12:01:08Z","run_id":"ws-37-001","actor":"docs-summarizer","tool":"read_file","args_redacted":{"path":"./docs/outline.md"},"result":"ok","fs":"read","net":"none"}
+{"ts":"2026-08-12T12:01:14Z","run_id":"ws-37-001","actor":"docs-summarizer","tool":"read_file","args_redacted":{"path":"[redacted-denied]"},"result":"denied","reason":"path_not_in_allowlist","fs":"deny","net":"none"}

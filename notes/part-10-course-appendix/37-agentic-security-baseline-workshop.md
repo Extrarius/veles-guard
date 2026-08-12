@@ -2,15 +2,15 @@
 tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-07-29
-изменения: "Renumber B: baseline workshop = §37."
+обновлено: 2026-08-12
+изменения: "Воркшоп: Evidence по образцу examples/course; Yes только с путём к артефакту."
 ---
 
 # 37 — Agentic Security Baseline Workshop
 
 > Навигация: [Оглавление](../../README.md) · [← Назад](36-mcp-skill-review-workshop.md) · [Вперёд →](38-ai-agent-security-testing-workshop.md)
 
-*Кратко: пройти 8 правил минимального набора безопасности (baseline) для агента / MCP / навыков (skills), связать с политикой разрешённых инструментов (allowed-tools policy), проверками в CI и bash, зафиксировать ответственного (Owner).*
+*Кратко: пройти 8 правил минимального набора безопасности (baseline) для агента / MCP / навыков (skills): открыть заполненный образец, сделать свой набор с путём к артефакту в Evidence, связать с политикой разрешённых инструментов (allowed-tools policy) и проверками в CI.*
 
 > Примеры в разделе — на Go. Те же примеры на других языках:
 > [Python](../../examples/python/part-10/37-agentic-security-baseline-workshop.py) ·
@@ -26,6 +26,11 @@ tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 Основная (каноническая) заполняемая таблица:
 
 - [templates/agentic-security-baseline.md](../../templates/agentic-security-baseline.md)
+
+Заполненный образец (что писать в Evidence):
+
+- [examples/course/baseline-evidence-filled.md](../../examples/course/baseline-evidence-filled.md)
+- мини-артефакты: [examples/course/baseline-fixtures/](../../examples/course/baseline-fixtures/)
 
 Обёртка для воркшопа:
 
@@ -57,16 +62,18 @@ tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 
 ### Восемь правил (статусы: Да / Частично / Нет / Не применимо — Yes / Partial / No / N/A)
 
-| # | Правило | На воркшопе проверить |
+**Да (Yes)** только если в Evidence указан путь к файлу (свой или из `examples/course/…`) или конкретный вывод команды. «См. §08» без артефакта — не доказательство (evidence).
+
+| # | Правило | Сделать / артефакт |
 |---|---|---|
-| 1 | Версии зафиксированы (pinned) — нет `latest` / «плавающих» (floating) | Конфиг агента, файл блокировок (lockfile), список MCP |
-| 2 | Доверенный источник (trusted source) и/или подпись / происхождение (provenance) | Откуда ставите; есть ли хеш (hash) |
-| 3 | Сканирование / проверка текста (scan / lint) **до** установки | Описания (descriptions), скрипты (scripts), манифест (manifest) |
-| 4 | Минимальный список разрешённых инструментов (`allowed-tools`) | Заполнить [allowed-tools-policy.md](../../templates/course/allowed-tools-policy.md) |
-| 5 | Скрипты / MCP — песочница не от root (non-root sandbox) | Как запускается процесс |
-| 6 | Белый список исходящего трафика (egress allowlist); сеть закрыта по умолчанию | Куда агент может ходить |
-| 7 | Наблюдение за файлами / сетью / процессами (мониторинг FS / network / process) | Хотя бы журналирование вызовов инструментов (tools) |
-| 8 | Перечень на рабочей станции / отчёт (inventory endpoint / report) | Список установленных MCP и навыков (skills) + ответственный (Owner) |
+| 1 | Версии зафиксированы (pinned) — нет `latest` / «плавающих» (floating) | Прогнать [verify-pins.sh](../../examples/bash/verify-pins.sh) или зафиксировать «OK» + путь к скрипту |
+| 2 | Доверенный источник (trusted source) и/или подпись / происхождение (provenance) | Свой Identity или [trusted-source-review.md](../../examples/course/baseline-fixtures/trusted-source-review.md) |
+| 3 | Сканирование / проверка текста (scan / lint) **до** установки | Свой чеклист или [pre-install-lint-notes.md](../../examples/course/baseline-fixtures/pre-install-lint-notes.md) |
+| 4 | Минимальный список разрешённых инструментов (`allowed-tools`) | [check-allowed-tools.sh](../../examples/bash/check-allowed-tools.sh) + [allowed-tools-policy.md](../../templates/course/allowed-tools-policy.md) |
+| 5 | Скрипты / MCP — песочница не от root (non-root sandbox) | Свой профиль или [sandbox-profile.example.md](../../examples/course/baseline-fixtures/sandbox-profile.example.md) |
+| 6 | Белый список исходящего трафика (egress allowlist); сеть закрыта по умолчанию | Свой json или [egress-allowlist.example.json](../../examples/course/baseline-fixtures/egress-allowlist.example.json) |
+| 7 | Наблюдение за файлами / сетью / процессами (мониторинг FS / network / process) | Свой журнал или [tool-call-audit-sample.jsonl](../../examples/course/baseline-fixtures/tool-call-audit-sample.jsonl) |
+| 8 | Перечень на рабочей станции / отчёт (inventory endpoint / report) | Свой список или [inventory-endpoint.example.md](../../examples/course/baseline-fixtures/inventory-endpoint.example.md) |
 
 ### Связка с CI (трек A — не дублируем)
 
@@ -78,12 +85,13 @@ tags: [ai-security, course-appendix, baseline, mcp, skills, workshop]
 
 Ориентиры экосистемы (не обязательны в репозитории): mcp-scan, promptfoo, сканеры состава ПО вендоров (vendor SCA) — см. [literature.md](../literature.md).
 
-### Сценарий воркшопа (20 мин)
+### Сценарий воркшопа (20–25 мин)
 
-1. **5 мин** — открыть минимальные правила (baseline), отметить статус (Status) по своему проекту (или учебному кейсу).
-2. **5 мин** — заполнить политику разрешённых инструментов (Allowed Tools Policy) — хотя бы 3–5 инструментов (tools).
-3. **5 мин** — прогнать мысль «что упадёт в CI»: фиксация версий (pin) + белый список (allowlist).
-4. **5 мин** — назначить ответственного (Owner), дату пересмотра; при «Нет (No)» по критичным правилам — не разрешать (Allow) в боевой среде (prod).
+1. **5 мин** — открыть [baseline-evidence-filled.md](../../examples/course/baseline-evidence-filled.md); разобрать, что в колонке Evidence (путь к файлу / вывод команды).
+2. **5 мин** — скопировать пустой [agentic-security-baseline.md](../../templates/agentic-security-baseline.md) (или обёртку [templates/course/agentic-security-baseline.md](../../templates/course/agentic-security-baseline.md)).
+3. **8 мин** — правила 2–3–5–6–7–8: сослаться на fixture в [baseline-fixtures/](../../examples/course/baseline-fixtures/) или сделать свой мини-файл по тому же образцу.
+4. **4 мин** — правила 1 и 4: прогнать bash (или зафиксировать «на учебной машине OK» + путь к `verify-pins.sh` / `check-allowed-tools.sh`).
+5. **3 мин** — ответственный (Owner) и дата пересмотра; при «Нет (No)» по правилам 5 или 6 — не разрешать (Allow) в боевой среде (prod).
 
 ## Пример (Go): запрет «плавающей» версии (floating version)
 
@@ -109,6 +117,7 @@ func RejectFloating(version string) error {
 ## Чек-лист
 
 - [ ] Заполнены 8 правил минимального набора (baseline): Да / Частично / Нет / Не применимо (Yes / Partial / No / N/A)
+- [ ] У каждого Да (Yes) в Evidence есть путь к артефакту (свой или `examples/course/…`)
 - [ ] Есть ответственный (Owner) и дата следующего пересмотра
 - [ ] Политика разрешённых инструментов (allowed-tools policy) согласована (нет «любых» / wildcard)
 - [ ] Известно, как в CI ловятся фиксация версий (pin) и белый список (allowlist)

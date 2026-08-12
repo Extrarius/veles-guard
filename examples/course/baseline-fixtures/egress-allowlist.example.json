@@ -1,0 +1,24 @@
+{
+  "comment": "Учебный egress allowlist. Default deny. Не production firewall.",
+  "default": "deny",
+  "destinations": [
+    {
+      "host": "api.github.example",
+      "port": 443,
+      "proto": "https",
+      "purpose": "pinned skill source / release metadata"
+    },
+    {
+      "host": "model.internal.example",
+      "port": 443,
+      "proto": "https",
+      "purpose": "inference proxy (AI Gateway)"
+    },
+    {
+      "host": "audit.internal.example",
+      "port": 443,
+      "proto": "https",
+      "purpose": "tool-call audit ingest"
+    }
+  ]
+}
