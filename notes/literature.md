@@ -27,6 +27,7 @@ tags: [ai-security, конспект, литература]
 - **Enhancing All-to-X Backdoor Attacks with Optimized Target Class Mapping** — <https://arxiv.org/abs/2511.13356> — All-to-X mapping устойчивее простых one-trigger→one-class сценариев (§22).
 - **The Trigger in the Haystack** — <https://arxiv.org/abs/2602.03085> — извлечение / реконструкция backdoor-триггеров в LLM без prior knowledge; детекция ≠ гарантия clean weights (§22).
 - **AILuminate v1.0** — <https://arxiv.org/abs/2503.05731> — benchmark / taxonomy of harms для оценки safety LLM; ориентир category_hint в guardrail router (§03).
+- **Poisoning the Watchtower** — <https://arxiv.org/abs/2605.24421> — adversarial log content → LLM-SOC assistant; paper-опора Security Telemetry Injection (§09).
 
 ## Стандарты и фреймворки
 
@@ -66,6 +67,7 @@ tags: [ai-security, конспект, литература]
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
 - **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
+- **Tenet — GhostJacking** — <https://tenetsecurity.ai/blog/ghostjacking-attacks-agentic-kill-chain/> — DEF CON 34: poisoned WAF/SIEM/Sentry/Datadog logs как канал инъекции; read + write в одной сессии; blocked payload остаётся untrusted (§09).
 
 ## Prompt Injection
 
