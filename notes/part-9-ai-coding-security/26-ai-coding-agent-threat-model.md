@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, coding-agent, threat-model, dfd]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-07-26
-изменения: "Evaluation Gaming якорь: AC-009 tests/CI/golden; ссылка на §20."
+обновлено: 2026-08-16
+изменения: "AC-010: monitoring/error logs/alerts как источник инструкций; telemetry untrusted (§09)."
 ---
 
 # 26 — AI-coding agent: модель угроз
@@ -105,6 +105,7 @@ AI-coding agent:   ~33 / 33
 | Dev secrets | опционально | часто | High |
 | MCP config in IDE | иногда | часто | High |
 | Skills / plugins | иногда | часто | Medium/High |
+| Monitoring / error logs / alerts (Sentry, Datadog, WAF) | редко | часто | High |
 
 ## DFD
 
@@ -208,6 +209,7 @@ flowchart LR
 | AC-007 | Агент чинит CI удалением security gate | High | protected workflows, CODEOWNERS |
 | AC-008 | Секрет попадает в prompt/log/diff | Critical | secret redaction, scanning, rotation |
 | AC-009 | Evaluation Gaming: агент правит tests, отключает CI checks или читает golden answers / dataset hosts из CI artifacts | High | test/CI diff review; isolate golden; score integrity ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
+| AC-010 | Poisoned error log / alert предлагает готовый фикс; агент выполняет команду или тянет пакет | Critical | телеметрия untrusted ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)); approval на shell; review команды |
 
 ### Сценарий: coding Evaluation Gaming
 
@@ -243,10 +245,14 @@ type CodingTask struct {
 	Dependencies bool
 	CIChanges    bool
 	SecretsSeen  bool
+	TelemetryIn  bool
 }
 
 func ClassifyTask(t CodingTask) RiskLevel {
 	if t.SecretsSeen {
+		return Critical
+	}
+	if t.TelemetryIn && (t.Shell || t.Network || t.Dependencies) {
 		return Critical
 	}
 	if t.CIChanges || t.Dependencies {
@@ -276,6 +282,7 @@ func ClassifyTask(t CodingTask) RiskLevel {
 - [ ] Есть incident playbook для compromised coding agent.
 - [ ] Diff по tests / CI workflows ревьюится отдельно (AC-006 / AC-007 / AC-009).
 - [ ] Golden answers / dataset hosts недоступны coding agent; CI green после shortcut ≠ pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
+- [ ] Логи и алерты в контексте агента — недоверенный вход; фикс из алерта не выполняется без review (AC-010, [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)).
 
 ## Литература
 
@@ -290,6 +297,7 @@ func ClassifyTask(t CodingTask) RiskLevel {
 
 ## См. также
 
+- [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)

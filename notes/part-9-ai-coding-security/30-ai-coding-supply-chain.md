@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, supply-chain, dependencies, sbom]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-06-13
-изменения: "Добавлен supply chain профиль для AI-coding agents; дополнен блок model provenance."
+обновлено: 2026-08-16
+изменения: "Poisoned telemetry as fix source: пакет из рекомендации в алерте."
 ---
 
 # 30 — AI Coding Supply Chain
@@ -134,6 +134,7 @@ flowchart LR
 | Skill poisoning | skill description безопасный, body вредный | High |
 | Prompt/policy tampering | агент изменил security instructions | High |
 | Secret in artifact | secret попал в image layer или generated file | Critical |
+| Poisoned telemetry as fix source | «рекомендованный фикс» из алерта тянет пакет | Critical |
 
 ## Контрмеры
 
@@ -163,6 +164,8 @@ reviewed source
 ```
 
 ### 3. Package scripts review
+
+Пакет из внешней рекомендации (фикс в алерте / error report) проходит тот же review, что и любая dependency change. Телеметрия не авторизует install ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection), [§26 AC-010](26-ai-coding-agent-threat-model.md)).
 
 Особенно проверять:
 

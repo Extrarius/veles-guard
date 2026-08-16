@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Якорь #curxecute + пункт чек-листа (CVE-2025-54135)."
+обновлено: 2026-08-16
+изменения: "Persistence в config/memory/tools после telemetry-инъекции — high-risk write."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -144,6 +144,8 @@ Dev-машина coding agent хранит secrets, tokens, SSH keys и част
 ### Confirmed in the wild: CurXecute (MCP config → RCE)
 
 [GHSA-4cxx-hrm3-49rm](https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm) / [CVE-2025-54135](https://nvd.nist.gov/vuln/detail/CVE-2025-54135): цепочка prompt injection → запись MCP config (`mcp.json`) → **auto-start** нового entry → RCE на хосте разработчика. Урок для production path: изменение MCP/skills config — high-risk write (approval + re-review); не считать workspace file «просто текстом». Review до connect — [§36](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [§19](../part-6-multi-agent-security/19-mcp-security.md).
+
+Persistence в config / memory / tools агента после [telemetry injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection) — тот же класс high-risk write: re-review, не «агент сам починил».
 
 ## Skills threat model
 
