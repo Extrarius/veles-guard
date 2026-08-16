@@ -2,8 +2,8 @@
 tags: [ai-security, secrets-management, credentials, least-privilege, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-16
+изменения: "Telemetry ingest credential / DSN: write-capable, не «публичный»; якорь §09."
 ---
 
 # 10 — Secrets Management
@@ -84,6 +84,7 @@ flowchart LR
 | Tool exfiltration | агент отправляет secret во внешний URL | High | egress control, allowlist |
 | Prompt leakage | пользователь просит показать system/env | Medium | output filter, no env in context |
 | Secret in error | stack trace показывает DSN | Medium | safe error handling |
+| Telemetry ingest credential | client token / DSN в JS и заголовках → запись поддельных событий | High | treat as write-capable secret; rotate; не считать «публичным» |
 
 ## Типы секретов
 
@@ -96,6 +97,7 @@ flowchart LR
 | Session cookie | browser session | isolated browser profile |
 | Webhook secret | signing key | never in prompt/logs |
 | Internal URL with token | signed URL | TTL + domain allowlist |
+| Telemetry ingest key | Datadog client token, Sentry DSN | write-capable, не «публичный»; vault + rotation |
 
 ## Правила использования секретов агентом
 
@@ -278,6 +280,7 @@ func looksSensitiveKey(k string) bool {
 - [ ] Memory запрещает хранить secrets.
 - [ ] Ошибки не раскрывают DSN/token/env.
 - [ ] Есть процесс rotation/revocation.
+- [ ] Telemetry ingest keys (client token / DSN) считаются write-capable секретами, не публичными ([§09](09-memory-isolation-context-sanitization.md#security-telemetry-injection)).
 
 ## Литература
 
@@ -290,6 +293,7 @@ func looksSensitiveKey(k string) bool {
 
 ## См. также
 
+- [09 — Security Telemetry Injection](09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
 - [08 — Sandboxing](08-sandboxing.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)

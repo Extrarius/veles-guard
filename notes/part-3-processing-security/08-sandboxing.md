@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-08
-изменения: "EVAL-NETWORK-PREFLIGHT-01 + таблица классов событий; preflight = executable."
+обновлено: 2026-08-16
+изменения: "Containment: desktop-клиент агента — «данные не покинут стенд» не гарантия (факт без PoC)."
 ---
 
 # 08 — Sandboxing
@@ -117,6 +117,8 @@ Sandbox/devbox для таких фреймворков — обязательн
 ```
 
 > **Правило:** sandbox — не гарантия isolation, если рядом остаются сеть, действующие секреты, DNS, облачные metadata, `localhost` / private ranges или уязвимая control plane.
+
+У desktop-клиента агента возможен escape через повторное использование permissive JWT: «данные не покинут стенд» — не гарантия. Факт без деталей эксплуатации. Связка с telemetry injection — [§09](09-memory-isolation-context-sanitization.md#security-telemetry-injection).
 
 ```mermaid
 flowchart LR
