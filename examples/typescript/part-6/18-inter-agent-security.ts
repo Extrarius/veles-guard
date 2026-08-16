@@ -167,3 +167,52 @@ class HandoffExecutor {
     return agent.run(msg);
   }
 }
+
+/** Source independence / arbitration outside contestants. */
+type EvidenceKind =
+  | "independent_primary"
+  | "shared_document"
+  | "same_model_peer"
+  | "retelling";
+
+interface EvidenceSource {
+  kind: EvidenceKind;
+  sourceId: string;
+  modelId?: string;
+}
+
+function independentSourceCount(items: EvidenceSource[]): number {
+  const seen = new Set<string>();
+  let n = 0;
+  for (const e of items) {
+    if (e.kind !== "independent_primary") continue;
+    if (seen.has(e.sourceId)) continue;
+    seen.add(e.sourceId);
+    n++;
+  }
+  return n;
+}
+
+function sameModel(items: EvidenceSource[]): boolean {
+  if (items.length === 0) return false;
+  const first = items[0].modelId ?? "";
+  if (!first) return false;
+  return items.every((e) => e.modelId === first);
+}
+
+function canAuthorizeFromConsensus(
+  items: EvidenceSource[],
+  minIndependent: number,
+): boolean {
+  if (independentSourceCount(items) < minIndependent) return false;
+  if (sameModel(items)) return false;
+  return true;
+}
+
+function arbiterIsOutsideDispute(
+  arbiterId: string,
+  contestants: string[],
+): boolean {
+  if (!arbiterId) return false;
+  return !contestants.includes(arbiterId);
+}

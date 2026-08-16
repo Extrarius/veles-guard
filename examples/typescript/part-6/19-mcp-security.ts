@@ -224,6 +224,45 @@ function validateToolOutput(raw: string, maxLen: number): string {
   return raw;
 }
 
+/** Split-context: arg provenance and combined-intent risk. */
+type ArgProvenance = "user" | "policy" | "tool_output";
+
+function derivedFromToolOutput(src: ArgProvenance): boolean {
+  return src === "tool_output";
+}
+
+function privilegedArgFromToolOutput(
+  privileged: boolean,
+  src: ArgProvenance,
+  policyAllows: boolean,
+): boolean {
+  if (!privileged || policyAllows) {
+    return false;
+  }
+  return derivedFromToolOutput(src);
+}
+
+interface CombinedIntentSignals {
+  descriptionFragment?: boolean;
+  resultFragment?: boolean;
+  resourceFragment?: boolean;
+  samplingFragment?: boolean;
+  secretRead?: boolean;
+  externalSend?: boolean;
+}
+
+function combinedIntentRisk(s: CombinedIntentSignals): boolean {
+  let n = 0;
+  if (s.descriptionFragment) n++;
+  if (s.resultFragment) n++;
+  if (s.resourceFragment) n++;
+  if (s.samplingFragment) n++;
+  if (n < 2) {
+    return false;
+  }
+  return Boolean(s.secretRead || s.externalSend);
+}
+
 function isLoopbackOrPrivateHost(host: string): boolean {
   const h = host.trim().toLowerCase();
   if (h === "localhost" || h.endsWith(".localhost")) {
