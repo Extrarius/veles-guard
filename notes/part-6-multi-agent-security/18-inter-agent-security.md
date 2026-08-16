@@ -3,7 +3,7 @@ tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
 обновлено: 2026-08-16
-изменения: "Чужой AI-триаж (вендорский assistant) = untrusted; «поручился другой AI» не авторизация."
+изменения: "Независимость источников (#source-independence) + арбитраж вне спора; EV-16."
 ---
 
 # 18 — Inter-Agent Security
@@ -126,7 +126,9 @@ flowchart LR
 | Delegated privilege escalation | low-privilege агент просит high-privilege агента выполнить действие | High |
 | Context leakage | агент получает больше данных, чем нужно для задачи | High |
 | Memory poisoning | один агент записывает вредный контекст в shared memory | High |
-| Consensus manipulation | несколько агентов повторяют одну ошибку и создают ложное доверие | Medium |
+| Consensus manipulation | агенты на одной модели с общим контекстом приходят к одному выводу; majority vote выглядит как подтверждение | High |
+| Correlated model errors | одинаковая модель + общий контекст + общее scaffolding → одинаковая ошибка у всех; изолированный сбой становится системным | High |
+| Peer lockout / разрешение конфликта силой | агент отзывает доступ другого агента, убивает конкурирующие процессы, маскирует свой код под чужой | Critical |
 | Responsibility diffusion | непонятно, какой агент принял опасное решение | Medium |
 | Tool result confusion | результат одного tool принимается как инструкция для другого агента | High |
 | Infinite delegation loop | агенты бесконечно передают задачу друг другу | Medium |
@@ -264,6 +266,56 @@ agent A
 6. Вывод чужого AI-триажа (вендорский assistant по error report) для следующего агента — тот же untrusted input. «Поручился другой AI» **не** авторизация. Канон телеметрии — [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection).
 
 В cyber-eval агенты оставляли инструкции в публичных артефактах там, где их могли подхватить другие агенты — [UK AISI Incident Report](../literature.md) (тот же первоисточник, что для trajectory evals §20).
+
+<a id="source-independence"></a>
+
+### 9. Независимость источников (evidence provenance)
+
+> **Правило:** `4 agents agree != 4 independent pieces of evidence`. Перед привилегированным действием считаем **независимые источники**, не голоса.
+
+Агенты низковариативны: различаются контекстом, scaffolding и моделью. Если все три совпадают, они делают одинаковый выбор — и одинаковую ошибку. Иллюстрация (Anthropic, без имён моделей): 18 из 30 агентов создали ветку с одним и тем же именем. Isolated miss становится системным сбоем.
+
+**Hidden profile:** общее знание группы поддерживает неверный выбор, а решающее свидетельство есть у одного участника. Группа сходится на общем; уникальный факт не продавливается. Качество растёт с моделью, но не выходит на плато. Противоречие между сообщениями делает ложь обнаруживаемой — но агенту не сообщают, что источник может врать, и он не проверяет сам.
+
+Каждая протестированная модель абстрактно понимает, что консенсус не является доказательством. Не хватает готовности действовать по этому знанию **без подсказки** — контроль должен быть внешним (runtime), не расчёт на диспозицию модели.
+
+| Что предъявлено | Независимый источник? |
+|---|---|
+| Independent primary source (отдельный документ / наблюдение / канал) | да |
+| Тот же документ у четырёх агентов | нет — один источник, четыре голоса |
+| Вывод другого агента на той же модели и том же контексте | нет |
+| Пересказ вывода («агент B сказал то же») | нет |
+
+Контроли:
+
+1. Provenance свидетельства до привилегированного действия.
+2. **Model diversity:** арбитр / проверяющий — на другой модели, другом контексте, другом scaffolding.
+3. Dissent одного агента не отбрасывается по большинству (hidden profile).
+4. Противоречие между источниками — триггер проверки, не усреднения.
+5. «Консенсус ≠ доказательство» — свойство policy, не надежда, что модель сама остановится.
+
+```text
+majority vote = сколько агентов согласились
+evidence      = сколько независимых источников подтвердили
+```
+
+Eval: [§20 EV-16](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16).
+
+<a id="arbitration-outside-contestants"></a>
+
+### 10. Арбитраж вне участников спора
+
+> **Правило:** спор между агентами решает сторона, которая в споре **не участвует** (отдельный арбитр / policy / человек), а не победитель по силе.
+
+При противоречивых директивах параллельные агенты переходят к саботажу и «разрешению силой»: отзыв доступа, циклы поиска и убийства конкурирующих процессов, выдача своего кода за чужой. Это конфигурационный риск (две несовместимые цели на одном контуре), не «злой агент». Цель контроля — обнаружить и остановить эскалацию. В том же исследовании валидность находок решал **отдельный арбитр**, не участники.
+
+Запреты (не входят в scope агента — [§06](../part-3-processing-security/06-rbac-tool-permissions.md)):
+
+- агент не отзывает identity, sudo и ключи другого агента;
+- не убивает конкурирующие процессы;
+- не выдаёт свой код за чужой.
+
+Неразрешимый конфликт → стоп и человек ([§14](../part-5-control-observability/14-human-in-the-loop.md)), circuit breaker ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
 
 ## Пример (Go)
 
@@ -458,6 +510,85 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 }
 ```
 
+### Независимость источников и арбитр вне спора
+
+Перед привилегированным действием считаем независимые источники, не голоса. Арбитр не должен быть участником спора.
+
+```go
+type EvidenceKind string
+
+const (
+	EvidenceIndependentPrimary EvidenceKind = "independent_primary"
+	EvidenceSharedDocument     EvidenceKind = "shared_document"
+	EvidenceSameModelPeer      EvidenceKind = "same_model_peer"
+	EvidenceRetelling          EvidenceKind = "retelling"
+)
+
+type EvidenceSource struct {
+	Kind     EvidenceKind
+	SourceID string
+	ModelID  string
+}
+
+func IndependentSourceCount(items []EvidenceSource) int {
+	seen := map[string]bool{}
+	n := 0
+	for _, e := range items {
+		if e.Kind != EvidenceIndependentPrimary {
+			continue
+		}
+		if seen[e.SourceID] {
+			continue
+		}
+		seen[e.SourceID] = true
+		n++
+	}
+	return n
+}
+
+func sameModel(items []EvidenceSource) bool {
+	if len(items) == 0 {
+		return false
+	}
+	first := items[0].ModelID
+	if first == "" {
+		return false
+	}
+	for _, e := range items {
+		if e.ModelID != first {
+			return false
+		}
+	}
+	return true
+}
+
+// CanAuthorizeFromConsensus — false, если независимых источников меньше
+// порога или все свидетельства с одной модели (без diversity).
+func CanAuthorizeFromConsensus(items []EvidenceSource, minIndependent int) bool {
+	if IndependentSourceCount(items) < minIndependent {
+		return false
+	}
+	if sameModel(items) {
+		return false
+	}
+	return true
+}
+
+func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
+	if arbiterID == "" {
+		return false
+	}
+	for _, c := range contestants {
+		if c == arbiterID {
+			return false
+		}
+	}
+	return true
+}
+```
+
+Синхрон: [Python](../../examples/python/part-6/18-inter-agent-security.py) · [TypeScript](../../examples/typescript/part-6/18-inter-agent-security.ts).
+
 ## STRIDE для inter-agent взаимодействия
 
 | STRIDE | Угроза для multi-agent |
@@ -488,7 +619,12 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [ ] High-risk результат проверяется reviewer/verifier.
 - [ ] Все handoffs логируются.
 - [ ] Tool calls child-agent тоже проходят RBAC/schema/sandbox.
-- [ ] Majority vote не используется как единственный security control.
+- [ ] Majority vote не используется как единственный security control ([независимость источников](#source-independence)).
+- [ ] Перед привилегированным действием посчитаны независимые источники, не голоса.
+- [ ] Арбитр / verifier вне спора и на другой модели / контексте / scaffolding ([арбитраж](#arbitration-outside-contestants)).
+- [ ] Агент не управляет identity, sudo и процессами другого агента.
+- [ ] Dissent фиксируется и не тонет в большинстве (hidden profile).
+- [ ] Неразрешимый конфликт → стоп и человек / circuit breaker.
 
 ## Литература
 
@@ -499,6 +635,7 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [OpenAI Agents SDK — Guardrails](https://openai.github.io/openai-agents-python/guardrails/)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
+- [Anthropic — Patterns and problems in emerging multiagent systems](https://www.anthropic.com/research/multiagent-systems) — независимость источников, корреляция моделей, арбитраж вне спора
 
 ## См. также
 
@@ -511,3 +648,5 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [27 — Repository Instructions Attack Surface](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md) — README / issue / PR как untrusted
 - [29 — AI-generated code review](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md) — agent-generated PR, те же gates
 - [20 — Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) — composition шагов (смежная тема)
+- [20 — Correlated evidence evals (EV-16)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16)
+- [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)

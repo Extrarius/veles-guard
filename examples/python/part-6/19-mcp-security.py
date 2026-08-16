@@ -174,6 +174,52 @@ def validate_tool_output(raw: str, max_len: int) -> str:
     return raw
 
 
+# --- Split-context / compositional MCP injection ---
+
+
+class ArgProvenance(str, Enum):
+    USER = "user"
+    POLICY = "policy"
+    TOOL_OUTPUT = "tool_output"
+
+
+def derived_from_tool_output(src: ArgProvenance) -> bool:
+    return src == ArgProvenance.TOOL_OUTPUT
+
+
+def privileged_arg_from_tool_output(
+    privileged: bool, src: ArgProvenance, policy_allows: bool
+) -> bool:
+    """True if a privileged tool received an arg from another tool's output without policy."""
+    if not privileged or policy_allows:
+        return False
+    return derived_from_tool_output(src)
+
+
+@dataclass
+class CombinedIntentSignals:
+    description_fragment: bool = False
+    result_fragment: bool = False
+    resource_fragment: bool = False
+    sampling_fragment: bool = False
+    secret_read: bool = False
+    external_send: bool = False
+
+
+def combined_intent_risk(s: CombinedIntentSignals) -> bool:
+    n = sum(
+        (
+            s.description_fragment,
+            s.result_fragment,
+            s.resource_fragment,
+            s.sampling_fragment,
+        )
+    )
+    if n < 2:
+        return False
+    return s.secret_read or s.external_send
+
+
 def is_loopback_or_private_host(host: str) -> bool:
     import ipaddress
 

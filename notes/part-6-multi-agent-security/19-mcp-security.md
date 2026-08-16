@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Trusted Tool Registry (#trusted-tool-registry): endpoint, tool_type, allowed models/data classes, review policy."
+обновлено: 2026-08-16
+изменения: "Split-context MCP injection (#split-context-mcp-injection): SAFE(A)+SAFE(B)≠SAFE(A+B); provenance args; EV-15."
 ---
 
 # 19 — MCP Security
@@ -136,6 +136,7 @@ flowchart LR
 | Missing audit | невозможно доказать, какой MCP tool что сделал | Medium |
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
+| Split-context injection | безобидные фрагменты в description + result (+ resource / sampling) складываются в combined intent | Critical |
 
 ### Confused deputy (учебный сценарий)
 
@@ -162,6 +163,7 @@ flowchart LR
 | Cross-server influence | один MCP server влияет на выбор и аргументы tools другого сервера | High |
 | Context injection | MCP resource или prompt подмешивает инструкции в план агента | High |
 | Shadow server | новый MCP server или tool появляется без review и попадает в discovery | High |
+| Split-context injection | полная инструкция ни в одном канале; агент собирает combined intent из нескольких SAFE-фрагментов | Critical |
 
 **Shadow servers** — серверы или tools, которые агент обнаруживает динамически (discovery, обновление конфига, подмена package) без прохождения allowlist и security review. **Context injection** — когда resource, prompt или tool output содержит управляющие инструкции, которые агент принимает как часть задачи пользователя.
 
@@ -172,6 +174,7 @@ flowchart LR
 - **Sandboxing MCP tools** (п. 8) — shell, filesystem, network в изоляции.
 - Pin tool definitions (version/hash); при изменении metadata — re-review и alert. События re-review — [mcp-skill-review — Re-review triggers](../../templates/mcp-skill-review.md#re-review-triggers).
 - Tool output **никогда** не интерпретируется как управляющая инструкция для следующего tool call.
+- **Split-context** — оценивать combined intent по всем каналам; значение из output не течёт в args другого tool без policy ([канон](#split-context-mcp-injection)).
 
 См. [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) — MCP03 Tool Poisoning.
 
@@ -199,7 +202,74 @@ Allowlist, consent и security review обычно происходят **при
 | Single server policy | Cross-server chaining через output | Separate internal vs external MCP; no chaining без policy |
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
 
-См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call).
+См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call). Композиция нескольких «зелёных» фрагментов — [split-context injection](#split-context-mcp-injection).
+
+<a id="split-context-mcp-injection"></a>
+
+## Split-context / compositional MCP injection
+
+Сканер одной поверхности (description, output, resource) видит только свой фрагмент. Агент читает все каналы **одним блоком контекста** — границ по источнику нет. Каждый фрагмент может пройти review; вместе они дают опасный вызов.
+
+```text
+tool.description
+       +
+tool result
+       +
+resource
+       +
+previous MCP output
+       +
+sampling (systemPrompt)
+       ↓
+combined intent
+       ↓
+dangerous tool call
+```
+
+> **Правило:** `SAFE(fragment A) + SAFE(fragment B) != SAFE(A + B)`.
+
+Факт (ASSET GhostSplice, без таблицы моделей и без payload'ов): разбиение на два безобидных фрагмента примерно удваивает послушание — в среднем **42% → 82%** на одиннадцати моделях; три модели, отказывавшие в каждой попытке, при разбиении переходят к полному выполнению. Третий фрагмент внутри production coding tool ломает модели, устоявшие на двух. Одна и та же модель даёт отказ через API и выполнение в IDE-харнессе: **клиент / харнесс — часть attack surface**.
+
+### Каналы фрагмента
+
+| Канал | Когда читается | Почему опасен |
+|---|---|---|
+| `tool.description` | connect-time | scanner видит bland schema; полной инструкции нет |
+| `tool result` | после вызова | агент доверяет «только что полученным данным» сильнее, чем рекламе tool |
+| `resource` | runtime read | connect-time review resource не покрывает |
+| предыдущий MCP output | тот же run | chaining без policy: output A → args B |
+| server-initiated **sampling** | клиент принимает `createMessage` | `systemPrompt` сервера попадает как system message; approval часто показывает **имя сервера**, не текст; approve-once распространяется на все последующие запросы. Сейчас поддерживает один mainstream-клиент |
+
+Полный разбор MCP **sampling / elicitation / roots** — отдельный P2, сюда не сливаем. Здесь sampling — только третий канал фрагмента.
+
+### Почему текущие защиты не видят
+
+| Защита | Почему мимо |
+|---|---|
+| Description scanner | полной инструкции в description нет |
+| Keyword filter на output | фрагмент выглядит как «заполни поля», не как «прочитай секрет» |
+| Integrity / rug-pull | поведение tool после approval не меняется |
+| Отказ модели на blunt-запросе | blunt-запроса нет; модель видит рутину |
+| Ранжирование источников (system > user > tool) | порядок доверия у моделей разный; «поднять» канал может **ухудшить** ситуацию |
+
+«Tool'у по назначению нужны эти данные» — не оправдание передачи файлов и секретов в аргументы.
+
+### Контрмеры
+
+1. Оценивать **combined intent** по всем каналам, не по одной поверхности. Single-surface scan ≠ доказательство.
+2. Значение из tool output **не течёт** в аргументы другого tool без явной policy (provenance / taint аргументов). Связка: п. 4 Strict schema validation и [§07](../part-3-processing-security/07-parameter-validation-schema.md).
+3. Метки источника на фрагментах контекста (description / result / resource / sampling / user) — даже если модель их игнорирует, policy и eval их видят.
+4. Sampling: deny by default; approval показывает **текст** внедряемого prompt; approve-once ≠ blanket на все последующие запросы ([§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)).
+5. Internal и external MCP раздельно; cross-server chaining только по policy (уже в чек-листе ниже).
+6. Харнесс тестировать отдельно от модели ([EV-15](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15)).
+
+### Отличие от MCP03 / rug pull / trajectory / artifact
+
+| | MCP03 tool poisoning | Rug pull | Split-context | Trajectory (EV-13) | Artifact poisoning (§18) |
+|---|---|---|---|---|---|
+| Где живёт опасность | одна description / metadata | смена поведения после consent | **композиция** каналов в одном run | цепочка **шагов** относительно goal | артефакт **между** агентами / runs |
+| Scanner одной поверхности | может поймать | integrity / pin | не видит | не про это | не про MCP-каналы |
+| Канон | этот раздел, MCP03 выше | pin + re-review | этот подраздел | [§20 EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) | [§18](18-inter-agent-security.md#agent-generated-artifact-poisoning) |
 
 ## Localhost is not a trust boundary (AutoJack)
 
@@ -625,6 +695,64 @@ func ValidateToolOutput(raw string, maxLen int) (string, error) {
 }
 ```
 
+### Provenance аргументов и combined intent (split-context)
+
+Значение из вывода одного tool не должно попадать в аргументы другого без policy. Combined intent — риск, если фрагменты пришли из двух и более каналов и есть secret-read или external-send.
+
+```go
+type ArgProvenance string
+
+const (
+	ArgFromUser   ArgProvenance = "user"
+	ArgFromPolicy ArgProvenance = "policy"
+	ArgFromTool   ArgProvenance = "tool_output"
+)
+
+func DerivedFromToolOutput(src ArgProvenance) bool {
+	return src == ArgFromTool
+}
+
+// PrivilegedArgFromToolOutput — true, если privileged tool получил
+// аргумент из чужого tool output без явного policy allow.
+func PrivilegedArgFromToolOutput(privileged bool, src ArgProvenance, policyAllows bool) bool {
+	if !privileged || policyAllows {
+		return false
+	}
+	return DerivedFromToolOutput(src)
+}
+
+type CombinedIntentSignals struct {
+	DescriptionFragment bool
+	ResultFragment      bool
+	ResourceFragment    bool
+	SamplingFragment    bool
+	SecretRead          bool
+	ExternalSend        bool
+}
+
+func CombinedIntentRisk(s CombinedIntentSignals) bool {
+	n := 0
+	if s.DescriptionFragment {
+		n++
+	}
+	if s.ResultFragment {
+		n++
+	}
+	if s.ResourceFragment {
+		n++
+	}
+	if s.SamplingFragment {
+		n++
+	}
+	if n < 2 {
+		return false
+	}
+	return s.SecretRead || s.ExternalSend
+}
+```
+
+Синхрон: [Python](../../examples/python/part-6/19-mcp-security.py) · [TypeScript](../../examples/typescript/part-6/19-mcp-security.ts).
+
 ### Блокировка loopback/private адресов (AutoJack)
 
 Перед MCP egress или HTTP tool call отклоняем loopback, private и link-local адреса, если policy не разрешает явно.
@@ -691,6 +819,11 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Egress агента блокирует loopback/private/link-local по умолчанию.
 - [ ] Experimental agent frameworks и local privileged services — в sandbox/devbox.
 - [ ] Shadow servers (новые tools/servers без review) блокируются и алертятся.
+- [ ] Policy оценивает combined intent по всем MCP-каналам, не по одной поверхности ([split-context](#split-context-mcp-injection)).
+- [ ] Значение из tool output не течёт в аргументы другого tool без явной policy (provenance аргументов).
+- [ ] Фрагменты контекста помечены источником (description / result / resource / sampling / user).
+- [ ] Sampling deny by default; approval показывает текст prompt, не только имя сервера; approve-once ≠ blanket.
+- [ ] Single-surface scan (description-only / output-only) не считается доказательством отсутствия injection.
 
 ## Когда отключать MCP server
 
@@ -715,16 +848,20 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [Microsoft — AutoJack: single-page RCE on host running AI agent](https://www.microsoft.com/en-us/security/blog/2026/06/18/autojack-single-page-rce-host-running-ai-agent/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
+- [ASSET Research Group — GhostSplice](https://asset-group.github.io/disclosures/ghostsplice/) — split-context MCP injection (description + result + sampling; combined intent)
 
 ## См. также
 
 - [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
 - [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
 - [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
-- [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
+- [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md) — schema args; provenance значений из tool output — этот раздел
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [18 — Agent-generated artifact poisoning](18-inter-agent-security.md#agent-generated-artifact-poisoning) — между агентами / runs, не композиция MCP-каналов
+- [20 — Split-context MCP injection evals (EV-15)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15)
+- [28 — Permissions, sandbox и approval](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md) — sampling approval показывает текст
 - [31 — CI/CD, MCP, Skills и production path](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)
 - [34 — Course: Agent Assessment and Defense](../part-10-course-appendix/34-course-agent-assessment-defense.md)

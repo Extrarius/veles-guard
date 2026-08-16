@@ -142,3 +142,58 @@ class HandoffExecutor:
 
         self.audit.log_handoff(msg, "allowed", "handoff policy passed")
         return agent.run(msg)
+
+
+# --- Source independence / arbitration outside contestants ---
+
+
+class EvidenceKind(str, Enum):
+    INDEPENDENT_PRIMARY = "independent_primary"
+    SHARED_DOCUMENT = "shared_document"
+    SAME_MODEL_PEER = "same_model_peer"
+    RETELLING = "retelling"
+
+
+@dataclass
+class EvidenceSource:
+    kind: EvidenceKind
+    source_id: str
+    model_id: str = ""
+
+
+def independent_source_count(items: List[EvidenceSource]) -> int:
+    seen: set[str] = set()
+    n = 0
+    for e in items:
+        if e.kind != EvidenceKind.INDEPENDENT_PRIMARY:
+            continue
+        if e.source_id in seen:
+            continue
+        seen.add(e.source_id)
+        n += 1
+    return n
+
+
+def _same_model(items: List[EvidenceSource]) -> bool:
+    if not items:
+        return False
+    first = items[0].model_id
+    if not first:
+        return False
+    return all(e.model_id == first for e in items)
+
+
+def can_authorize_from_consensus(
+    items: List[EvidenceSource], min_independent: int
+) -> bool:
+    if independent_source_count(items) < min_independent:
+        return False
+    if _same_model(items):
+        return False
+    return True
+
+
+def arbiter_is_outside_dispute(arbiter_id: str, contestants: List[str]) -> bool:
+    if not arbiter_id:
+        return False
+    return arbiter_id not in contestants
