@@ -66,6 +66,7 @@ tags: [ai-security, конспект, литература]
 
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
+- **Anthropic — Patterns and problems in emerging multiagent systems** — <https://www.anthropic.com/research/multiagent-systems> — Frontier Red Team (13 августа 2026): независимость источников vs majority vote; корреляция моделей (общий контекст / scaffolding); арбитраж вне участников спора (§18, EV-16).
 - **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
 - **Tenet — GhostJacking** — <https://tenetsecurity.ai/blog/ghostjacking-attacks-agentic-kill-chain/> — DEF CON 34: poisoned WAF/SIEM/Sentry/Datadog logs как канал инъекции; read + write в одной сессии; blocked payload остаётся untrusted (§09).
 
@@ -88,6 +89,7 @@ tags: [ai-security, конспект, литература]
 - **OWASP — Practical Guide for Securely Using Third-Party MCP Servers** — <https://genai.owasp.org/resource/cheatsheet-a-practical-guide-for-securely-using-third-party-mcp-servers-1-0/>
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
 - **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
+- **ASSET Research Group — GhostSplice** — <https://asset-group.github.io/disclosures/ghostsplice/> — split-context / compositional MCP injection: `tool.description` + `tool result` + sampling; combined intent; сканер одной поверхности не видит атаку.
 
 ## Agent skills / MCP scanning tools
 
