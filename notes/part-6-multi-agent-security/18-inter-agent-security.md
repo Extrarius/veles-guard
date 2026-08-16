@@ -2,8 +2,8 @@
 tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Agent-generated artifact poisoning: публичный канал A→B; ### 8 + checklist."
+обновлено: 2026-08-16
+изменения: "Чужой AI-триаж (вендорский assistant) = untrusted; «поручился другой AI» не авторизация."
 ---
 
 # 18 — Inter-Agent Security
@@ -261,6 +261,7 @@ agent A
 3. Между агентами передаются provenance и sender identity (см. Message provenance); для публичных артефактов — явная метка источника / автора / run, если известна.
 4. Внешний артефакт **не** может автоматически расширять capabilities агента B.
 5. Agent-generated PR / issue / package проходит **те же** проверки, что human-generated ([§27](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md), [§29](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md), [§22](../part-7-testing-compliance/22-supply-chain-security.md)).
+6. Вывод чужого AI-триажа (вендорский assistant по error report) для следующего агента — тот же untrusted input. «Поручился другой AI» **не** авторизация. Канон телеметрии — [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection).
 
 В cyber-eval агенты оставляли инструкции в публичных артефактах там, где их могли подхватить другие агенты — [UK AISI Incident Report](../literature.md) (тот же первоисточник, что для trajectory evals §20).
 
@@ -482,6 +483,7 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 - [ ] Между агентами передаются provenance и sender identity (в т.ч. для публичных артефактов, если известны).
 - [ ] Внешний артефакт не может автоматически расширять capabilities.
 - [ ] Agent-generated PR / issue / package проходит те же проверки, что human-generated.
+- [ ] Вывод чужого AI-триажа не авторизует действие следующего агента ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)).
 - [ ] Есть budget на handoffs и depth.
 - [ ] High-risk результат проверяется reviewer/verifier.
 - [ ] Все handoffs логируются.
@@ -501,7 +503,7 @@ func (e HandoffExecutor) Execute(ctx context.Context, msg AgentMessage) (AgentMe
 ## См. также
 
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
-- [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
+- [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md) · [Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [19 — MCP Security](19-mcp-security.md)
