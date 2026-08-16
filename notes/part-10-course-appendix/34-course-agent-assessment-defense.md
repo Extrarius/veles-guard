@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-08-08
-изменения: "PR→CI→exfil trace, 8 анти-паттернов."
+обновлено: 2026-08-16
+изменения: "Якорь внешних входов (#external-data-inputs): логи/алерты в списке; прочитал ≠ уполномочен."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -87,7 +87,7 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 
 | Область | Что оценивать (безопасно) | Канон |
 |---|---|---|
-| **Вход (Input)** | прямое / косвенное внедрение инструкций (direct / indirect prompt injection); обход инструкций через роли / [путаница ролей (role confusion)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) | [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) |
+| **Вход (Input)** | прямое / косвенное внедрение инструкций (direct / indirect prompt injection); обход инструкций через роли / [путаница ролей (role confusion)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion); логи / алерты / телеметрия и вывод инструментов — тот же класс ([внешние входы](#external-data-inputs)) | [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection), [§16](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input) |
 | **Выход (Output)** | Небезопасный вывод (разметка, скрипты, утечки) до отрисовки (render) / доверия интерфейсу (UI) | [§11](../part-4-output-security/11-output-validation-fact-checking.md), [§04](../part-2-input-security/04-pii-redaction-content-filtering.md) |
 | **Знания / RAG (Knowledge / RAG)** | Отравление документов в базе; извлечение (retrieval) вне списков контроля доступа (ACL); утечка (exfil) через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
 | **Инструменты / MCP (Tools / MCP)** | Вредоносный / отравленный инструмент (tool); **подставной исполнитель (confused deputy)** — агент действует с чужими правами по подсказке | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
@@ -175,6 +175,34 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 ```
 
 Связь с ландшафтом: [§33 эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform) — куда «садится» агент при контролируемом использовании (controlled usage); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai) — что бывает без контура.
+
+<a id="external-data-inputs"></a>
+
+## Оценка внешних входов (External data as input)
+
+Агент читает больше, чем «чат пользователя». Всё прочитанное — **данные**, не команды (data ≠ commands). Вопросы ниже — учебный якорь; канон остаётся в частях I–IX.
+
+| Класс внешних данных | Канон |
+|---|---|
+| Документы / база знаний (RAG) | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Web и файлы | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| PR / issue / комментарии | [§29](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input), [§27](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md) |
+| Вывод инструментов и каналы MCP | [§19](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection) |
+| Логи / алерты / телеметрия / error-отчёты | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection), [§16](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input) |
+| Выводы других агентов | [§18](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning) |
+
+**Вопросы оценки (assessment):**
+
+1. Какие внешние данные агент читает (перечислить по таблице, вычеркнуть N/A)?
+2. Может ли агент **по тем же данным** выполнить привилегированное действие (оболочка — shell, чтение секретов, запись, изменение инфраструктуры)?
+3. Помечен ли источник каждого фрагмента контекста (метка источника — source label, не тег роли — role tag)?
+4. Есть ли путь «прочитал → выполнил» без внеполосного подтверждения (out-of-band approval)?
+5. Какое **одно** звено рвём в своём контуре (связка со смертельной тройкой (lethal trifecta) выше и [следом PR→CI→exfil](#pr-ci-exfil-trace))?
+
+```text
+Данные из системы безопасности (лог, алерт) — тоже внешний вход.
+Прочитал ≠ уполномочен выполнить.
+```
 
 ## Red team assessment
 
@@ -292,6 +320,7 @@ const (
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
 - [ ] Lethal trifecta проверен; есть план «сломать одно звено».
 - [ ] Пройден [учебный след PR→CI→exfil](#pr-ci-exfil-trace): названо звено «где рвётся».
+- [ ] Заполнен [список внешних входов](#external-data-inputs); для каждого сказано, может ли агент по этим данным действовать.
 - [ ] Проверены [8 анти-паттернов курса](#anti-patterns-course) на своём агенте (или N/A с причиной).
 - [ ] Capability / blast radius зафиксированы до матрицы областей.
 - [ ] Следующий шаг — практикум §35–38 или Testing Guide.
@@ -309,7 +338,10 @@ const (
 ## См. также
 
 - [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup); [SDLC ↔ lifecycle](33-course-ai-security-landscape.md#sdlc-vs-agent-lifecycle); [что логировать](33-course-ai-security-landscape.md#what-to-log)
-- [Учебный след PR→CI→exfil](#pr-ci-exfil-trace); [анти-паттерны курса](#anti-patterns-course)
+- [Учебный след PR→CI→exfil](#pr-ci-exfil-trace); [анти-паттерны курса](#anti-patterns-course); [внешние входы](#external-data-inputs)
+- [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection) — логи / алерты как untrusted
+- [16 — телеметрия как вход](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input)
+- [19 — Split-context MCP injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class) — канон матрицы / производственный шлюз (production gate)
 - [Шаблоны — паспорт агента (agent passport)](../../templates/agent-passport.md)
 - [20 — Red Teaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) — канон тестирования ограничений (EV-10); [путаница ролей (EV-12)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12)
