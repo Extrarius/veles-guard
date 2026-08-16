@@ -25,10 +25,13 @@ class CodingTask:
     dependencies: bool = False
     ci_changes: bool = False
     secrets_seen: bool = False
+    telemetry_in: bool = False
 
 
 def classify_task(task: CodingTask) -> RiskLevel:
     if task.secrets_seen:
+        return RiskLevel.CRITICAL
+    if task.telemetry_in and (task.shell or task.network or task.dependencies):
         return RiskLevel.CRITICAL
     if task.ci_changes or task.dependencies:
         return RiskLevel.HIGH

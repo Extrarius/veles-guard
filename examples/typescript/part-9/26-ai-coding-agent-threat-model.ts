@@ -18,10 +18,14 @@ interface CodingTask {
   dependencies?: boolean;
   ciChanges?: boolean;
   secretsSeen?: boolean;
+  telemetryIn?: boolean;
 }
 
 function classifyTask(task: CodingTask): RiskLevel {
   if (task.secretsSeen) {
+    return RiskLevel.Critical;
+  }
+  if (task.telemetryIn && (task.shell || task.network || task.dependencies)) {
     return RiskLevel.Critical;
   }
   if (task.ciChanges || task.dependencies) {
