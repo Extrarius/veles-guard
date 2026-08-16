@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-08-12
-изменения: "Trajectory composition: allowed action ≠ allowed trajectory; якорь §20 EV-13; исправлена форма «скомпрометированный»."
+обновлено: 2026-08-16
+изменения: "Lethal trifecta: security-телеметрия закрывает ногу untrusted content; read+write в одной сессии."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -340,6 +340,8 @@ Approval работает только если человек **понимае�
 
 После DFD: отметьте границы (стрелки между слоями) → «worst case на границе?» → **ранжируйте по blast radius** → controls сначала на наибольший радиус.
 
+<a id="lethal-trifecta"></a>
+
 ## Lethal trifecta (design rule)
 
 Опасная связка в **одном** execution path ([Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)):
@@ -349,6 +351,8 @@ Approval работает только если человек **понимае�
 3. **outbound channel** (HTTP, email, public PR, image/URL render).
 
 Правило проектирования: убрать хотя бы одну «ногу» (нет egress при чтении чужих PR; нет secrets в контексте при untrusted input; нет private read при открытом egress). Атакующему нужно пройти всю цепочку; защитнику достаточно удержать **одну** границу. Детали egress — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md); MCP-кейсы — [§19](../part-6-multi-agent-security/19-mcp-security.md).
+
+Security-телеметрия (WAF-лог, SIEM, error report) закрывает ногу **untrusted content**: заблокированный payload остаётся в журнале. Read-only data tool и write/exec tool в **одной** сессии собирают связку без отдельного approval. Канон — [§09 Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection).
 
 ## Карта угроз по слоям
 
@@ -600,5 +604,6 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [08 — Sandboxing (signed scope / pre-eval)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [13 — Egress Control (lethal trifecta / exfil)](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
