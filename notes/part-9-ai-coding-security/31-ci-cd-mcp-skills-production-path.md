@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-16
-изменения: "Persistence в config/memory/tools после telemetry-инъекции — high-risk write."
+изменения: "Split-context MCP injection в threat model; харнесс — часть поверхности (якорь §19)."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -131,6 +131,7 @@ flowchart LR
 | Shell tool abuse | MCP tool запускает команды | Critical |
 | Egress bypass | MCP server отправляет данные наружу | Critical |
 | Cross-server contamination | output одного server влияет на другой tool | High |
+| Split-context injection | безобидные фрагменты в description + result (+ sampling) → combined intent → secret read / egress | Critical |
 | Localhost trust gap | browser tool агента → local MCP/WebSocket без auth → RCE на dev-машине | Critical |
 
 ## Localhost is not a trust boundary (dev context)
@@ -138,6 +139,8 @@ flowchart LR
 Dev-машина coding agent хранит secrets, tokens, SSH keys и часто примыкает к production (VPN, cloud creds, deploy access). **AutoJack** показывает: вредная страница → browser tool → `localhost` MCP/WebSocket без auth → RCE на хосте.
 
 В AI-coding контексте это особенно опасно: агент постоянно открывает внешние страницы (docs, issues, PR diffs), а локальные MCP/skills слушают loopback. Контрмеры: auth+authz на local MCP, egress блокирует loopback/private, experimental frameworks — в sandbox/devbox. Подробнее: [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack), [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary).
+
+MCP-клиент / харнесс — часть поверхности: один и тот же сервер даёт разный результат в разных клиентах (API vs IDE). Split-context injection и sampling как третий канал — [§19](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection).
 
 <a id="curxecute"></a>
 
@@ -375,7 +378,7 @@ func CanEnterProductionPath(pr PR) bool {
 ## См. также
 
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
-- [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
+- [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md) — [split-context injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)

@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, sandbox, permissions, approval, shell]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Правило cwd: safe command вне workspace опасна; Action.Cwd + validatePath на RunShell; якорь #cwd-safety-rule."
+обновлено: 2026-08-16
+изменения: "Sampling approval показывает текст prompt, не имя сервера; approve-once ≠ blanket."
 ---
 
 # 28 — Permissions, sandbox и approval для coding agents
@@ -313,6 +313,8 @@ Reason: shell command execution
 Files affected: none
 ```
 
+Для server-initiated **sampling** approval показывает **текст** внедряемого prompt, не только имя MCP-сервера. Approve-once не распространяется на последующие sampling-запросы того же сервера. Канон канала — [§19 split-context](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection).
+
 ## Fail closed
 
 Если невозможно проверить policy, sandbox state, approval decision, network allowlist, workspace root или tool registry — действие блокируется.
@@ -334,6 +336,7 @@ approval timeout → deny
 - [ ] Shell `Cwd` обязателен и проверяется на границы workspace ([cwd safety](#cwd-safety-rule)); allowlist binary ≠ произвольный cwd.
 - [ ] `.env` и secrets не читаются агентом.
 - [ ] Approval UI показывает команду, путь, URL и risk.
+- [ ] Sampling approval показывает текст prompt, не только имя сервера; approve-once ≠ blanket на последующие запросы.
 - [ ] Approval timeout блокирует действие.
 - [ ] Все команды логируются.
 - [ ] Full access не используется как стандартный режим.
@@ -352,4 +355,5 @@ approval timeout → deny
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#sandbox-jailing) — jailing (min env, RW cwd, RO FS)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [19 — Split-context MCP injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection) — sampling как канал фрагмента
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
