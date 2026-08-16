@@ -231,6 +231,30 @@ function minimizeForContext(
   return out;
 }
 
+// --- Security telemetry injection (§09 #security-telemetry-injection) ---
+
+interface TelemetryRecord {
+  source: string; // waf_log, siem, sentry, datadog, app_log, audit
+  trust: TrustLevel;
+  text: string;
+}
+
+/** Telemetry may influence reasoning; it never authorizes a privileged sink. */
+function canAuthorizeFromTelemetry(record: TelemetryRecord, sink: string): boolean {
+  if (record.trust !== TrustLevel.Untrusted) {
+    return false;
+  }
+  if (
+    sink === "shell" ||
+    sink === "secrets_read" ||
+    sink === "network_write" ||
+    sink === "infrastructure_change"
+  ) {
+    return false;
+  }
+  return false;
+}
+
 export {
   TrustLevel,
   MemoryScope,
@@ -245,6 +269,7 @@ export {
   canRetrieveForUser,
   canSendToModel,
   minimizeForContext,
+  canAuthorizeFromTelemetry,
 };
 
-export type { MemoryRecord, ContextBlock, RetrievedChunk, RetrievalPolicy, ResourceMeta };
+export type { MemoryRecord, ContextBlock, RetrievedChunk, RetrievalPolicy, ResourceMeta, TelemetryRecord };

@@ -209,3 +209,22 @@ def can_send_to_model(meta: ResourceMeta, route: InferenceRoute) -> bool:
 def minimize_for_context(meta: ResourceMeta, fields: dict[str, str]) -> dict[str, str]:
     """Allowlist fields only — no full-attachment passthrough."""
     return {k: fields[k] for k in meta.allowed_fields if k in fields}
+
+
+# --- Security telemetry injection (§09 #security-telemetry-injection) ---
+
+
+@dataclass(frozen=True)
+class TelemetryRecord:
+    source: str  # waf_log, siem, sentry, datadog, app_log, audit
+    trust: TrustLevel
+    text: str
+
+
+def can_authorize_from_telemetry(record: TelemetryRecord, sink: str) -> bool:
+    """Telemetry may influence reasoning; it never authorizes a privileged sink."""
+    if record.trust != TrustLevel.UNTRUSTED:
+        return False
+    if sink in ("shell", "secrets_read", "network_write", "infrastructure_change"):
+        return False
+    return False

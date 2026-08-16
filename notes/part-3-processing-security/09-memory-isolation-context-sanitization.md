@@ -2,8 +2,8 @@
 tags: [ai-security, memory-isolation, context-sanitization, rag-security, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Context smuggling: strip role-claims (#strip-role-claims); связка Role confusion §03."
+обновлено: 2026-08-16
+изменения: "Security Telemetry Injection (#security-telemetry-injection): логи/алерты = untrusted; policy на sink; связка EV-14."
 ---
 
 # 09 — Memory Isolation и Context Sanitization
@@ -42,6 +42,7 @@ Memory — это не база истин. Это хранилище данны
 | Tool output | semi-trusted / untrusted | tool poisoning |
 | Long-term memory | mixed | memory poisoning |
 | RAG chunks | untrusted | retrieval injection |
+| Security telemetry / logs (WAF, SIEM, Sentry, Datadog, app logs, audit events) | untrusted | telemetry injection |
 | Secrets | never in prompt | data exfiltration |
 
 ## DFD: context builder с изоляцией памяти
@@ -82,6 +83,7 @@ flowchart LR
 | Secret persistence | токен сохранён в memory | High | secret detection, never-store policy |
 | Stale memory | старое решение используется как актуальное | Medium | TTL, source metadata |
 | Tool output poisoning | внешний API вернул инструкцию агенту | Medium | treat tool output as untrusted |
+| Security telemetry injection | заблокированный запрос записан в лог verbatim, агент выполняет инструкцию при разборе события | High | trust label, [policy на sink](#security-telemetry-injection) |
 | RAG injection | документ содержит скрытые команды | High | chunk labels, [retrieval rails](#retrieval-rails) |
 
 <a id="strip-role-claims"></a>
@@ -115,6 +117,66 @@ func StripRoleClaims(s string) string {
 }
 ```
 
+<a id="security-telemetry-injection"></a>
+
+### Security Telemetry Injection
+
+Журнал безопасности и telemetry — **не** trusted input. Заблокированный payload остаётся untrusted после логирования: WAF / SIEM / Sentry / Datadog записали текст запроса, агент позже читает лог как «находку» и может выполнить встроенную инструкцию.
+
+```text
+attacker
+  → malicious request
+  → WAF / app: BLOCK
+  → security log (verbatim field)
+  → agent triage
+  → privileged tool call
+```
+
+```text
+security-generated data != trusted data
+```
+
+```yaml
+telemetry:
+  trust: untrusted
+  may_influence_reasoning: true
+  may_authorize:
+    shell: false
+    secrets_read: false
+    network_write: false
+    infrastructure_change: false
+```
+
+Отличие от соседних тем: это не memory poisoning (запись вредного факта в таблицу выше) и не tool-output-as-command ([§19](../part-6-multi-agent-security/19-mcp-security.md)) — канал здесь **лог / алерт / error report**, который система сама создала. Indirect PI из документа — [§03](../part-2-input-security/03-prompt-injection-detection.md). Eval — [§20 EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14).
+
+Read-only data tool и write/exec tool в **одной** сессии плюс verbatim log fields без trust-аннотаций собирают [lethal trifecta](../part-1-architecture-threats/02-threat-model.md#lethal-trifecta): private data + untrusted content + outbound. Persistence в config / memory / tools агента после такой инъекции — high-risk write ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md)). Вывод чужого AI-триажа не становится trusted instruction ([§18](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
+
+```go
+package agentsec
+
+type TelemetryRecord struct {
+	Source  string // waf_log, siem, sentry, datadog, app_log, audit
+	Trust   TrustLevel
+	Text    string
+}
+
+// CanAuthorizeFromTelemetry — телеметрия может влиять на рассуждение,
+// но не авторизует privileged sink без out-of-band approval.
+func CanAuthorizeFromTelemetry(r TelemetryRecord, sink string) bool {
+	if r.Trust != Untrusted {
+		return false
+	}
+	switch sink {
+	case "shell", "secrets_read", "network_write", "infrastructure_change":
+		return false
+	default:
+		return false
+	}
+}
+```
+
+Синхрон: [Python](../../examples/python/part-3/09-memory-isolation-context-sanitization.py) · [TypeScript](../../examples/typescript/part-3/09-memory-isolation-context-sanitization.ts).
+
 ## Правила хранения памяти
 
 | Данные | Можно хранить? | Условия |
@@ -122,6 +184,7 @@ func StripRoleClaims(s string) string {
 | предпочтения пользователя | да | без sensitive данных |
 | рабочий контекст задачи | да | session-scoped |
 | факты из документов | осторожно | source + timestamp + trust level |
+| security telemetry / alerts | осторожно | source + `trust=untrusted`, не записывать как факт |
 | tool output | осторожно | sanitized + quoted |
 | PII | редко | минимизация + legal basis |
 | secrets | нет | никогда не сохранять в memory |
@@ -517,6 +580,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 | без source metadata | нельзя оценить доверие | source + timestamp |
 | вложение целиком в модель | утечка NDA / secrets / лишние поля | allowlist полей / summary; [метки ресурса](#resource-ai-labels) |
 | вставлять документы рядом с system prompt | context smuggling | structured context |
+| лог или алерт как достоверная находка | telemetry injection → privileged tool | untrusted data + policy на sink ([#security-telemetry-injection](#security-telemetry-injection)) |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -547,10 +611,14 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [ ] Есть audit для memory write/update/delete.
 - [ ] Есть механизм удаления памяти.
 - [ ] Context builder явно маркирует untrusted блоки.
+- [ ] Security telemetry / logs / alerts читаются как данные, не как инструкции ([#security-telemetry-injection](#security-telemetry-injection)).
+- [ ] Телеметрия не авторизует shell, secrets_read, network_write, infrastructure_change.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства) — [NVIDIA NeMo Guardrails](../literature.md#практические-руководства)
+- [Tenet — GhostJacking](https://tenetsecurity.ai/blog/ghostjacking-attacks-agentic-kill-chain/) — security logs / alerts как канал инъекции
+- [arXiv 2605.24421 — Poisoning the Watchtower](https://arxiv.org/abs/2605.24421) — adversarial log content → LLM-SOC assistant
 - [NVIDIA NeMo Guardrails — Guardrails Configuration](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/guardrails-configuration) — категория `rails.retrieval`
 - [NVIDIA NeMo Guardrails — Hallucinations & Fact-Checking](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/fact-checking) — grounded vs retrieved chunks
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
@@ -567,4 +635,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [11 — Output Validation](../part-4-output-security/11-output-validation-fact-checking.md) — Output Gate
 - [12 — Hallucination Detection](../part-4-output-security/12-hallucination-detection.md) — grounded vs evidence chunks
 - [13 — Egress / inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
+- [16 — Monitoring (телеметрия как вход)](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input)
+- [20 — Telemetry injection evals / EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14)
+- [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
