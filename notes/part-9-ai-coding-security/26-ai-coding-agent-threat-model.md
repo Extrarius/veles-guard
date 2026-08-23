@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, coding-agent, threat-model, dfd]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-16
-изменения: "AC-010: monitoring/error logs/alerts как источник инструкций; telemetry untrusted (§09)."
+обновлено: 2026-08-23
+изменения: "Harness / обвязка в таблице уникальных сущностей: approval, сессии, конфиг."
 ---
 
 # 26 — AI-coding agent: модель угроз
@@ -104,6 +104,7 @@ AI-coding agent:   ~33 / 33
 | Local filesystem | опционально | часто | High |
 | Dev secrets | опционально | часто | High |
 | MCP config in IDE | иногда | часто | High |
+| Harness / обвязка (владелец approval, сессий, конфига) | иногда | да | High |
 | Skills / plugins | иногда | часто | Medium/High |
 | Monitoring / error logs / alerts (Sentry, Datadog, WAF) | редко | часто | High |
 
@@ -286,7 +287,8 @@ func ClassifyTask(t CodingTask) RiskLevel {
 
 ## Литература
 
-- [Список литературы](../literature.md#стандарты-и-фреймворки)
+- [Список литературы](../literature.md#стандарты-и-фреймворки) · [Практические руководства](../literature.md#практические-руководства) — Pi AgentHarness
+- [Pi — AgentHarness lifecycle](https://github.com/earendil-works/pi/blob/main/packages/agent/docs/agent-harness.md) — кто владеет session / config / locking
 - [OpenAI Codex — Agent approvals and security](https://developers.openai.com/codex/agent-approvals-security)
 - [OpenAI Codex — Sandboxing](https://developers.openai.com/codex/concepts/sandboxing)
 - [GitHub Copilot cloud agent](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent)

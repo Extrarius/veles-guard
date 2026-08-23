@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, supply-chain, dependencies, sbom]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Poisoned telemetry as fix source: пакет из рекомендации в алерте."
+обновлено: 2026-08-23
+изменения: "High-risk: конфиг и каталог расширений обвязки (рядом с .cursor/rules)."
 ---
 
 # 30 — AI Coding Supply Chain
@@ -115,8 +115,11 @@ flowchart LR
 | `Dockerfile` | base image, curl scripts, secrets |
 | `.github/workflows/*` | CI/CD, secrets, deploy |
 | `AGENTS.md` / `CLAUDE.md` | agent instruction supply chain |
+| `.cursor/rules` | steering / policy файлы агента |
 | MCP config | новые tools/resources |
 | skills/plugins | исполняемые инструкции и scripts |
+| конфиг обвязки | system prompt, tools, модель, thinking level — control plane |
+| каталог расширений обвязки | harness extension / plugin: меняет обвязку, не контент задачи |
 | build scripts | shell execution |
 | migration scripts | изменение данных |
 
@@ -140,7 +143,7 @@ flowchart LR
 
 ### 1. Dependency changes = high-risk
 
-Любое изменение package manager files, lockfiles, Dockerfile, workflow, MCP config или skill требует отдельного review.
+Любое изменение package manager files, lockfiles, Dockerfile, workflow, MCP config, skill, конфига обвязки или каталога расширений обвязки требует отдельного review. Расширение обвязки ревьюится как изменение policy ([§31](31-ci-cd-mcp-skills-production-path.md#harness-extension)).
 
 ### 2. Pin versions
 
@@ -288,6 +291,7 @@ func BlocksRelease(files []ChangedFile, decision ReviewDecision) bool {
 - [ ] Package scripts проверяются.
 - [ ] MCP config changes требуют review.
 - [ ] Skill/plugin changes требуют review.
+- [ ] Конфиг обвязки и каталог расширений обвязки — high-risk; ревью как изменение policy ([§31](31-ci-cd-mcp-skills-production-path.md#harness-extension)).
 - [ ] Instruction files входят в supply chain.
 - [ ] Агент не может отключить scanners.
 - [ ] Агент не может изменить required checks без review.
@@ -313,4 +317,5 @@ func BlocksRelease(files []ChangedFile, decision ReviewDecision) bool {
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
+- [31 — Harness extension](31-ci-cd-mcp-skills-production-path.md#harness-extension)
 - [27 — Репозиторий как источник инструкций](27-repository-instructions-attack-surface.md)
