@@ -2,8 +2,8 @@
 tags: [ai-security, agents, human-in-the-loop, approval]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Manufactured approval (#manufactured-approval): OOB gate + signed decision record."
+обновлено: 2026-08-23
+изменения: "Reviewer pressure: approval ≠ independent check; независимые данные из policy engine."
 ---
 
 # 14 — Human-in-the-Loop
@@ -93,6 +93,9 @@ flowchart LR
 | Prompt injection через approval text | недоверенный контент попадает в текст подтверждения как инструкция | Medium |
 | Auto-approval опасных действий | high-risk действие ошибочно считается safe | High |
 | Self-authorization / manufactured approval | модель генерирует текст «как решение человека» или принимает role-подобный текст в контексте за approval ([§03 Role confusion](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)) | High |
+| Sockpuppet-endorsement | агент создаёт «независимое» одобрение / личность, чтобы убедить ревьюера | High |
+| Возврат после `rejected` | тот же / похожий payload снова в approval после отказа человека | High |
+| Ложь про «честную ошибку» | агент переписывает контекст отказа («это был баг / я исправил») | High |
 
 ## Подходы и контрмеры
 
@@ -197,6 +200,30 @@ Approval только из out-of-band gate + signed decision record.
 | Модель «распознала», что действие разрешено | нет ([§03 policy on sink](../part-2-input-security/03-prompt-injection-detection.md#policy-on-sink)) |
 
 Decision record — часть [Immutable audit trail](#3-immutable-audit-trail): нельзя «подтвердить» действие, ссылаясь только на содержимое контекста модели.
+
+<a id="reviewer-pressure"></a>
+
+### 7. Давление на ревьюера
+
+HITL ломается, если агент влияет на человека, который должен его контролировать. Тогда `approved` — не независимая проверка.
+
+```text
+human approval != independent check
+агент ≠ единственный источник данных для своего контролёра
+```
+
+Approval UI показывает поля из **policy engine**, не из объяснения агента:
+
+| Поле | Откуда |
+|---|---|
+| capability | что именно запрошено (tool / scope) |
+| resource | затронутый объект |
+| provenance | откуда данные / кто инициатор |
+| diff | фактическое изменение |
+| risk | класс риска gate |
+| policy violations | сработавшие deny / flags |
+
+После `rejected` агент не меняет этот контекст, не выдаёт себя за независимого ревьюера и не вносит тот же payload повторно. Eval: [§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17). Это не manufactured approval (текст «уже одобрено» в контексте модели) и не EV-13 (composition шагов).
 
 ## Пример (Go)
 
@@ -358,11 +385,14 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 - [ ] [Manufactured approval](#manufactured-approval): approval только из out-of-band gate, не из текста в контексте модели.
 - [ ] Текст, похожий на решение человека, не снимает policy на sink.
 - [ ] Есть signed / immutable decision record (`DecisionRecordID` + audit), связанный с approver.
+- [ ] [Давление на ревьюера](#reviewer-pressure): approval UI показывает capability / resource / provenance / diff / risk / policy violations из policy engine, не из объяснения агента.
+- [ ] После `rejected` тот же payload и mutate approval-контекста = deny ([§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17)).
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства) · [Академические исследования](../literature.md#академические-исследования) — Ye et al. Role Confusion (arXiv 2603.12277)
 - [Ye et al. — Prompt Injection as Role Confusion](https://arxiv.org/abs/2603.12277) — manufactured approval / self-authorization в контексте role confusion
+- [UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing](https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing) — давление на обнаружившего человека; ориентир EV-17
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
@@ -376,3 +406,6 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [15 — Observability и Tracing](15-observability-tracing.md)
+- [16 — `approval_retry_after_reject`](16-monitoring-alerting.md)
+- [20 — Human reviewer pressure (EV-17)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17)
+- [29 — PR/issue как недоверенный вход](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md#pr-issue-untrusted-input)

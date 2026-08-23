@@ -32,9 +32,13 @@ interface AuditEvent {
   /** AI Gateway / inference (§15 #inference-audit-fields) */
   model?: string;
   provider?: string;
+  harness?: string;
+  harnessVersion?: string;
   inferenceLocation?: string; // on_prem | external | specialized
   dataClass?: string;
   redactionResult?: string;
+  inferencePurpose?: string; // completion | verification
+  candidateCount?: number;
   attrs?: Record<string, unknown>;
 }
 

@@ -41,9 +41,13 @@ class AuditEvent:
     # AI Gateway / inference (§15 #inference-audit-fields)
     model: str = ""
     provider: str = ""
+    harness: str = ""
+    harness_version: str = ""
     inference_location: str = ""  # on_prem | external | specialized
     data_class: str = ""
     redaction_result: str = ""
+    inference_purpose: str = ""  # completion | verification
+    candidate_count: int = 0
     attrs: Dict[str, Any] = field(default_factory=dict)
 
 

@@ -2,8 +2,8 @@
 tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Телеметрия как вход агента (#telemetry-as-agent-input); событие telemetry_instruction_detected."
+обновлено: 2026-08-23
+изменения: "Событие approval_retry_after_reject рядом с tool_retry_after_deny."
 ---
 
 # 16 — Monitoring и Alerting
@@ -96,6 +96,7 @@ flowchart LR
 | `egress_destination_out_of_policy` | host / DNS вне task allowlist (out-of-task hosts) |
 | `eval_probe_suspected` | попытки доступа к answers / evaluator / golden / label hosts |
 | `tool_retry_after_deny` | повтор tool call после `tool_denied` (тот же / похожий args) |
+| `approval_retry_after_reject` | повтор того же / похожего payload после `approval_rejected` |
 | `credential_use_after_revoke` | использование отозванного / неожиданного credential |
 | `score_spike_after_network` | резкий рост eval score после network tool |
 | `undeclared_tool_call` | tool call вне declared plan / allowlist |
@@ -144,6 +145,7 @@ agent_kill_switch_active
 | Out-of-task host | `egress_destination_out_of_policy` | High |
 | Eval / answer probe | `eval_probe_suspected` | High |
 | Retry after deny | `tool_retry_after_deny` (sequence, не только volume) | Medium |
+| Retry after human reject | `approval_retry_after_reject` (тот же / похожий payload) | High |
 | Stolen / revoked creds | `credential_use_after_revoke` | Critical |
 | Score spike after net | `score_spike_after_network` | High |
 | Hidden / undeclared action | `undeclared_tool_call` или `audit_gap` | High |
@@ -213,6 +215,7 @@ guardrail_trigger_rate
 | 10 denied calls за 5 минут | alert |
 | `guardrail_trigger_rate` anomaly | alert + **retest** [EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) |
 | `tool_retry_after_deny` | alert (sequence) + trace |
+| `approval_retry_after_reject` | alert (sequence) + trace; не silent re-queue ([§14](14-human-in-the-loop.md#reviewer-pressure)) |
 | egress с secret | block + high alert |
 | `egress_destination_out_of_policy` | block + High; escalate IR |
 | `credential_use_after_revoke` | kill-switch + revoke ([§17](17-circuit-breaker-kill-switch.md)) + IR |
@@ -541,7 +544,7 @@ func ShouldStopTrajectory(t TrajectorySignals) bool {
 - [ ] Есть защита от alert fatigue.
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
 - [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
-- [ ] Есть алерты на out-of-task hosts, retry-after-deny, credential-after-revoke, score-after-net, undeclared/audit_gap.
+- [ ] Есть алерты на out-of-task hosts, retry-after-deny, `approval_retry_after_reject`, credential-after-revoke, score-after-net, undeclared/audit_gap.
 - [ ] Есть события `scope_drift_new_domain`, `out_of_scope_action`, `monitoring_tampering_suspected` → auto-stop ([§17](17-circuit-breaker-kill-switch.md)).
 - [ ] Корреляция слабых сигналов (новый домен + credential search + tampering + out-of-scope) → stop без ожидания человека.
 - [ ] Есть [trajectory correlation](#trajectory-correlation): `external_identity_created` / `unsolicited_human_contact` / `trajectory_violation` → stop (≠ scope drift); канон [EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01).
