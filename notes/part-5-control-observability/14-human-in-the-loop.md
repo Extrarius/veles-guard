@@ -3,7 +3,7 @@ tags: [ai-security, agents, human-in-the-loop, approval]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Reviewer pressure: approval ≠ independent check; независимые данные из policy engine."
+изменения: "Указатель: dry-run / draft ≠ write в prod; исполнение — §06 #write-controls."
 ---
 
 # 14 — Human-in-the-Loop
@@ -109,6 +109,12 @@ flowchart LR
 | Medium | выполнить автоматически только при allowlist / лимитах |
 | High | требовать approval |
 | Critical | требовать approval + second approver / manual execution |
+
+dry-run / draft / recommendation / sandbox ≠ write в prod — approval не требуется. Исполнение write (plan / dry-run / rollback / deny-uncertain) — [§06 `#write-controls`](../part-3-processing-security/06-rbac-tool-permissions.md#write-controls). Approval остаётся здесь.
+
+```text
+write controls != HITL
+```
 
 ### Source→Sink: sensitive sink → обязательный approval
 
@@ -373,6 +379,7 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 - [ ] Опасные tools не вызываются напрямую из LLM output.
 - [ ] Есть risk classifier для tool actions.
 - [ ] High-risk действия требуют approval.
+- [ ] dry-run / draft / recommendation ≠ write в prod; канон исполнения — [§06 `#write-controls`](../part-3-processing-security/06-rbac-tool-permissions.md#write-controls).
 - [ ] Человеку показываются tool name, args, risk, reason.
 - [ ] Approval фиксируется в audit log.
 - [ ] Отклонение и timeout обрабатываются безопасно.
@@ -402,7 +409,7 @@ func ClassifyAction(tool string, args map[string]any) (RiskLevel, string) {
 
 - [03 — Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
 - [03 — Policy на sink](../part-2-input-security/03-prompt-injection-detection.md#policy-on-sink)
-- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
+- [06 — Write controls](../part-3-processing-security/06-rbac-tool-permissions.md#write-controls) — plan / dry-run / rollback; approval здесь
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [15 — Observability и Tracing](15-observability-tracing.md)

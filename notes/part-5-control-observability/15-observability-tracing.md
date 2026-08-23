@@ -3,7 +3,7 @@ tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-08-23
-изменения: "inference_purpose / candidate_count: verification отдельно от completion."
+изменения: "Логи как канал утечки (#log-as-leak): hash / preview / TTL-ref вместо полного текста."
 ---
 
 # 15 — Observability и Tracing
@@ -292,6 +292,37 @@ run_id → spans → tool calls → approvals → logs → metrics → final out
 
 **Mapping депсевдонимизации не в логах.** При reversible pseudonymization ([§04 sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)) хранилище `token ↔ value` остаётся **внутри периметра** (отдельный store с ACL). В audit / trace / `redaction_result` — только факт и типы/счётчики сущностей, не таблица mapping и не сырые значения. Иначе логи становятся каналом восстановления PII.
 
+<a id="log-as-leak"></a>
+
+#### Логи как канал утечки
+
+Полный prompt / response / вложение / RAG-документ / сырой tool payload в логе — не audit.
+
+```text
+full text in logs != audit
+hash/preview/TTL-ref != mapping table
+```
+
+| В логе | Не в логе |
+|---|---|
+| hash, truncated preview, `store_ref` + TTL | полный текст, вложение, RAG-документ, сырой payload |
+| факт redaction / типы | mapping token↔value ([#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs)) |
+
+TTL-store — **для расследования** (полный артефакт по необходимости, срок жизни, ACL). Mapping-store §04 — **для депсевдонимизации**. Не один bucket.
+
+`validated args hash` ниже — экземпляр того же паттерна, не отдельный hash-движок.
+
+```go
+type LogRef struct {
+	Hash    string
+	Preview string // truncated
+	StoreID string
+	TTL     time.Duration
+}
+```
+
+Синхрон: [Python](../../examples/python/part-5/15-observability-tracing.py) · [TypeScript](../../examples/typescript/part-5/15-observability-tracing.ts). Не store-engine.
+
 ### 3. События безопасности отдельно от debug
 
 Security events должны быть структурированными:
@@ -533,6 +564,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Tool calls, policy decisions и approvals связаны одним trace.
 - [ ] Секреты и PII редактируются до записи в логи.
 - [ ] Mapping депсевдонимизации (token↔value) **не** попадает в logs / traces / `redaction_result` ([#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs)).
+- [ ] Вместо полного текста — [hash / truncated preview / `store_ref`+TTL](#log-as-leak); TTL-store ≠ mapping-store.
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
@@ -567,7 +599,9 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 - [Глоссарий — Harness](../glossary.md)
 - [01 — Введение (AI Gateway)](../part-1-architecture-threats/01-introduction.md)
-- [04 — PII / sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)
+- [Логи как канал утечки](#log-as-leak) — hash / preview / TTL-ref
+- [04 — PII / sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine) — mapping ≠ TTL-store
+- [33 — Что логировать](../part-10-course-appendix/33-course-ai-security-landscape.md#what-to-log) — учебные 7 полей; канон redaction здесь
 - [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [03 — Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
