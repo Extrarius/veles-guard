@@ -2,8 +2,8 @@
 tags: [ai-security, agents, observability, tracing, audit]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Forged CoT (#forged-cot): подделка reasoning на входе; ReasoningSource model vs context."
+обновлено: 2026-08-23
+изменения: "inference_purpose / candidate_count: verification отдельно от completion."
 ---
 
 # 15 — Observability и Tracing
@@ -170,11 +170,15 @@ Audit log отличается от обычного debug log.
 |---|---|
 | `model` | id / имя модели |
 | `provider` | вендор / backend |
+| `harness` | id / имя обвязки (runtime, не модель) |
+| `harness_version` | версия обвязки (pin; смена = смена posture) |
 | `inference_location` | `on_prem` / `external` / `specialized` |
 | `data_class` | класс данных, по которому выбран маршрут |
 | `redaction_result` | что снято / замаскировано до отправки в модель (типы / счётчики — **не** mapping token↔value) |
+| `inference_purpose` | `completion` / `verification` — зачем вызвали модель |
+| `candidate_count` | N роллаутов (для `verification`; иначе пусто / 0) |
 
-Без этих полей нельзя доказать, **куда** ушёл контекст и по какому классу данных. Mapping депсевдонимизации — [#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs).
+Без этих полей нельзя доказать, **куда** ушёл контекст и по какому классу данных. Вызов верификатора логируется **отдельным** событием, не как обычный completion. Mapping депсевдонимизации — [#no-pseudonym-mapping-in-logs](#no-pseudonym-mapping-in-logs). Прокси обвязки — [§13 `#harness-inference-proxy`](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy).
 
 Для eval / red-team runs (Evaluation Gaming, [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) дополнительно фиксируйте:
 
@@ -373,9 +377,13 @@ type AuditEvent struct {
     // AI Gateway / inference (#inference-audit-fields)
     Model              string `json:"model,omitempty"`
     Provider           string `json:"provider,omitempty"`
+    Harness            string `json:"harness,omitempty"`
+    HarnessVersion     string `json:"harness_version,omitempty"`
     InferenceLocation  string `json:"inference_location,omitempty"` // on_prem | external | specialized
     DataClass          string `json:"data_class,omitempty"`
     RedactionResult    string `json:"redaction_result,omitempty"`
+    InferencePurpose   string `json:"inference_purpose,omitempty"` // completion | verification
+    CandidateCount     int    `json:"candidate_count,omitempty"`
     Attrs          map[string]any `json:"attrs,omitempty"`
 }
 
@@ -528,7 +536,7 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 - [ ] Логируются не только ошибки, но и denied actions.
 - [ ] High-risk действия попадают в audit log.
 - [ ] High-risk tool calls содержат identity fields: `agent_id`, `agent_owner`, `on_behalf_of`, `role`, `effective_scope`, `tool`, `operation`, `resource`, `approval_id`, `correlation_id`.
-- [ ] Вызовы модели через AI Gateway журналируют `model`, `provider`, `inference_location`, `data_class`, `redaction_result` ([#inference-audit-fields](#inference-audit-fields)).
+- [ ] Вызовы модели через AI Gateway журналируют `model`, `provider`, `harness`, `harness_version`, `inference_location`, `data_class`, `redaction_result`, `inference_purpose`, `candidate_count` ([#inference-audit-fields](#inference-audit-fields)).
 - [ ] Eval runs журналируют `agent_goal`, `declared_plan`, `actual_actions`, `external_hosts`, `credential_access`, `evaluation_score`, `score_delta`, `policy_violations`.
 - [ ] Cyber/eval прогоны журналируют `evaluation_id`, `declared_target`, `resolved_ip`, `scope_decision`, `monitoring_state`, `kill_switch_state` (или явный N/A).
 - [ ] Резкий `score_delta` после `external_hosts` / `credential_access` → human review, не auto-pass ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)).
@@ -557,9 +565,10 @@ func LogEgressBlocked(ctx context.Context, logger Logger, runID, url, reason str
 
 ## См. также
 
+- [Глоссарий — Harness](../glossary.md)
 - [01 — Введение (AI Gateway)](../part-1-architecture-threats/01-introduction.md)
 - [04 — PII / sanitization engine](../part-2-input-security/04-pii-redaction-content-filtering.md#sanitization-engine)
-- [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
+- [13 — Egress (маршрутизация inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [03 — Role confusion / CoT Forgery](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
 - [14 — Manufactured approval](14-human-in-the-loop.md#manufactured-approval)
