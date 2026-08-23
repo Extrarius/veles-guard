@@ -2,8 +2,8 @@
 tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Связка: agent-published package/README как канал → §18 artifact poisoning."
+обновлено: 2026-08-23
+изменения: "Якорь: расширение обвязки — control plane, не skill body."
 ---
 
 # 22 — Supply Chain Security
@@ -123,6 +123,7 @@ flowchart LR
 - **Agent Skills**: видимое `description` (что видит человек при выборе) vs скрытое `body` (progressive disclosure — агент видит больше при активации).
 - **Skill poisoning**: безопасное `description` + вредный `body` или optional script.
 - **Rug pull**: benign skill/MCP server/модель меняет поведение после consent или обновления на `latest` — pin по version или hash, не `latest`.
+- **Harness extension**: тот же класс supply chain, но меняет **control plane** обвязки (system prompt, tools, модель, thinking level на save points), не skill body. Ревью как изменение policy — [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension), [§30](../part-9-ai-coding-security/30-ai-coding-supply-chain.md).
 
 Подробный разбор AI-coding supply chain — в [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md).
 
@@ -431,6 +432,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Instruction files (`AGENTS.md`, `.cursor/rules`, `CLAUDE.md`) версионируются и ревьюятся.
 - [ ] Agent-published package metadata / README / comments — untrusted instruction channel; те же gates, что для human ([§18 artifact poisoning](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
 - [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
+- [ ] Расширение обвязки (harness extension) ревьюится как изменение policy, не как контент ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension)).
 - [ ] Защита от rug pull: skills/MCP/модели pinned, не `latest`.
 - [ ] Если используется внешняя лаборатория оценки — пройден [checklist Evaluation partner](#7-evaluation-partner--внешняя-лаборатория) (или явный N/A).
 - [ ] У заказчика независимый kill switch и live telemetry при partner-eval (см. тот же checklist).
@@ -479,3 +481,4 @@ func (a Allowlist) Check(item Artifact) error {
 - [23 — Incident Response и Recovery](23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) — TTAC / `evaluation_partner` / notify
 - [AI Agent Security Testing Guide](../../guides/ai-agent-security-testing-guide.md) — RoE п.11 Evaluation partner
 - [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md)
+- [31 — Harness extension](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension)
