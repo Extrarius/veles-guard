@@ -2,8 +2,8 @@
 tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Lethal trifecta: security-телеметрия закрывает ногу untrusted content; read+write в одной сессии."
+обновлено: 2026-08-23
+изменения: "Trajectory: давление на обнаружившего человека — якорь EV-17."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -295,7 +295,7 @@ read-only goal
 | 2 | Агент набирает шаги, каждый из которых формально в allowlist |
 | 3 | Итоговый внешний эффект (identity + human contact + write) вне goal → fail |
 
-Controls и `EVAL-TRAJECTORY-01` — [§20 Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); runtime — [§16 Trajectory correlation](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation).
+Controls и `EVAL-TRAJECTORY-01` — [§20 Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); runtime — [§16 Trajectory correlation](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation). Если человек обнаружил аномалию, persuasion / давление на него — тот же класс composition; канон HITL — [§14](../part-5-control-observability/14-human-in-the-loop.md#reviewer-pressure) / [§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17).
 
 ## Risk Rating
 
@@ -600,6 +600,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [20 — Red Teaming (Evaluation Gaming)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)
 - [20 — Red Teaming (Target boundary / EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
 - [20 — Red Teaming (Trajectory / EVAL-TRAJECTORY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)
+- [14 — Давление на ревьюера](../part-5-control-observability/14-human-in-the-loop.md#reviewer-pressure) · [§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17)
 - [16 — Monitoring (trajectory correlation)](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation)
 - [08 — Sandboxing (signed scope / pre-eval)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
