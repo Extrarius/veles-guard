@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, assessment, defense, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Якорь внешних входов (#external-data-inputs): логи/алерты в списке; прочитал ≠ уполномочен."
+обновлено: 2026-08-23
+изменения: "Beyond-model assessment (#beyond-model-assessment): память / фреймворк / sandbox-рантайм / endpoint, не только модель."
 ---
 
 # 34 — Course: Agent Assessment and Defense
@@ -92,6 +92,8 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 | **Знания / RAG (Knowledge / RAG)** | Отравление документов в базе; извлечение (retrieval) вне списков контроля доступа (ACL); утечка (exfil) через ответ | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md), [§13](../part-4-output-security/13-egress-control-data-exfiltration.md) |
 | **Инструменты / MCP (Tools / MCP)** | Вредоносный / отравленный инструмент (tool); **подставной исполнитель (confused deputy)** — агент действует с чужими правами по подсказке | [§19](../part-6-multi-agent-security/19-mcp-security.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md) |
 | **Уверенность (Assurance)** | Красная команда / оценки (red team / evals) до релиза; LLM-as-judge только как доп. слой; **ограничение (guardrail) как объект** — набор тестов (suite) `EVAL-GUARDRAIL-01` / EV-10 (ложные срабатывания / пропуски (FP/FN), пороги, журнал изменений (changelog)) | [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10), [Testing Guide](../../guides/ai-agent-security-testing-guide.md), [§38](38-ai-agent-security-testing-workshop.md) |
+| **Обвязка (Harness)** | Названы обвязка + версия, не только модель; смена обвязки при той же модели; расширения ревьюятся как policy, не как skill ([якорь](#harness-assessment)) | [глоссарий](../glossary.md), [§26](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension), [EV-15](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15) |
+| **Стек вне модели** | Память / state store; orchestration-стек; движок песочницы; endpoint / локальные MCP ([якорь](#beyond-model-assessment)) | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#memory-storage-layer), [§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack), [§08](../part-3-processing-security/08-sandboxing.md#sandbox-runtime), [§33](33-course-ai-security-landscape.md#shadow-ai), [§19](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) |
 
 Карта «тема × стандарт»: [notes/mapping.md](../mapping.md).
 
@@ -130,6 +132,8 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 4. Пороги **зафиксированы (frozen)** к конкретному прогону набора (suite run) (не «подкрутили в проде»)?
 5. Есть ли журнал изменений (changelog) при смене шаблона / модели / порога (pattern / model / threshold)?
 6. Может ли агент **изготовить себе подтверждение (approval)** или принять **подделанное рассуждение (forged reasoning)** за внутреннюю трассу / человека в контуре (HITL)? Канон — [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion), [§14](../part-5-control-observability/14-human-in-the-loop.md#manufactured-approval), [§15](../part-5-control-observability/15-observability-tracing.md#forged-cot); набор тестов (suite) — [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12).
+7. Какой тип judge (SLM / SLM ensemble / LLM arbitrator) и зафиксированы ли пороги `usual` / `strict`? Канон — [§03 pipeline](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router).
+8. Назван ли [отраслевой сценарий](33-course-ai-security-landscape.md#enterprise-scenarios) и что удерживаем (UX / скорость / эксперимент) vs что контролируем (данные / write / inference)? Канон — [§33 Safety vs Utility](33-course-ai-security-landscape.md#safety-vs-utility).
 
 | Класс кейса (кратко) | Зачем в оценке (assessment) |
 |---|---|
@@ -143,6 +147,23 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 ```
 
 Связь с ландшафтом: [§33 безопасность и полезность (Safety vs Utility)](33-course-ai-security-landscape.md#safety-vs-utility) — ограничения (rails) сужают автономию; оценка (assessment) проверяет, что сужение измеримо и не «ломает» легитимные сценарии без учёта ложных срабатываний (FP).
+
+<a id="access-layers"></a>
+
+#### Access layers (учебная рамка)
+
+Четыре оси, чтобы на курсе спросить «где стоит rail». **Не** канон слоёв справочника: не заменяет [pipeline §03](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router), [five control points §04](../part-2-input-security/04-pii-redaction-content-filtering.md#five-control-points), [навигатор §33](33-course-ai-security-landscape.md).
+
+```text
+teaching frame != control canon
+```
+
+| Ось | Вопрос | Канон |
+|---|---|---|
+| LLM | что видит / генерирует модель | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§11](../part-4-output-security/11-output-validation-fact-checking.md) |
+| Context | что попало в контекст | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Action | какой tool / какое действие | [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§07](../part-3-processing-security/07-parameter-validation-schema.md) |
+| Access | к каким данным / egress | [§13](../part-4-output-security/13-egress-control-data-exfiltration.md), [§08](../part-3-processing-security/08-sandboxing.md) |
 
 <a id="agent-risk-assessment"></a>
 
@@ -175,6 +196,54 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 ```
 
 Связь с ландшафтом: [§33 эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform) — куда «садится» агент при контролируемом использовании (controlled usage); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai) — что бывает без контура.
+
+<a id="harness-assessment"></a>
+
+## Оценка модели, обвязки и расширений (Harness assessment)
+
+Оценка «модели» без обвязки неполная: `Agent = Model + Harness`. Вопросы ниже — учебный якорь; канон — [глоссарий: Harness](../glossary.md), [§26](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md). Не каталог харнессов и не «как построить обвязку».
+
+```text
+model eval != harness eval
+same model != same posture
+harness extension != skill
+```
+
+**Вопросы оценки (assessment):**
+
+1. Названы ли **обвязка и версия**, не только модель? Определение — [глоссарий: Harness](../glossary.md); сущность — [§26](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md).
+2. При смене обвязки на **той же модели** переоценивали ли posture / eval matrix (harness × model)? Канон — [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [§20 EV-15](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15).
+3. Какие **расширения обвязки** подключены — ревью как изменение policy (owner, pin, diff review), не как контент задачи? Канон — [§31 `#harness-extension`](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension).
+
+```text
+Зелёный прогон на модели ≠ обвязка и её расширения оценены.
+```
+
+Не путать с [классом R0–R3](#agent-risk-assessment) (продукт, не версия обвязки) и с [внешними входами](#external-data-inputs) (данные, не control plane).
+
+<a id="beyond-model-assessment"></a>
+
+## Оценка стека вне модели (Beyond-model assessment)
+
+Оценка «модели» неполная без runtime-стека: память, фреймворк, движок песочницы, endpoint. Вопросы ниже — учебный якорь; канон в частях I–IX. Не разбор инцидентов и не каталог продуктов. Не путать с [обвязкой](#harness-assessment) (control plane, не эти четыре поверхности).
+
+```text
+model eval != stack eval
+memory store != prompt memory
+sandbox image != sandbox engine
+registry != discovery
+```
+
+**Вопросы оценки (assessment):**
+
+1. Память / state store: query / serde / tenant на load? Канон — [§09 `#memory-storage-layer`](../part-3-processing-security/09-memory-isolation-context-sanitization.md#memory-storage-layer), [EV-18](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#memory-runtime-evals-ev-18).
+2. Orchestration-стек — тот же аудит, что backend (SAST / SCA / serialization)? Канон — [§22 `#orchestration-stack`](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack).
+3. Движок песочницы pinned; containment покрывает process / memory / tenant? Канон — [§08 `#sandbox-runtime`](../part-3-processing-security/08-sandboxing.md#sandbox-runtime), [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01).
+4. Endpoint / локальные MCP в inventory, не только сеть? Канон — [§33 `#shadow-ai`](33-course-ai-security-landscape.md#shadow-ai), [§19 `#endpoint-inventory`](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory).
+
+```text
+Зелёный прогон на модели ≠ стек вне модели оценён.
+```
 
 <a id="external-data-inputs"></a>
 
@@ -218,8 +287,10 @@ tags: [ai-security, course-appendix, assessment, defense, workshop]
 4. Ограничения (Guardrails): жёсткий + мягкий отказ раздельно; не светить внутреннюю причину блокировки (block).
 5. Оценка ограничений (Guardrail assessment): набор тестов (suite) / FP·FN / зафиксированные пороги (frozen thresholds) / журнал изменений (changelog) → [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10).
 6. Оценка по классу риска (Agent risk assessment, R0–R3): паспорт (passport) / владелец (owner) / шлюз (gateway) / реестр (registry) по [якорю](#agent-risk-assessment) → канон [§25](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class).
-7. MCP / инструменты (tools): проверка (review) до подключения (connect); подставной исполнитель (confused deputy) в модели угроз (threat model).
-8. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
+7. Оценка обвязки (Harness assessment): модель + обвязка + расширения по [якорю](#harness-assessment) → канон [глоссарий](../glossary.md) / [§26](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md) / [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension).
+8. Оценка стека вне модели (Beyond-model assessment): память / фреймворк / sandbox-рантайм / endpoint по [якорю](#beyond-model-assessment).
+9. MCP / инструменты (tools): проверка (review) до подключения (connect); подставной исполнитель (confused deputy) в модели угроз (threat model).
+10. Перейти к практикуму: [§35](35-course-appendix-agentic-security.md) → [§36](36-mcp-skill-review-workshop.md) → [§37](37-agentic-security-baseline-workshop.md) → [§38](38-ai-agent-security-testing-workshop.md).
 
 ## Пример (Go): область assessment → якоря конспекта
 
@@ -313,9 +384,13 @@ const (
 - [ ] Есть ссылка на канон I–IX по каждой High-области.
 - [ ] Различаете жёсткую блокировку (hard block) и мягкий отказ (soft response).
 - [ ] [Оценка ограничений (Guardrail assessment)](#guardrail-assessment): есть ответы по набору тестов (suite) / FP·FN / порогам (thresholds) / журналу изменений (changelog).
+- [ ] Названы [Access layers](#access-layers) (LLM / Context / Action / Access) как учебная рамка, не канон слоёв.
+- [ ] Назван отраслевой сценарий и пара control vs utility (что контролируем / что не теряем) — [§33](33-course-ai-security-landscape.md#enterprise-scenarios).
 - [ ] Учтён вопрос про изготовленное подтверждение (manufactured approval) / подделанное рассуждение (forged reasoning); канон §03 / §14 / §15; suite [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12).
 - [ ] Мостик к канону [§20 EV-10](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#guardrail-testing-ev-10) понятен (здесь не дублируем подсчёт (scoring)).
 - [ ] [Оценка по классу риска R0–R3 (Agent risk assessment)](#agent-risk-assessment): класс, паспорт / владелец (passport / owner), шлюз / реестр (gateway / registry) по классу; не подменяет оценку защитных ограничений (Guardrail assessment).
+- [ ] [Оценка обвязки (Harness assessment)](#harness-assessment): названы обвязка + версия; смена обвязки переоценена; расширения ревьюятся как policy.
+- [ ] [Оценка стека вне модели (Beyond-model assessment)](#beyond-model-assessment): память / state store, orchestration-стек, движок песочницы, endpoint inventory (не только модель).
 - [ ] LLM-as-judge не единственная защита (EV-03).
 - [ ] Confused deputy / malicious MCP учтены, если есть tools.
 - [ ] Lethal trifecta проверен; есть план «сломать одно звено».
@@ -337,8 +412,10 @@ const (
 
 ## См. также
 
-- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup); [SDLC ↔ lifecycle](33-course-ai-security-landscape.md#sdlc-vs-agent-lifecycle); [что логировать](33-course-ai-security-landscape.md#what-to-log)
-- [Учебный след PR→CI→exfil](#pr-ci-exfil-trace); [анти-паттерны курса](#anti-patterns-course); [внешние входы](#external-data-inputs)
+- [33 — Course: AI Security Landscape](33-course-ai-security-landscape.md#safety-vs-utility) — безопасность и полезность (Safety vs Utility); [отраслевые сценарии](33-course-ai-security-landscape.md#enterprise-scenarios); [теневой ИИ (Shadow AI)](33-course-ai-security-landscape.md#shadow-ai); [эталонная платформа (reference platform)](33-course-ai-security-landscape.md#reference-platform); [роли / суп токенов (token soup)](33-course-ai-security-landscape.md#token-soup); [SDLC ↔ lifecycle](33-course-ai-security-landscape.md#sdlc-vs-agent-lifecycle); [что логировать](33-course-ai-security-landscape.md#what-to-log)
+- [Учебный след PR→CI→exfil](#pr-ci-exfil-trace); [анти-паттерны курса](#anti-patterns-course); [внешние входы](#external-data-inputs); [обвязка / расширения](#harness-assessment); [стек вне модели](#beyond-model-assessment)
+- [09 — Memory storage layer](../part-3-processing-security/09-memory-isolation-context-sanitization.md#memory-storage-layer) · [22 — Orchestration-стек](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack) · [08 — Sandbox-рантайм](../part-3-processing-security/08-sandboxing.md#sandbox-runtime) · [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory)
+- [Глоссарий — Harness](../glossary.md) · [26 — сущность обвязки](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md) · [31 — Harness extension](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension) · [20 — EV-15 harness × model](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15)
 - [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection) — логи / алерты как untrusted
 - [16 — телеметрия как вход](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input)
 - [19 — Split-context MCP injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection)
@@ -349,6 +426,7 @@ const (
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
 - [38 — AI Agent Security Testing Workshop](38-ai-agent-security-testing-workshop.md)
+- [03 — Guardrail pipeline + judge / similarity](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router)
 - [03 — Путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
 - [14 — Изготовленное подтверждение (Manufactured approval)](../part-5-control-observability/14-human-in-the-loop.md#manufactured-approval)
 - [15 — Подделанный CoT (Forged CoT)](../part-5-control-observability/15-observability-tracing.md#forged-cot)
