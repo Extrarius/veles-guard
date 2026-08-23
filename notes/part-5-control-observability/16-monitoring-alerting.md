@@ -3,7 +3,7 @@ tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Событие approval_retry_after_reject рядом с tool_retry_after_deny."
+изменения: "Событие unknown_local_mcp_endpoint: локальный MCP вне inventory."
 ---
 
 # 16 — Monitoring и Alerting
@@ -112,6 +112,7 @@ flowchart LR
 | `budget_exceeded` | превышен лимит токенов, стоимости или шагов |
 | `circuit_breaker_opened` | tool/runtime временно остановлен |
 | `kill_switch_activated` | аварийно отключён агент или часть tools |
+| `unknown_local_mcp_endpoint` | локальный MCP / конфиг агента, которого нет в inventory / registry |
 
 ### Метрики
 
@@ -171,6 +172,7 @@ agent_kill_switch_active
 | Нет run-level drilldown | алерт есть, но нельзя найти конкретный trace | Medium |
 | Позднее обнаружение атаки | мониторинг смотрит только CPU/RAM | High |
 | Нет реакции | алерт пришёл, но circuit breaker не сработал | Medium |
+| Unknown local MCP | локальный MCP на endpoint вне inventory / registry | High |
 
 ## Подходы и контрмеры
 
@@ -221,6 +223,7 @@ guardrail_trigger_rate
 | `credential_use_after_revoke` | kill-switch + revoke ([§17](17-circuit-breaker-kill-switch.md)) + IR |
 | `score_spike_after_network` / `eval_probe_suspected` | human review score; escalate IR |
 | `undeclared_tool_call` / `audit_gap` | High alert + preserve trace |
+| `unknown_local_mcp_endpoint` | High alert; сверить с [§19 inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) |
 | `scope_drift_new_domain` / `out_of_scope_action` | **stop run** ([§17](17-circuit-breaker-kill-switch.md)), без ожидания человека |
 | `external_identity_created` + `unsolicited_human_contact` / `trajectory_violation` | **stop run** ([trajectory correlation](#trajectory-correlation)); ≠ scope drift |
 | `monitoring_tampering_suspected` | **terminate** + preserve logs + Critical alert ([§17](17-circuit-breaker-kill-switch.md)) |
@@ -549,6 +552,7 @@ func ShouldStopTrajectory(t TrajectorySignals) bool {
 - [ ] Корреляция слабых сигналов (новый домен + credential search + tampering + out-of-scope) → stop без ожидания человека.
 - [ ] Есть [trajectory correlation](#trajectory-correlation): `external_identity_created` / `unsolicited_human_contact` / `trajectory_violation` → stop (≠ scope drift); канон [EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01).
 - [ ] Есть `telemetry_instruction_detected`; лог / алерт в контексте агента обрабатывается как untrusted ([#telemetry-as-agent-input](#telemetry-as-agent-input), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)).
+- [ ] Есть `unknown_local_mcp_endpoint`: локальный MCP / конфиг агента вне inventory ([§19](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory)).
 - [ ] Паттерн `DETECT-MONITOR-TAMPERING-01` (или эквивалент) покрывает disable/modify logging/trace/monitor.
 - [ ] Critical / confirmed containment → escalate [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment).
 
@@ -566,6 +570,8 @@ func ShouldStopTrajectory(t TrajectorySignals) bool {
 - [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»
 - [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) — `unknown_local_mcp_endpoint`
+- [33 — Shadow AI](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai) — сеть vs endpoint
 - [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary; [`EVAL-TRAJECTORY-01` / EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); [`EVAL-TELEMETRY-INJECTION-01` / EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14)
 - [23 — Incident Response (Autonomous-agent IR)](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment)
