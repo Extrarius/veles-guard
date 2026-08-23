@@ -3,7 +3,7 @@ tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Endpoint inventory: registry ≠ discovery; локальные MCP на парке."
+изменения: "Sampling / elicitation / roots (#sampling-elicitation-roots): reverse-каналы; MCP roots != AllowedRoots."
 ---
 
 # 19 — MCP Security
@@ -137,6 +137,9 @@ flowchart LR
 | Server impersonation | клиент подключается не к тому MCP server | High |
 | Egress bypass | MCP server отправляет данные наружу в обход egress policy | High |
 | Split-context injection | безобидные фрагменты в description + result (+ resource / sampling) складываются в combined intent | Critical |
+| Sampling (`createMessage`) | сервер задаёт `systemPrompt`; клиент гоняет **свою** модель и ключи | High |
+| Elicitation (form / URL) | форма сервера или увод на внешний host; не HITL | High |
+| MCP roots disclosure | клиент публикует `file://` workspace URI серверу; не `AllowedRoots` | High |
 
 ### Confused deputy (учебный сценарий)
 
@@ -255,7 +258,7 @@ dangerous tool call
 | предыдущий MCP output | тот же run | chaining без policy: output A → args B |
 | server-initiated **sampling** | клиент принимает `createMessage` | `systemPrompt` сервера попадает как system message; approval часто показывает **имя сервера**, не текст; approve-once распространяется на все последующие запросы. Сейчас поддерживает один mainstream-клиент |
 
-Полный разбор MCP **sampling / elicitation / roots** — отдельный P2, сюда не сливаем. Здесь sampling — только третий канал фрагмента.
+Канон трёх примитивов — [#sampling-elicitation-roots](#sampling-elicitation-roots). Здесь sampling — только третий канал фрагмента.
 
 ### Почему текущие защиты не видят
 
@@ -285,6 +288,44 @@ dangerous tool call
 | Где живёт опасность | одна description / metadata | смена поведения после consent | **композиция** каналов в одном run | цепочка **шагов** относительно goal | артефакт **между** агентами / runs |
 | Scanner одной поверхности | может поймать | integrity / pin | не видит | не про это | не про MCP-каналы |
 | Канон | этот раздел, MCP03 выше | pin + re-review | этот подраздел | [§20 EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) | [§18](18-inter-agent-security.md#agent-generated-artifact-poisoning) |
+
+<a id="sampling-elicitation-roots"></a>
+
+## Sampling / elicitation / roots (reverse channels)
+
+Tools, resources и prompts идут клиент→сервер. Эти три примитива **разворачивают** запрос: сервер просит хост-модель, форму пользователя или карту workspace. Connect-time review tools это не покрывает (рядом с [Runtime Trust Gap](#runtime-trust-gap), не вместо).
+
+```mermaid
+flowchart LR
+    Server[MCP_Server]
+    Client[MCP_Client]
+    LLM[Host_LLM]
+    User[User]
+    FS[Workspace_URIs]
+    Server -->|"sampling/createMessage"| Client
+    Client --> LLM
+    Server -->|"elicitation/create"| Client
+    Client --> User
+    Server -->|"roots/list"| Client
+    Client --> FS
+```
+
+```text
+MCP roots != AllowedRoots
+elicitation != HITL
+sampling != local inference
+deprecated != not a surface
+```
+
+| Примитив | Что делает | Угроза | Контроль |
+|---|---|---|---|
+| **sampling** (`sampling/createMessage`) | сервер задаёт `systemPrompt` / `messages` / `includeContext`; клиент гоняет **свою** модель и ключи | prompt в host LLM; расход токенов; не «локальный LLM сервера» | deny by default; approval показывает **текст**; approve-once ≠ blanket ([§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)) |
+| **elicitation** (`elicitation/create`) | form (JSON schema) или URL mode (увод на внешний host) | форма сервера ≠ [§14 HITL](../part-5-control-observability/14-human-in-the-loop.md); URL — phishing / egress | показать schema + цель + сервер; URL — consent на host ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)); секреты формой не принимать |
+| **roots** (`roots/list`) | клиент **публикует** `file://` workspace URI серверу | разведка + blast radius | только объявленный workspace; consent; не `$HOME`. **Не** `AllowedRoots` (`ValidatePath` ниже) |
+
+Sampling как **фрагмент** combined intent — [split-context](#split-context-mcp-injection), не этот подраздел.
+
+Spec: сервер не должен просить секреты формой — клиент всё равно не доверяет. Sampling и elicitation **deprecated** в `2026-07-28` ([SEP-2577](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2577)); в спецификации ещё ≥12 месяцев. Deprecation ≠ снятие поверхности: клиенты реализуют; GhostSplice использует sampling.
 
 ## Localhost is not a trust boundary (AutoJack)
 
@@ -390,7 +431,7 @@ tool behavior задаётся локальной policy, schema и allowlist
 
 ### 6. Secrets never enter model context
 
-Секреты нужны tool executor, но не LLM.
+Секреты нужны tool executor, но не LLM. Паттерн — [credential broker §10](../part-3-processing-security/10-secrets-management.md#credential-broker): short-lived scoped token от имени actor; проверка в IAM, не в одном system prompt.
 
 Правильно:
 
@@ -650,6 +691,37 @@ func ValidatePath(path string, allowedRoots []string) error {
 }
 ```
 
+`AllowedRoots` — path allowlist аргумента file-tool. Это **не** MCP `roots/list` (что клиент публикует серверу).
+
+```go
+type ServerRequestKind string
+
+const (
+	ServerSampling    ServerRequestKind = "sampling"
+	ServerElicitation ServerRequestKind = "elicitation"
+	ServerRoots       ServerRequestKind = "roots"
+)
+
+// GateServerRequest — stub: sampling/elicitation без preview → deny;
+// roots — только publishRoots, отдельно от AllowedRoots.
+func GateServerRequest(kind ServerRequestKind, preview string, publishRoots []string) error {
+	switch kind {
+	case ServerSampling, ServerElicitation:
+		if strings.TrimSpace(preview) == "" {
+			return fmt.Errorf("%s denied: preview required", kind)
+		}
+		return nil
+	case ServerRoots:
+		if len(publishRoots) == 0 {
+			return fmt.Errorf("roots denied: no published workspace")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unknown server request: %s", kind)
+	}
+}
+```
+
 ### Safe MCP executor
 
 ```go
@@ -826,8 +898,9 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Tool metadata не считается security policy.
 - [ ] Все tool calls проходят schema validation.
 - [ ] Для URL есть domain allowlist.
-- [ ] Для файлов есть allowed roots.
+- [ ] Для файлов есть allowed roots (`ValidatePath`) — это не MCP `roots/list`.
 - [ ] Секреты не передаются в model context.
+- [ ] Токен внешней системы выдаёт [credential broker](../part-3-processing-security/10-secrets-management.md#credential-broker), не system prompt.
 - [ ] OAuth tokens изолированы по user/tenant/session.
 - [ ] MCP sessions не смешивают пользователей.
 - [ ] High-risk tools требуют approval.
@@ -851,7 +924,9 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [ ] Policy оценивает combined intent по всем MCP-каналам, не по одной поверхности ([split-context](#split-context-mcp-injection)).
 - [ ] Значение из tool output не течёт в аргументы другого tool без явной policy (provenance аргументов).
 - [ ] Фрагменты контекста помечены источником (description / result / resource / sampling / user).
-- [ ] Sampling deny by default; approval показывает текст prompt, не только имя сервера; approve-once ≠ blanket.
+- [ ] Sampling deny by default; approval показывает текст prompt, не только имя сервера; approve-once ≠ blanket ([#sampling-elicitation-roots](#sampling-elicitation-roots)).
+- [ ] Elicitation: форма сервера ≠ HITL; URL mode — consent на host, не секрет в форме ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)).
+- [ ] MCP `roots/list` публикует только объявленный workspace (не `$HOME`); `MCP roots != AllowedRoots`.
 - [ ] Single-surface scan (description-only / output-only) не считается доказательством отсутствия injection.
 
 ## Когда отключать MCP server
@@ -871,7 +946,7 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [Список литературы](../literature.md#mcp) · [Стандарты](../literature.md#стандарты-и-фреймворки) — OWASP Securing Agentic Applications Guide 1.0
 - [Invariant Labs — GitHub MCP Exploited](https://invariantlabs.ai/blog/mcp-github-vulnerability)
 - [Model Context Protocol — Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
+- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-11-25) · [sampling](https://modelcontextprotocol.io/specification/2025-11-25/client/sampling) · [elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation) · [roots](https://modelcontextprotocol.io/specification/2025-11-25/client/roots)
 - [OWASP — Practical Guide for Secure MCP Server Development](https://genai.owasp.org/resource/a-practical-guide-for-secure-mcp-server-development/)
 - [OWASP MCP Tool Poisoning](https://owasp.org/www-community/attacks/MCP_Tool_Poisoning)
 - [Microsoft — AutoJack: single-page RCE on host running AI agent](https://www.microsoft.com/en-us/security/blog/2026/06/18/autojack-single-page-rce-host-running-ai-agent/)
@@ -889,8 +964,10 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [33 — Shadow AI](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai) — сеть vs endpoint
 - [08 — Sandbox-рантайм](../part-3-processing-security/08-sandboxing.md#sandbox-runtime) — исполнение code-mode
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
-- [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
-- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [10 — Secrets Management / credential broker](../part-3-processing-security/10-secrets-management.md#credential-broker)
+- [Sampling / elicitation / roots](#sampling-elicitation-roots) — reverse-каналы; `MCP roots != AllowedRoots`
+- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md) — URL-elicitation
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md) — elicitation ≠ HITL
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [18 — Agent-generated artifact poisoning](18-inter-agent-security.md#agent-generated-artifact-poisoning) — между агентами / runs, не композиция MCP-каналов
 - [20 — Split-context MCP injection evals (EV-15)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15)

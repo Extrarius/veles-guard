@@ -3,7 +3,7 @@ tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Self-verifier на той же модели ≠ независимый источник; якорь EV-19."
+изменения: "Emergent coordination (#emergent-coordination): per-agent budget != swarm budget; no channel != no collusion."
 ---
 
 # 18 — Inter-Agent Security
@@ -123,12 +123,15 @@ flowchart LR
 | Handoff policy bypass | orchestrator передаёт задачу напрямую, минуя policy | High |
 | Instruction laundering | вредная инструкция проходит через другого агента как “легитимный результат” | High |
 | Agent-generated artifact poisoning | агент A публикует PR / issue / README / comment / package metadata → агент B читает как контекст → действие | High |
+| Cross-run eval store | независимые eval-runs делят writable store; `run_B` наследует progress / creds `run_A` | Critical |
 | Delegated privilege escalation | low-privilege агент просит high-privilege агента выполнить действие | High |
 | Context leakage | агент получает больше данных, чем нужно для задачи | High |
 | Memory poisoning | один агент записывает вредный контекст в shared memory | High |
 | Consensus manipulation | агенты на одной модели с общим контекстом приходят к одному выводу; majority vote выглядит как подтверждение | High |
 | Correlated model errors | одинаковая модель + общий контекст + общее scaffolding → одинаковая ошибка у всех; изолированный сбой становится системным | High |
 | Peer lockout / разрешение конфликта силой | агент отзывает доступ другого агента, убивает конкурирующие процессы, маскирует свой код под чужой | Critical |
+| Shared-resource flood | одинаковые агенты бьют в одну очередь / poll; лимит на одного не закрывает swarm | High |
+| Tacit collusion | private channel снят; агенты сговариваются через публичную доску / видимые действия | High |
 | Responsibility diffusion | непонятно, какой агент принял опасное решение | Medium |
 | Tool result confusion | результат одного tool принимается как инструкция для другого агента | High |
 | Infinite delegation loop | агенты бесконечно передают задачу друг другу | Medium |
@@ -187,6 +190,8 @@ B получает полный доступ к данным и tools A
 ```text
 B получает ограниченный delegated scope только под конкретную задачу
 ```
+
+Intra-session субагент IDE (Task / Explore / custom) — **не** этот handoff. Ребёнок в том же рантайме; blast ≤ родителя; канон — [§28 `#coding-subagents`](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#coding-subagents).
 
 ### 4. Message provenance
 
@@ -267,6 +272,22 @@ agent A
 
 В cyber-eval агенты оставляли инструкции в публичных артефактах там, где их могли подхватить другие агенты — [UK AISI Incident Report](../literature.md) (тот же первоисточник, что для trajectory evals §20).
 
+<a id="cross-run-eval-store"></a>
+
+### 8.1 Shared eval-run store (межсессионная доска)
+
+Публичный артефакт A→B (выше) — продуктовый канал. Другой канал: два **независимых eval-run** делят writable store (package cache, registry, dir names, metadata, WebDAV). `run_B` читает progress / exploits / leftover creds `run_A`. Wipe файлов не убивает канал, если остались имена каталогов или metadata.
+
+```text
+shared writable store != isolated runs
+wipe one channel != channel gone
+inherited progress != independent eval
+```
+
+Это не product memory того же principal ([§20 EV-20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#stateful-horizon-evals-ev-20)) и не escape стенда (EV-07). Leftover upload credential в shared store — тот же класс канала (JFrog / OpenAI–HF; Artifactory 7.161 — факт версии, не отдельный advisory URL).
+
+Контроли: store per run; no inherited authority; wipe **и** metadata / dir names; monitor shared package cache ([§16](../part-5-control-observability/16-monitoring-alerting.md), [§08](../part-3-processing-security/08-sandboxing.md), [§22](../part-7-testing-compliance/22-supply-chain-security.md)). Eval: [§20 `EVAL-CROSS-RUN-ARTIFACT-01` / EV-21](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#cross-run-artifact-evals-ev-21).
+
 <a id="source-independence"></a>
 
 ### 9. Независимость источников (evidence provenance)
@@ -319,6 +340,23 @@ Eval: [§20 EV-16](../part-7-testing-compliance/20-red-teaming-adversarial-testi
 - не выдаёт свой код за чужой.
 
 Неразрешимый конфликт → стоп и человек ([§14](../part-5-control-observability/14-human-in-the-loop.md)), circuit breaker ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md)).
+
+<a id="emergent-coordination"></a>
+
+### 11. Emergent coordination (flood / tacit collusion)
+
+Независимость источников и арбитраж выше — про **голоса и спор**. Здесь другой класс: одинаковое поведение на **общей среде**.
+
+**Flood.** N агентов без координации выбирают одну стратегию на shared resource (очередь / polling). Лимит на одного агента не закрывает swarm (`per-agent budget != swarm budget`). Канон квоты — [§05](../part-2-input-security/05-rate-limiting-quotas-token-bombing.md).
+
+**Tacit collusion.** Снятие private channel ≠ изоляция (`no channel != no collusion`). Публичная доска / видимые цены / listings — канал. Не путать с [EV-16](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16) (голоса ≠ источники). Single-agent suite не сертифицирует этот контур — [§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#single-agent-pass-not-multi-agent-cert).
+
+```text
+per-agent budget != swarm budget
+no channel != no collusion
+```
+
+Координация среды — [Patterns and problems](../literature.md) (уже якорь EV-16). Eval alignment организации агентов — отдельный источник, не эта статья.
 
 ## Пример (Go)
 
@@ -609,10 +647,12 @@ func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
 - [ ] Handoff проходит через policy, а не напрямую.
 - [ ] Есть allowlist допустимых handoff targets.
 - [ ] Delegated scopes уже, чем права исходного агента.
+- [ ] IDE subagent ≠ peer handoff; blast ребёнка ≤ родителя ([§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#coding-subagents)).
 - [ ] Inter-agent messages имеют run_id и parent_action_id.
 - [ ] Shared memory разделена по owner / tenant / trust level.
 - [ ] Agent output не считается trusted instruction.
 - [ ] Контент, созданный другим агентом, всегда считается untrusted ([artifact poisoning](#agent-generated-artifact-poisoning)).
+- [ ] Eval-runs не делят writable store; wipe файлов ≠ конец канала ([#cross-run-eval-store](#cross-run-eval-store)).
 - [ ] Agent identity не превращает сообщение / артефакт в trusted instruction.
 - [ ] Между агентами передаются provenance и sender identity (в т.ч. для публичных артефактов, если известны).
 - [ ] Внешний артефакт не может автоматически расширять capabilities.
@@ -625,6 +665,7 @@ func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
 - [ ] Majority vote не используется как единственный security control ([независимость источников](#source-independence)).
 - [ ] Перед привилегированным действием посчитаны независимые источники, не голоса.
 - [ ] Арбитр / verifier вне спора и на другой модели / контексте / scaffolding ([арбитраж](#arbitration-outside-contestants)).
+- [ ] Swarm на shared resource имеет свой cap; снятие private channel ≠ изоляция ([#emergent-coordination](#emergent-coordination)).
 - [ ] Агент не управляет identity, sudo и процессами другого агента.
 - [ ] Dissent фиксируется и не тонет в большинстве (hidden profile).
 - [ ] Неразрешимый конфликт → стоп и человек / circuit breaker.
@@ -633,15 +674,18 @@ func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
 
 - [Список литературы](../literature.md#стандарты-и-фреймворки)
 - [UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing](https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing) — агенты оставляли инструкции в публичных артефактах для других агентов
+- [JFrog — collaboration on zero-day security findings](https://jfrog.com/blog/jfrog-and-openai-collaboration-on-zero-day-security-findings/) — leftover credential / shared store между eval-runs ([#cross-run-eval-store](#cross-run-eval-store))
+- [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — тот же инцидент; containment / eval integrity (без дубля в literature.md)
 - [OWASP Multi-Agentic System Threat Modeling Guide](https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/)
 - [OWASP Agentic AI — Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [OpenAI Agents SDK — Guardrails](https://openai.github.io/openai-agents-python/guardrails/)
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
-- [Anthropic — Patterns and problems in emerging multiagent systems](https://www.anthropic.com/research/multiagent-systems) — независимость источников, корреляция моделей, арбитраж вне спора
+- [Anthropic — Patterns and problems in emerging multiagent systems](https://www.anthropic.com/research/multiagent-systems) — независимость источников, корреляция моделей, арбитраж вне спора; flood / tacit collusion ([#emergent-coordination](#emergent-coordination))
 
 ## См. также
 
+- [28 — Subagents внутри coding-агента](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#coding-subagents) — intra-session child ≠ peer
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md) · [Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
@@ -650,7 +694,10 @@ func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md) — package / artifact metadata
 - [27 — Repository Instructions Attack Surface](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md) — README / issue / PR как untrusted
 - [29 — AI-generated code review](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md) — agent-generated PR, те же gates
+- [20 — Cross-run eval store (EV-21)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#cross-run-artifact-evals-ev-21) — независимые runs, не product memory
 - [20 — Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) — composition шагов (смежная тема)
 - [20 — Correlated evidence evals (EV-16)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16)
+- [20 — Single-agent pass ≠ multi-agent cert](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#single-agent-pass-not-multi-agent-cert)
+- [05 — Rate limiting](../part-2-input-security/05-rate-limiting-quotas-token-bombing.md) — swarm budget
 - [20 — Verifier / best-of-N (EV-19)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
