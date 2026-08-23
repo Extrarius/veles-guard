@@ -2,8 +2,8 @@
 tags: [ai-security, agents, checklist, security-by-design, review]
 часть: "Часть VIII — Практика"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Класс риска агента R0–R3 (#agent-risk-class), паспорт, production gate."
+обновлено: 2026-08-23
+изменения: "MCP-11: inventory агентов и локальных MCP на endpoint."
 ---
 
 # 25 — Security-by-Design чек-лист
@@ -87,6 +87,7 @@ Design Review → Pre-Release Review → Production Review
 | M-06 | Есть процедура удаления poisoned memory | High | TODO |
 | M-07 | Shared memory не даёт cross-tenant leakage | High | TODO |
 | M-08 | Tool output перед записью в memory санитизируется | High | TODO |
+| M-09 | Backend хранилища памяти / checkpointer pinned и ревьюится ([§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#memory-storage-layer)) | High | TODO |
 
 ## 4. LLM planning
 
@@ -243,6 +244,7 @@ Design Review → Pre-Release Review → Production Review
 | MCP-08 | MCP server не обходит egress policy | High | TODO |
 | MCP-09 | Command execution MCP tools работают только в sandbox | High | TODO |
 | MCP-10 | Есть kill-switch per MCP server | High | TODO |
+| MCP-11 | Inventory агентов и локальных MCP **на endpoint**, не только сетевой allowlist ([§19](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory), [§33](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai)) | High | TODO |
 
 ## 15. Testing и red teaming
 
@@ -532,6 +534,9 @@ func Export(items []Item) ([]byte, error) {
 - [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
 - [13 — AI Gateway / inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) — MCP-11
+- [33 — Shadow AI](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai) — сеть vs endpoint
+- [09 — Storage layer](../part-3-processing-security/09-memory-isolation-context-sanitization.md#memory-storage-layer) — M-09 / EV-18
 - [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
 - [21 — Compliance](../part-7-testing-compliance/21-compliance-standards.md) — EU AI Act / OSCAL при R3
 - [24 — End-to-End: безопасный агент на Go](24-end-to-end-secure-agent-go.md)
