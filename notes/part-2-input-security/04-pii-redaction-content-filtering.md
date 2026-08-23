@@ -2,8 +2,8 @@
 tags: [ai-security, pii, redaction, content-filtering, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Пять точек контроля (#five-control-points): Pre-context … Post-model → §11."
+обновлено: 2026-08-23
+изменения: "Sanitization pipeline (#sanitization-pipeline): Collect→Log как схема поверх engine / five points."
 ---
 
 # 04 — PII Redaction и Content Filtering
@@ -189,6 +189,25 @@ func ApplySanitize(mode SanitizeMode, kind, value string, store MappingStore, te
 Фильтрация только перед LLM недостаточна: сырые данные уходят в tool/memory/logs, а вредный ответ — наружу без Output Gate. Post-model **не** заменяет входные точки; канон проверки ответа — [§11](../part-4-output-security/11-output-validation-fact-checking.md#post-model-control-point).
 
 Mask / normalize на входе — ступень [guardrail pipeline §03](03-prompt-injection-detection.md#guardrail-pipeline-router) (эвристики → block|mask|normalize → detector → judge). Канон router / taxonomy и решения вроде `route internal` / `reduce context` — [§03](03-prompt-injection-detection.md); здесь — механика redaction и content filtering.
+
+<a id="sanitization-pipeline"></a>
+
+### Sanitization pipeline (учебная схема)
+
+От сырого контекста к безопасному prompt. **Не** новый engine и **не** замена [пяти точек](#five-control-points) / [четырёх режимов](#sanitization-engine):
+
+```text
+six-step schema != five control points
+```
+
+| Шаг | Смысл | Канон |
+|---|---|---|
+| Collect | запрос / RAG / tool output | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| Classify | класс данных | [D0–D4](#ai-data-classes-d0-d4) |
+| Decide | allow / sanitize / route internal / block | [§03](03-prompt-injection-detection.md) |
+| Transform | 4 режима | [#sanitization-engine](#sanitization-engine) |
+| Route | internal / external / reject | [§13 inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) |
+| Log | решение и мета, не сырой текст | [§15](../part-5-control-observability/15-observability-tracing.md) |
 
 <a id="ai-data-classes-d0-d4"></a>
 
@@ -517,6 +536,7 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 - [ ] Источники с NDA / regulated **маркированы** (не надеяться на regex).
 - [ ] В контекст модели уходит минимизированный набор полей / summary.
 - [ ] Закрыты [пять точек контроля](#five-control-points) (Pre-context … Post-model), не только Pre-LLM.
+- [ ] Схема [Collect → … → Log](#sanitization-pipeline) названа как карта на канон, не как отдельный engine.
 - [ ] Выбран режим [sanitization engine](#sanitization-engine) (removal / masking / pseudonymization / generalization) и правило обратимости.
 - [ ] Quasi-identifiers учтены как наборы полей, не только прямые ID.
 - [ ] PII-очистка не делегирована LLM как единственному контролю.
@@ -540,6 +560,7 @@ func SanitizeForLLM(input string) (SanitizedInput, error) {
 
 ## См. также
 
+- [Sanitization pipeline](#sanitization-pipeline) — Collect→Log; не five points
 - [03 — Prompt Injection / decision set](03-prompt-injection-detection.md)
 - [09 — Memory / RAG (атрибуты ресурса)](../part-3-processing-security/09-memory-isolation-context-sanitization.md#resource-ai-labels)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
