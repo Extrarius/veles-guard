@@ -2,8 +2,8 @@
 tags: [ai-security, agents, go, end-to-end, secure-runtime]
 часть: "Часть VIII — Практика"
 статус: готово
-обновлено: 2026-07-19
-изменения: "См. также → §21 MCP→OSCAL case study."
+обновлено: 2026-08-23
+изменения: "Plan as contract (#plan-as-contract): watchlist; не role tag / ≠ plan-before-execute."
 ---
 
 # 24 — End-to-End: безопасный агент на Go
@@ -552,6 +552,20 @@ LLM output не выполняется.
 LLM output парсится как данные.
 ```
 
+<a id="plan-as-contract"></a>
+
+#### План как контракт (watchlist)
+
+Structured plan ≠ контракт исполнения. План в том же потоке, что `tool`-данные, агент может бросить. Выделенная planning-роль из [arXiv 2603.12277](https://arxiv.org/abs/2603.12277) — **не** стандарт тегов рядом с `system` / `user` / `tool`.
+
+```text
+planning role != role tag standard
+plan as contract != plan before execute
+watchlist != control
+```
+
+Не gate. Write-шаг «план затем вызов» — [§06](../part-3-processing-security/06-rbac-tool-permissions.md#write-controls). Роли — [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion). Spec-driven — [§29](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md).
+
 ## Policy
 
 ```go
@@ -833,6 +847,7 @@ Expected:
 ## Минимальный acceptance checklist
 
 - [ ] LLM не вызывает tools напрямую.
+- [ ] [План как контракт](#plan-as-contract) назван watchlist: structured plan ≠ обязательство; не вводить role `plan`.
 - [ ] Все tools зарегистрированы в allowlist.
 - [ ] Все tool args проходят schema validation.
 - [ ] High-risk tools требуют approval.
@@ -889,6 +904,7 @@ Spec-driven = контрольная точка до tool execution агенто
 ## См. также
 
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [План как контракт](#plan-as-contract) — watchlist; ≠ [write-controls §06](../part-3-processing-security/06-rbac-tool-permissions.md#write-controls)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
