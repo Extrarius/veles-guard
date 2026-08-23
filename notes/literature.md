@@ -17,8 +17,11 @@ tags: [ai-security, конспект, литература]
 - **Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection** — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
 - **Ye, Cui, Hadfield-Menell — Prompt Injection as Role Confusion** — <https://arxiv.org/abs/2603.12277> — ICML 2026; роль по стилю, не по тегу; CoT Forgery / inline role claim (§03).
+- **Abdelnabi & Bagdasarian — AI Agents May Always Fall for Prompt Injections** — <https://arxiv.org/abs/2605.17634> — Contextual Integrity; system prompt / data–instruction split ≠ appropriateness (`claim != verified transmission principle`) (§03).
 - **Choi et al. — Agent Data Injection Attacks are Realistic Threats to AI Agents** — <https://arxiv.org/abs/2607.05120> — ADI vs instruction injection; isolation trusted vs untrusted data внутри agent context (`Trusted format does not imply trusted data`).
 - **Kwok et al. — LLM-as-a-Verifier** — <https://arxiv.org/abs/2607.05391> — Stanford + UC Berkeley; training-free verifier / best-of-N; опора §20 EV-19.
+- **Ling et al. — Toward Secure LLM Agents** — <https://arxiv.org/abs/2606.10749> — lifecycle / persistent state; gap long-horizon evals (`single-session pass != stateful safety`); опора §20 EV-20.
+- **Zou et al. — Improving Alignment and Robustness with Circuit Breakers** — <https://arxiv.org/abs/2406.04313> — Representation Rerouting; model-layer ≠ внешние guardrails / ≠ runtime §17; опора §33.
 - **Muth & Margraf — From Legacy Documentation to OSCAL: An MCP-Based Agent Pipeline for Threat-Informed Continuous Compliance** — <https://arxiv.org/abs/2607.08288> — MCP-grounded multi-agent pipeline: NL infra docs → knowledge graph → NIST OSCAL SSP/SAR; errors shift to entity extraction (human review).
 - **Cyber-Capable AI Agents: Vulnerabilities, Evaluation Containment, and Defensive Response** — <https://arxiv.org/abs/2607.25379> — обзор рисков киберспособных агентов и границ evaluation containment (в т.ч. target / sandbox boundaries).
 - **Taught Well Learned Ill: Towards Distillation-conditional Backdoor Attack** — <https://arxiv.org/abs/2509.23871> — закладка в teacher может перейти в student при distillation (§22 model provenance).
@@ -52,16 +55,22 @@ tags: [ai-security, конспект, литература]
 - **OpenAI — Designing AI agents to resist prompt injection** — <https://openai.com/index/designing-agents-to-resist-prompt-injection/>
 - **OpenAI — Keeping your data safe when an AI agent clicks a link** — <https://openai.com/index/ai-agent-link-safety/>
 - **OpenAI — Guardrails and human review** — <https://developers.openai.com/api/docs/guides/agents/guardrails-approvals>
+- **OpenAI — Structured Outputs** — <https://developers.openai.com/api/docs/guides/structured-outputs> — decode-time JSON Schema / logits mask ≠ post-hoc Output Gate (`logits mask != output gate`); опора §11.
 - **Meta — Llama Guard 3** — <https://www.llama.com/docs/model-cards-and-prompt-formats/llama-guard-3/> — model card / prompt formats для safety classifier (hard policy block на стороне runtime).
 - **Zheng et al. — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena** — <https://arxiv.org/abs/2306.05685> — LLM-as-a-Judge как метод оценки ответов; в RT — доп. слой (не единственный gate; EV-03).
 - **OpenAI — GPT-Red: Unlocking Self-Improvement for Robustness** — <https://openai.com/index/unlocking-self-improvement-gpt-red/> — iterative automated red-teaming pattern; канон процесса в §20 Iterative Adversarial Evals.
 - **OpenAI — Hugging Face model evaluation security incident** — <https://openai.com/index/hugging-face-model-evaluation-security-incident/> — containment escape / evaluation integrity из eval harness.
+- **JFrog — collaboration on zero-day security findings** — <https://jfrog.com/blog/jfrog-and-openai-collaboration-on-zero-day-security-findings/> — leftover upload credential / shared store между агентами eval; опора §18 `#cross-run-eval-store` / EV-21.
 - **UK AISI — Incident Report: unsanctioned agent behaviour during cyber testing** — <https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing> — out-of-scope agent trajectory (identity / human contact / artifacts) при permissive cyber eval; опора §20 `EVAL-TRAJECTORY-01` / EV-13 и EV-17 (давление на ревьюера).
 - **OpenAI — GPT-5.6 Deployment Safety Hub** — <https://deploymentsafety.openai.com/gpt-5-6> — user-facing summary ≠ полный список действий агента; опора IR на tool trace / audit.
+- **OpenAI — Expanding Daybreak** — <https://openai.com/index/expanding-daybreak-as-the-cyber-defense-window-narrows/> — выше capability модели → строже identity / scope / мониторинг / изоляция (`higher model capability != same controls`); опора §25 `#capability-aware-profile`.
 - **Google — An Introduction to Google's Approach for Secure AI Agents** — <https://research.google/pubs/an-introduction-to-googles-approach-for-secure-ai-agents/>
 - **OWASP — AI Agent Security Cheat Sheet** — Do's & Don'ts (least privilege, валидация входов, human-in-the-loop, изоляция памяти, structured outputs, подпись сообщений, adversarial testing).
 - **NVIDIA NeMo Guardrails** — <https://docs.nvidia.com/nemo/guardrails/> — layered input/output/retrieval rails; ориентир guardrail pipeline (§03); [Output Rail Streaming](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/streaming/output-rail-streaming) — §11 (`chunk_size` / `context_size` / `stream_first`); [Guardrails Configuration](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/guardrails-configuration) (`rails.retrieval`) + [Fact-Checking](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/fact-checking) — §09 retrieval rails / grounded vs chunks; [Evaluate Guardrails](https://docs.nvidia.com/nemo/guardrails/evaluation/evaluate-guardrails) — §20 EV-10 (per-rail eval, compliance / latency).
 - **Microsoft Learn — Generative AI gateway capabilities** — <https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities> — централизованный контроль доступа, маршрутизация, квоты и observability к LLM; канон AI Gateway / inference proxy в §01, маршрутизация inference в §13, поля лога в §15.
+- **Microsoft — Least privilege for AI agents** — <https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/> — first-class principal; aggregate permissions / tool combination (`per-tool allow != effective agency`); опора §06 / §02.
+- **Claude Code — Hooks** — <https://code.claude.com/docs/en/hooks> — PreToolUse / PostToolUse; hook ≠ permission system (`hook != policy`); опора §28.
+- **Claude Code — Subagents** — <https://code.claude.com/docs/en/subagents> — inherit permission mode; isolated context ≠ изоляция прав (`child blast <= parent blast`); опора §28.
 - **Pi — AgentHarness lifecycle** — <https://github.com/earendil-works/pi/blob/main/packages/agent/docs/agent-harness.md> — harness владеет session persistence, runtime config, resource resolution, operation locking; опора §26 / §31 (`Agent = Model + Harness`).
 - **Check Point — Black Hat 2026 roundup** — <https://blog.checkpoint.com/research/black-hat-2026-check-point-research-takes-the-stage/> — 21 находка / 12 CVE / 6 фреймворков; опора §22 orchestration-стек (`LLM safe != agent safe`).
 - **Check Point — LangGraph Checkpointer** — <https://research.checkpoint.com/2026/from-sqli-to-rce-exploiting-langgraphs-checkpointer/> — CVE-2025-67644 / CVE-2026-28277 / CVE-2026-27022; опора §09 storage layer / EV-18 (`semantic check != software check`).
@@ -71,7 +80,9 @@ tags: [ai-security, конспект, литература]
 
 - **Anthropic — Detecting and countering misuse of AI: August 2025** — <https://www.anthropic.com/news/detecting-countering-misuse-aug-2025> — отчёт Threat Intelligence: злоупотребления agentic AI (в т.ч. автоматизированные атаки через coding agents), меры обнаружения и блокировки.
 - **Anthropic — Disrupting the first reported AI-orchestrated cyber espionage campaign (GTG-1002, November 2025)** — <https://www.anthropic.com/news/disrupting-AI-espionage> — первый задокументированный масштабный AI-оркестрированный взлом: автономная разведка, эксплуатация, lateral movement; ~80–90% операций выполнено агентом, человек — в 4–6 точках.
-- **Anthropic — Patterns and problems in emerging multiagent systems** — <https://www.anthropic.com/research/multiagent-systems> — Frontier Red Team (13 августа 2026): независимость источников vs majority vote; корреляция моделей (общий контекст / scaffolding); арбитраж вне участников спора (§18, EV-16).
+- **Anthropic — Patterns and problems in emerging multiagent systems** — <https://www.anthropic.com/research/multiagent-systems> — Frontier Red Team (13 августа 2026): независимость источников vs majority vote; корреляция моделей (общий контекст / scaffolding); арбитраж вне участников спора (§18, EV-16); flood / tacit collusion (§18 `#emergent-coordination`).
+- **Anthropic Alignment — AI Organizations** — <https://alignment.anthropic.com/2026/ai-organizations/> — организация агентов; single-agent safety ≠ сертификат multi-agent (`single-agent pass != multi-agent cert`); опора §20; не смешивать с Patterns and problems.
+- **Anthropic — Investigating three real-world incidents in our cybersecurity evaluations** — <https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals> — cyber-eval CTF с открытым интернетом (июль 2026); self-termination ≠ контроль / containment (`model stopped itself != containment`); опора §17.
 - **Sysdig — JADEPUFFER: Agentic ransomware for automated database extortion** — <https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion> — задокументированный agentic ransomware (ATA): exposed AI/agent framework → credential sweep → pivot → destructive DB extortion; detection signals и рекомендации по защите control plane.
 - **Tenet — GhostJacking** — <https://tenetsecurity.ai/blog/ghostjacking-attacks-agentic-kill-chain/> — DEF CON 34: poisoned WAF/SIEM/Sentry/Datadog logs как канал инъекции; read + write в одной сессии; blocked payload остаётся untrusted (§09).
 
@@ -80,6 +91,7 @@ tags: [ai-security, конспект, литература]
 - **Indirect Prompt Injection** (arXiv) — <https://arxiv.org/abs/2302.12173>
 - **Design Patterns for Securing LLM Agents against Prompt Injections** — <https://arxiv.org/html/2506.08837v2>
 - **Choi et al. — Agent Data Injection (ADI)** — <https://arxiv.org/abs/2607.05120> — untrusted data as trusted metadata / agent context; см. также Академические исследования.
+- **Abdelnabi & Bagdasarian — AI Agents May Always Fall for Prompt Injections** — <https://arxiv.org/abs/2605.17634> — Contextual Integrity; system prompt / data–instruction split ≠ appropriateness (`claim != verified transmission principle`); см. также Академические исследования.
 - **Simon Willison — The lethal trifecta for AI agents** — <https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/> — private data + untrusted content + external communication; design rule: убрать хотя бы одну «ногу».
 - **Legit Security — Remote Prompt Injection in GitLab Duo Leads to Source Code Theft** — <https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo> — hidden prompt в MR/контексте → HTML/image URL exfiltration в ответе ассистента.
 - **OWASP Prompt Injection Cheat Sheet** — контрольный чек-лист.
@@ -87,6 +99,7 @@ tags: [ai-security, конспект, литература]
 
 ## MCP
 
+- **Model Context Protocol Specification** — <https://modelcontextprotocol.io/specification/2025-11-25> — [sampling](https://modelcontextprotocol.io/specification/2025-11-25/client/sampling) · [elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation) · [roots](https://modelcontextprotocol.io/specification/2025-11-25/client/roots); опора §19 reverse-каналов (`MCP roots != AllowedRoots`).
 - **MCP Inspector** — <https://github.com/modelcontextprotocol/inspector>
 - **MCP-Scan (Invariant Labs)** — <https://invariantlabs.ai/blog/introducing-mcp-scan>
 - **Invariant Labs — GitHub MCP Exploited: Accessing private repositories via MCP** — <https://invariantlabs.ai/blog/mcp-github-vulnerability> — public issue → over-privileged agent → leak private repos via public PR (toxic agent flow / lethal trifecta).
@@ -95,6 +108,7 @@ tags: [ai-security, конспект, литература]
 - **OWASP MCP Top 10** — <https://owasp.org/www-project-mcp-top-10/>
 - **Snyk Agent Scan** — <https://github.com/snyk/agent-scan>
 - **ASSET Research Group — GhostSplice** — <https://asset-group.github.io/disclosures/ghostsplice/> — split-context / compositional MCP injection: `tool.description` + `tool result` + sampling; combined intent; сканер одной поверхности не видит атаку.
+- **ASSET Research Group — Ghostcommit** — <https://asset-group.github.io/disclosures/ghostcommit/> — инструкция в изображении; секрет как целые в исходнике / публичный commit (`image != unreadable`; `encoded source != not a secret`); опора §27 / §13.
 
 ## Agent skills / MCP scanning tools
 

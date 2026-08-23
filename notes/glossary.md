@@ -19,6 +19,8 @@ tags: [ai-security, конспект, glossary]
 
 **Confused deputy** — компонент с избыточными правами выполняет действие от имени атакующего, не понимая истинного намерения. См. [06 — RBAC](part-3-processing-security/06-rbac-tool-permissions.md), [19 — MCP Security](part-6-multi-agent-security/19-mcp-security.md).
 
+**Credential broker** — брокер между агентом/MCP и внешней системой: short-lived scoped token от имени actor; проверка scope в IAM, не в LLM. Имя secretless executor. См. [10 — Secrets Management](part-3-processing-security/10-secrets-management.md#credential-broker).
+
 ## E
 
 **Egress control** — ограничение исходящих данных и сетевых запросов агента (allowlist, DLP). См. [13 — Egress Control](part-4-output-security/13-egress-control-data-exfiltration.md).
