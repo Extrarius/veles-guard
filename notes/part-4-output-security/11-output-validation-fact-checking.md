@@ -2,8 +2,8 @@
 tags: [ai-security, output-validation, fact-checking, guardrails, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Якорь Post-model (#post-model-control-point) = точка 5 из §04 five control points."
+обновлено: 2026-08-23
+изменения: "Constrained decoding (#constrained-decoding): logits mask != output gate."
 ---
 
 # 11 — Output Validation и Fact-Checking
@@ -66,6 +66,23 @@ tags: [ai-security, output-validation, fact-checking, guardrails, output-securit
 | Business decision | ошибочное approve/reject | human-in-the-loop, threshold |
 
 **Граница с Parameter Validation (§07).** Аргументы tool call / function-calling JSON проверяются в [§07](../part-3-processing-security/07-parameter-validation-schema.md) — до executor. Здесь (§11) — ответ модели как выход: текст, `structured_json` для UI/API, HTML/Markdown, citations. Schema на входе в tool не заменяет schema на выходе к пользователю или downstream.
+
+<a id="constrained-decoding"></a>
+
+#### Constrained decoding: schema на декодировании ≠ Output Gate
+
+[OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) и аналоги накладывают JSON Schema **во время** генерации: грамматика / logits mask не даёт выбрать токен вне схемы.
+
+```text
+logits mask != output gate
+```
+
+| Слой | Когда | Что гарантирует |
+|---|---|---|
+| Decode-time schema | пока модель генерирует токены | формат (поля, типы, enum) |
+| Post-hoc Output Gate | после полного ответа | политика: unknown fields, опасные **значения**, PII, citations |
+
+Valid-by-schema ≠ safe-by-policy: схема пропускает `{"action":"delete","target":"..."}`. Constrained decoding не заменяет этот раздел и не заменяет [§07](../part-3-processing-security/07-parameter-validation-schema.md).
 
 ## DFD: output validation layer
 
@@ -546,6 +563,7 @@ func (g *StreamChunkGuard) advanceContext(chunk string) {
 
 - [ ] Сырые ответы LLM не передаются напрямую пользователю или downstream-системам.
 - [ ] Для structured output используется strict schema.
+- [ ] Decode-time schema (logits mask / Structured Outputs) не считается Output Gate ([#constrained-decoding](#constrained-decoding)).
 - [ ] Unknown fields запрещены.
 - [ ] HTML/Markdown проходит безопасный renderer/sanitizer.
 - [ ] Секреты и PII редактируются до публикации и логирования.
@@ -561,6 +579,7 @@ func (g *StreamChunkGuard) advanceContext(chunk string) {
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства) — [NVIDIA NeMo Guardrails](../literature.md#практические-руководства)
+- [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) — decode-time schema / logits mask ≠ Output Gate
 - [NVIDIA NeMo Guardrails — Output Rail Streaming](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/streaming/output-rail-streaming) — `chunk_size`, `context_size`, `stream_first`
 - [OWASP LLM05:2025 Improper Output Handling](https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/)
 - [OWASP LLM02:2025 Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)
