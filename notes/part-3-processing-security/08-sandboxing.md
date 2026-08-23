@@ -3,7 +3,7 @@ tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, 
 часть: "Часть III — Защита обработки"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Localhost visualizer траекторий = дашборд; auth обязателен."
+изменения: "Sandbox-рантайм (#sandbox-runtime): pin движка; glue держит границу."
 ---
 
 # 08 — Sandboxing
@@ -97,6 +97,28 @@ flowchart LR
 | Persistence | вредный файл остаётся после запуска | Medium | disposable sandbox |
 | Localhost RCE | локальный MCP/framework доступен со страницы browser tool агента | High | sandbox/devbox, auth на локальных сервисах |
 | Cwd escape / command outside workdir | allowlisted binary с cwd = `$HOME` / соседний репо | High | [jailing](#sandbox-jailing) + cwd check ([§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#cwd-safety-rule)) |
+| Sandbox engine / glue | mitigations клетки не покрывают native-слой; unpinned движок | High | pin версии движка, [sandbox-runtime](#sandbox-runtime) |
+
+<a id="sandbox-runtime"></a>
+
+### Sandbox-рантайм (движок, не стенд)
+
+Sandbox **держит границу**, а не предотвращает намерение. Если границу держит glue-код рантайма (native bindings, in-process isolate), аудировать нужно glue — не только allowlist tools.
+
+```text
+sandbox holds the boundary, it does not prevent intent
+if glue holds the boundary, audit glue
+```
+
+Mitigations языка / «клетки» могут не покрывать **native-слой**. Pin и обновление **версии движка** песочницы — тот же класс контроля, что pin skills/MCP ([§22](../part-7-testing-compliance/22-supply-chain-security.md)).
+
+Отдельная поверхность: модель пишет код → рантайм исполняет (не только `{tool, args}`). Связка — [§19 code-mode](../part-6-multi-agent-security/19-mcp-security.md#code-mode).
+
+Это **не** containment escape eval-стенда (сеть / секреты / workspace) — тот канон ниже, [#sandbox--isolation-containment-escape](#sandbox--isolation-containment-escape). Здесь объект — process / memory / tenant внутри движка.
+
+Ориентир (self-hosted workerd; managed production у вендора пропатчен): обновить до `v1.20260619.1`. Наблюдаемые классы без разбора: **cross-tenant heap read** и **sandbox escape**.
+
+Eval: [`EVAL-CONTAINMENT-01`](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01) — прогон в предположении, что модель уже скомпрометирована.
 
 ## Localhost is not a trust boundary
 
@@ -119,6 +141,8 @@ Sandbox/devbox для таких фреймворков — обязательн
 ```
 
 > **Правило:** sandbox — не гарантия isolation, если рядом остаются сеть, действующие секреты, DNS, облачные metadata, `localhost` / private ranges или уязвимая control plane.
+
+Граница **стенда** (этот подраздел) ≠ граница **движка** ([#sandbox-runtime](#sandbox-runtime): process / memory / tenant).
 
 У desktop-клиента агента возможен escape через повторное использование permissive JWT: «данные не покинут стенд» — не гарантия. Факт без деталей эксплуатации. Связка с telemetry injection — [§09](09-memory-isolation-context-sanitization.md#security-telemetry-injection).
 
@@ -397,6 +421,7 @@ var Tools = map[string]ToolSpec{
 | не ограничивать stdout | token/cost bomb | max output bytes |
 | не удалять временные файлы | persistence | disposable workspace |
 | полагаться на loopback как границу | browser tool агента дотянется до local service | auth+authz + sandbox/devbox |
+| движок песочницы `latest` / unpinned | glue вне mitigations клетки; tenant/process leak | pin версии движка ([#sandbox-runtime](#sandbox-runtime)) |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -429,11 +454,15 @@ var Tools = map[string]ToolSpec{
 - [ ] Цели eval загружены из подписанного scope-манифеста; LLM не расширяет scope при совпадении имени.
 - [ ] Sandbox не считается isolation при открытой сети / живых credentials / уязвимой control plane.
 - [ ] Различаете Sandbox escape / Containment failure / Scope violation / Egress misconfiguration.
+- [ ] Версия движка песочницы pinned и обновляется наравне со skills/MCP ([#sandbox-runtime](#sandbox-runtime)).
+- [ ] Native glue рантайма в scope аудита, не только policy/allowlist.
+- [ ] Поверхность «модель пишет код → рантайм исполняет» учтена отдельно от `{tool, args}`.
 
 ## Литература
 
 - [Список литературы](../literature.md#инструменты)
 - [OpenAI — Hugging Face model evaluation security incident](https://openai.com/index/hugging-face-model-evaluation-security-incident/) — containment escape / misconfigured egress из eval harness
+- [Check Point — When Agentic Glue Melts](https://research.checkpoint.com/2026/when-agentic-glue-melts/) — pin workerd `v1.20260619.1`; опора [#sandbox-runtime](#sandbox-runtime)
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
 - [OWASP Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
@@ -447,7 +476,9 @@ var Tools = map[string]ToolSpec{
 - [10 — Secrets Management](10-secrets-management.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [19 — Code-mode](../part-6-multi-agent-security/19-mcp-security.md#code-mode) — модель пишет код против типизированного API
 - [20 — Red Teaming (EVAL-CONTAINMENT-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01)
+- [22 — Supply Chain (pin versions)](../part-7-testing-compliance/22-supply-chain-security.md) — pin движка как у skills/MCP
 - [20 — Red Teaming (EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)
 - [02 — Threat Model (Target ambiguity)](../part-1-architecture-threats/02-threat-model.md#сценарий-target-ambiguity)
 - [23 — Incident Response](../part-7-testing-compliance/23-incident-response-recovery.md)
