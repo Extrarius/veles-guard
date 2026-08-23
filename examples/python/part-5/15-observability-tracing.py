@@ -127,6 +127,16 @@ def hash_value(value: str) -> str:
 
 
 @dataclass
+class LogRef:
+    """Stub: hash / truncated preview / TTL store ref. Not a store engine. See §15 #log-as-leak."""
+
+    hash: str
+    preview: str
+    store_id: str
+    ttl_seconds: int
+
+
+@dataclass
 class Logger:
     def emit(self, event: AuditEvent) -> None:
         if event.time is None:

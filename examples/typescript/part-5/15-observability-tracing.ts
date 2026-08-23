@@ -163,6 +163,14 @@ function logPolicyDecision(
   });
 }
 
+/** Stub: hash / truncated preview / TTL store ref. Not a store engine. See §15 #log-as-leak. */
+interface LogRef {
+  hash: string;
+  preview: string;
+  storeId: string;
+  ttlSeconds: number;
+}
+
 function logEgressBlocked(
   logger: Logger,
   runId: string,
