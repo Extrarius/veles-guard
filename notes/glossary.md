@@ -31,6 +31,8 @@ tags: [ai-security, конспект, glossary]
 
 **HITL (Human-in-the-Loop)** — обязательное участие человека в approval, review или override опасных действий. См. [14 — Human-in-the-Loop](part-5-control-observability/14-human-in-the-loop.md).
 
+**Harness (обвязка агента)** — runtime, который делает из модели агента: system prompt, tools, agentic loop, translation layer. `Agent = Model + Harness`; смена обвязки меняет security posture при той же модели. См. [26 — модель угроз](part-9-ai-coding-security/26-ai-coding-agent-threat-model.md), [31 — MCP / Skills production path](part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md), [20 — EV-15](part-7-testing-compliance/20-red-teaming-adversarial-testing.md#split-context-evals-ev-15), [19 — Split-context MCP](part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection).
+
 ## K
 
 **Kill-switch** — аварийное отключение агента, tool, MCP server или skill при критическом событии. См. [17 — Circuit Breaker и Kill-Switch](part-5-control-observability/17-circuit-breaker-kill-switch.md).
