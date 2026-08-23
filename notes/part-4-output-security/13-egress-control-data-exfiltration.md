@@ -2,8 +2,8 @@
 tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Inference routing на каноне D0–D4 (§04); RouteInference(AIDataClass); учёт part-two."
+обновлено: 2026-08-23
+изменения: "Harness inference proxy: не обход AI Gateway; two-stage = residency."
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
@@ -555,6 +555,52 @@ func RouteInference(dc AIDataClass) (InferenceRoute, error) {
 
 Синхрон: [Python](../../examples/python/part-4/13-egress-control-data-exfiltration.py) · [TypeScript](../../examples/typescript/part-4/13-egress-control-data-exfiltration.ts).
 
+<a id="harness-inference-proxy"></a>
+
+### Прокси обвязки — hop inference, не обход
+
+Inference-time proxy между клиентом и провайдером (N кандидатов, two-stage scoring) — **тот же класс**, что hop AI Gateway: путь к модели. Это не боковой канал «мимо policy».
+
+```text
+harness proxy != AI Gateway bypass
+two-stage = second-provider residency
+```
+
+> **Правило:** прокси обвязки не обходит AI Gateway. Policy, D0–D4 и audit остаются на пути — и для completion, и для verification.
+
+**Two-stage:** scoring у модели с logprobs отправляет траектории **целиком** второму провайдеру. Payload классифицируется по D0–D4 и residency, не «это же только verifier». D1+ во внешний scoring без явной policy — та же утечка, что ошибка маршрута completion. Выбор по score не авторизует действие: [§20 EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19).
+
+### Go: `HarnessProxyBypassesGateway`
+
+```go
+type InferenceHop struct {
+	ViaAIGateway           bool
+	Purpose                string // completion | verification
+	DataClass              AIDataClass
+	SecondProviderExternal bool
+}
+
+// HarnessProxyBypassesGateway — true, если прокси обошёл AI Gateway.
+func HarnessProxyBypassesGateway(h InferenceHop) bool {
+	return !h.ViaAIGateway
+}
+
+// TwoStageResidencyViolation — true, если траектории D1+ ушли во внешний scoring без policy.
+func TwoStageResidencyViolation(payload AIDataClass, secondProviderExternal bool) bool {
+	if !secondProviderExternal {
+		return false
+	}
+	switch payload {
+	case D0Public:
+		return false
+	default:
+		return true
+	}
+}
+```
+
+Синхрон: [Python](../../examples/python/part-4/13-egress-control-data-exfiltration.py) · [TypeScript](../../examples/typescript/part-4/13-egress-control-data-exfiltration.ts).
+
 ## Практические правила
 
 1. **Default deny** — если destination неизвестен, блокировать.
@@ -603,6 +649,8 @@ Egress Control запрещает отправить секрет наружу, 
 - [ ] Проверен lethal trifecta: private + untrusted + egress не в одном path ([§02](../part-1-architecture-threats/02-threat-model.md)).
 - [ ] Вызовы модели идут через AI Gateway; маршрут inference задан по [D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4) ([#inference-routing](#inference-routing)).
 - [ ] D4 → `reject` для inference; D2–D3 → только `internal`/`specialized`; ошибка классификации = риск утечки во внешнюю модель.
+- [ ] Прокси обвязки (клиент → proxy → provider) идёт через AI Gateway; two-stage scoring классифицирует траектории по D0–D4 / residency ([#harness-inference-proxy](#harness-inference-proxy)).
+- [ ] Verifier score не авторизует действие ([§20 EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)).
 
 ## Литература
 
@@ -626,3 +674,6 @@ Egress Control запрещает отправить секрет наружу, 
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [15 — Observability (поля inference)](../part-5-control-observability/15-observability-tracing.md#inference-audit-fields)
+- [08 — Localhost is not a trust boundary](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary) — визуализатор траекторий
+- [31 — Localhost (dev)](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) — visualizer на loopback
+- [20 — Verifier / best-of-N (EV-19)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)
