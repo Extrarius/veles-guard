@@ -3,7 +3,7 @@ tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
 обновлено: 2026-08-23
-изменения: "STRIDE: Framework internals (сериализация / кэш / парсер / state routing)."
+изменения: "Capability модели — третья ось blast radius; канон профиля — §25 #capability-aware-profile."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -298,6 +298,26 @@ read-only goal
 
 Controls и `EVAL-TRAJECTORY-01` — [§20 Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); runtime — [§16 Trajectory correlation](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation). Если человек обнаружил аномалию, persuasion / давление на него — тот же класс composition; канон HITL — [§14](../part-5-control-observability/14-human-in-the-loop.md#reviewer-pressure) / [§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17).
 
+<a id="aggregate-permission"></a>
+
+## Сценарий: Aggregate permission
+
+Права выданы «разумно» по одному tool: read internal docs — да, send external — да. Grant-time вопрос: может ли **этот** principal прочитать секрет из A и отправить через B? Если да — effective agency шире суммы allowlist.
+
+```text
+per-tool allow != effective agency
+```
+
+Это **не** runtime-цепочка vs goal. Канон и каталог пар — [§06 `#aggregate-permission`](../part-3-processing-security/06-rbac-tool-permissions.md#aggregate-permission).
+
+| Не путать с | Почему |
+|---|---|
+| [Trajectory composition](#сценарий-trajectory-composition) | там шаги vs goal в рантайме (EV-13); здесь — комбинация грантов до первого вызова |
+| [Lethal trifecta](#lethal-trifecta) | третья нога = untrusted content; здесь две уже разрешённые capability |
+| ASI03 на один tool | excess одного scope; здесь сумма «разумных» scopes |
+
+Мера: отдельные агенты / identity на разные зоны риска. Не плодить новый STRIDE-ряд — объект тот же Policy Engine / Tool Router, угроза compositional.
+
 ## Risk Rating
 
 Для этого конспекта достаточно уровней **High / Medium / Low**.
@@ -318,7 +338,7 @@ Controls и `EVAL-TRAJECTORY-01` — [§20 Trajectory evals](../part-7-testing-c
 
 ## Capability → blast radius
 
-Injection часто только **триггер**. Радиус поражения задают права и tools. Чем шире capability, тем выше приоритет границ при threat modeling:
+Injection часто только **триггер**. Радиус поражения задают права и tools. Чем шире capability, тем выше приоритет границ при threat modeling. Третья ось — capability **модели** (cyber-tuned / dual-use), не только tools: канон профиля — [§25 `#capability-aware-profile`](../part-8-practice/25-security-by-design-checklist.md#capability-aware-profile) (`higher model capability != same controls`). Лестница ниже — tools/rights, не класс модели.
 
 ```text
 1. Text only
@@ -576,7 +596,9 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Учтён Target ambiguity: цели из signed scope; LLM не решает «это симуляция» при совпадении имени ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)).
 - [ ] Учтена Trajectory composition: policy на цепочку относительно goal; `Allowed action != allowed trajectory` ([§20 EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)).
 - [ ] Capability агента сопоставлена с blast radius; controls сначала на max radius.
+- [ ] Capability **модели** учтена отдельно от tools; выше capability → строже identity / scope / мониторинг / изоляция ([§25](../part-8-practice/25-security-by-design-checklist.md#capability-aware-profile)).
 - [ ] Проверен lethal trifecta: нет одновременных private data + untrusted input + outbound в одном path.
+- [ ] Учтён [aggregate permission](#aggregate-permission): per-tool allow ≠ effective agency; опасные пары грантов — deny combo или split identity ([§06](../part-3-processing-security/06-rbac-tool-permissions.md#aggregate-permission)).
 
 ## Литература
 
@@ -593,9 +615,10 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 
 ## См. также
 
+- [25 — Capability-aware profile](../part-8-practice/25-security-by-design-checklist.md#capability-aware-profile) — модель ≠ R-класс; Daybreak tier ≠ policy
 - [01 — Введение](01-introduction.md)
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
-- [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
+- [06 — RBAC / aggregate permission](../part-3-processing-security/06-rbac-tool-permissions.md#aggregate-permission)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
