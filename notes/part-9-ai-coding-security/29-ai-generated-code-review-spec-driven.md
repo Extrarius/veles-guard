@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-23
-изменения: "PR/issue: «одобрение» и argumentation тоже untrusted; якорь EV-17."
+изменения: "Spec→plan: шаг Plan не контракт, если уехал в tool-канал (watchlist §24). PR/issue: «одобрение» и argumentation тоже untrusted; якорь EV-17."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -62,6 +62,8 @@ Spec-driven workflow снижает риск “vibe coding”:
 9. Tests
 10. Review
 ```
+
+Шаг Plan в этом списке не становится контрактом, если уехал в канал `tool`. Watchlist, не новый role tag — [§24 `#plan-as-contract`](../part-8-practice/24-end-to-end-secure-agent-go.md#plan-as-contract).
 
 Без spec агент может “помочь” слишком широко:
 
@@ -409,6 +411,7 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 ## Чек-лист
 
 - [ ] Перед coding task есть intent/spec.
+- [ ] Шаг Plan не считается контрактом, если он в `tool`-канале ([§24 watchlist](../part-8-practice/24-end-to-end-secure-agent-go.md#plan-as-contract)); не вводить role `plan`.
 - [ ] Указан scope.
 - [ ] Указан out of scope.
 - [ ] Указаны forbidden changes.
@@ -443,6 +446,7 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 
 ## См. также
 
+- [24 — План как контракт](../part-8-practice/24-end-to-end-secure-agent-go.md#plan-as-contract) — watchlist; не role tag
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)

@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, repository, instructions, agents-md, prompt-injection]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Связка: автор README/issue/PR может быть агентом → §18; PR/issue для review-агента → §29 #pr-issue-untrusted-input."
+обновлено: 2026-08-23
+изменения: "Ghostcommit (#ghostcommit): image != unreadable; encoded source != not a secret."
 ---
 
 # 27 — Репозиторий как источник инструкций
@@ -126,6 +126,7 @@ flowchart LR
 | Security bypass by docs | агент следует устаревшему doc вместо policy | Medium |
 | Hidden instructions | HTML comments / markdown tricks | Medium |
 | Clean repo attack | «чистый» репо без вредного кода: setup-инструкции → shell + network → payload из сети (DNS TXT) | Critical |
+| Ghostcommit | convention указывает на картинку; vision-агент читает инструкцию из изображения; секрет уходит в commit как целые числа | Critical |
 
 ## Clean Repo Attack (репозиторий как источник инструкций)
 
@@ -151,6 +152,21 @@ flowchart LR
 - Egress и localhost/loopback — отдельная граница доверия; private network блокируется по умолчанию ([31 — CI/CD, MCP, Skills и production path](31-ci-cd-mcp-skills-production-path.md)).
 - Red-team eval: сценарий «clean repo + сетевой payload» **без рабочего reverse shell** — проверка, что policy блокирует цепочку до выполнения payload.
 - Операционный чек-лист: [32 — AI Coding Security Checklist](32-ai-coding-security-checklist.md) — `AC-RI-09`, `AC-PERM-11`, `AC-RT-09`.
+
+<a id="ghostcommit"></a>
+
+### Ghostcommit (инструкция в изображении)
+
+Не Clean Repo: там текст setup → **сеть**. Здесь convention-файл указывает на картинку; инструкция живёт в изображении (unified diff / text review её не видят). После merge, в другой сессии, vision-агент читает изображение, берёт секрет из `.env` и пишет его в исходник как последовательность целых. Secret scanner строки не ловит. Публичный commit = egress ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md)).
+
+```text
+image != unreadable
+convention pointer != trusted policy
+encoded source != not a secret
+text review != what the agent sees
+```
+
+Контроли: указатель из `AGENTS.md` / convention на image = untrusted instruction path; PR с такой картинкой — открыть изображение (человек или multimodal review), text-only ≠ pass; секреты не в контексте агента; integer / tuple в исходнике = кандидат на secret, не «просто константа». Чек-лист: [§32 `AC-RI-10`](32-ai-coding-security-checklist.md).
 
 ## Принципы защиты
 
@@ -292,6 +308,7 @@ func ValidateInstructionText(text string) error {
 | Instruction требует network/shell | High | policy review |
 | Instruction меняет test/build command | Medium | reviewer check |
 | Instruction просит отключить проверки | High | block |
+| Convention ссылается на image | High | открыть изображение; text-only review ≠ pass ([#ghostcommit](#ghostcommit)) |
 
 ## Чек-лист
 
@@ -309,11 +326,13 @@ func ValidateInstructionText(text string) error {
 - [ ] Есть audit по загруженным instruction files.
 - [ ] Setup-инструкции из README/docs не считаются trusted.
 - [ ] Есть тест на clean-repo / сетевой payload (без рабочего reverse shell).
+- [ ] Convention → image считается instruction path; text-only review ≠ pass ([#ghostcommit](#ghostcommit)).
 
 ## Литература
 
 - [Список литературы](../literature.md#prompt-injection)
 - [0DIN — Clone This Repo and I Own Your Machine](https://0din.ai/blog/clone-this-repo-and-i-own-your-machine)
+- [ASSET — Ghostcommit](https://asset-group.github.io/disclosures/ghostcommit/) — инструкция в изображении; секрет как целые в исходнике ([#ghostcommit](#ghostcommit))
 - [AGENTS.md](https://agents.md/)
 - [OpenAI Codex — Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md)
 - [GitHub Copilot — custom instructions](https://docs.github.com/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot)
@@ -322,6 +341,7 @@ func ValidateInstructionText(text string) error {
 
 ## См. также
 
+- [13 — Egress (commit / encoded source)](../part-4-output-security/13-egress-control-data-exfiltration.md) — публичный commit ≠ «нет HTTP»
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [09 — Memory Isolation и Context Sanitization](../part-3-processing-security/09-memory-isolation-context-sanitization.md)
 - [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)

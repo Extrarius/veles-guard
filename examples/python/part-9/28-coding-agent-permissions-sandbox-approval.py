@@ -116,3 +116,49 @@ def validate_command(cmd: str) -> None:
 
     if cmd not in ALLOWED_COMMANDS:
         raise ValueError("command is not allowlisted")
+
+
+class HookPhase(str, Enum):
+    PRE = "pre"
+    POST = "post"
+
+
+def gate_hook(phase: HookPhase | str, hook_allow: bool, policy_allow: bool) -> None:
+    """Stub: hook allow without policy → deny; post cannot undo."""
+    if hook_allow and not policy_allow:
+        raise PermissionError("deny: hook allow is not policy")
+    p = phase.value if isinstance(phase, HookPhase) else phase
+    if p == HookPhase.POST or p == "post":
+        raise PermissionError("post hook cannot undo")
+    if not policy_allow:
+        raise PermissionError("deny: policy")
+
+
+def _mode_rank(mode: str) -> int:
+    ranks = {
+        "read_only": 0,
+        "default": 0,
+        "workspace_write": 1,
+        "acceptEdits": 1,
+        "auto": 2,
+        "network": 2,
+        "bypass": 3,
+        "bypassPermissions": 3,
+        "danger_full_access": 3,
+    }
+    return ranks.get(mode, 1)
+
+
+def gate_child(
+    parent_tools: list[str],
+    child_tools: list[str],
+    parent_mode: str,
+    child_mode: str,
+) -> None:
+    """Stub: child tools not ⊆ parent → deny; child mode wider → deny."""
+    allow = set(parent_tools)
+    for t in child_tools:
+        if t not in allow:
+            raise PermissionError("deny: child tool not in parent set")
+    if _mode_rank(child_mode) > _mode_rank(parent_mode):
+        raise PermissionError("deny: child mode wider than parent")

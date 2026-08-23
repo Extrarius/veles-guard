@@ -126,4 +126,52 @@ function validateCommand(cmd: string): void {
   }
 }
 
+type HookPhase = "pre" | "post";
+
+/** Stub: hook allow without policy → deny; post cannot undo. */
+function gateHook(phase: HookPhase, hookAllow: boolean, policyAllow: boolean): void {
+  if (hookAllow && !policyAllow) {
+    throw new Error("deny: hook allow is not policy");
+  }
+  if (phase === "post") {
+    throw new Error("post hook cannot undo");
+  }
+  if (!policyAllow) {
+    throw new Error("deny: policy");
+  }
+}
+
+function modeRank(mode: string): number {
+  const ranks: Record<string, number> = {
+    read_only: 0,
+    default: 0,
+    workspace_write: 1,
+    acceptEdits: 1,
+    auto: 2,
+    network: 2,
+    bypass: 3,
+    bypassPermissions: 3,
+    danger_full_access: 3,
+  };
+  return ranks[mode] ?? 1;
+}
+
+/** Stub: child tools not ⊆ parent → deny; child mode wider → deny. */
+function gateChild(
+  parentTools: string[],
+  childTools: string[],
+  parentMode: string,
+  childMode: string
+): void {
+  const allow = new Set(parentTools);
+  for (const t of childTools) {
+    if (!allow.has(t)) {
+      throw new Error("deny: child tool not in parent set");
+    }
+  }
+  if (modeRank(childMode) > modeRank(parentMode)) {
+    throw new Error("deny: child mode wider than parent");
+  }
+}
+
 export {};

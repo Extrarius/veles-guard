@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, sandbox, permissions, approval, shell]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Sampling approval показывает текст prompt, не имя сервера; approve-once ≠ blanket."
+обновлено: 2026-08-23
+изменения: "Subagents (#coding-subagents): child blast ≤ parent; inherited mode != narrower scope."
 ---
 
 # 28 — Permissions, sandbox и approval для coding agents
@@ -315,6 +315,139 @@ Files affected: none
 
 Для server-initiated **sampling** approval показывает **текст** внедряемого prompt, не только имя MCP-сервера. Approve-once не распространяется на последующие sampling-запросы того же сервера. Канон канала — [§19 split-context](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection).
 
+<a id="agent-hooks"></a>
+
+## Hooks: gate и поверхность
+
+У coding-агента lifecycle hook (pre/post tool) — два лица одного объекта: детерминированный gate **и** исполняемый код из репо / plugin. Хуки установки skill — [§36](../part-10-course-appendix/36-mcp-skill-review-workshop.md), не здесь.
+
+```mermaid
+flowchart LR
+    Planner[LLM_Planner]
+    Hook[PreToolUse_hook]
+    Policy[Permission_policy]
+    Exec[Tool_Executor]
+    Post[PostToolUse_hook]
+    Planner --> Hook
+    Hook -->|"deny"| Stop[Blocked]
+    Hook -->|"allow_or_ask"| Policy
+    Policy --> Exec
+    Exec --> Post
+```
+
+```text
+hook != policy
+hook allow != HITL
+repo hook != trusted control
+install hook != PreToolUse
+```
+
+`PreToolUse` может deny / ask / allow до execution. `PostToolUse` уже после факта — не откат. Hard allow/deny — permission system, не hook filter ([Claude Code — Hooks](https://code.claude.com/docs/en/hooks)).
+
+| Угроза | Пример | Risk |
+|---|---|---|
+| Poisoned repo hook | `.claude/settings.json` / `.claude/hooks/*` в коммите запускает чужой `command` | Critical |
+| Auto-allow | `permissionDecision: allow` из репо обходит диалог | Critical |
+| Fail-open | кривой путь скрипта → gate молча выключен | High |
+| Hook-shell | хук сам вызывает shell / сеть вне sandbox | High |
+
+Контроли: review hook как код; least privilege; hook не заменяет policy и [§14 HITL](../part-5-control-observability/14-human-in-the-loop.md); managed / user settings выше unreviewed repo hook. Запись settings/hooks = high-risk write — [§31](31-ci-cd-mcp-skills-production-path.md#curxecute).
+
+```go
+type HookPhase string
+
+const (
+	HookPre  HookPhase = "pre"
+	HookPost HookPhase = "post"
+)
+
+// GateHook — stub: hook allow без policy → deny; post не отменяет выполненное.
+func GateHook(phase HookPhase, hookAllow bool, policyAllow bool) error {
+	if hookAllow && !policyAllow {
+		return errors.New("deny: hook allow is not policy")
+	}
+	if phase == HookPost {
+		return errors.New("post hook cannot undo")
+	}
+	if !policyAllow {
+		return errors.New("deny: policy")
+	}
+	return nil
+}
+```
+
+Синхрон: [Python](../../examples/python/part-9/28-coding-agent-permissions-sandbox-approval.py) · [TypeScript](../../examples/typescript/part-9/28-coding-agent-permissions-sandbox-approval.ts).
+
+<a id="coding-subagents"></a>
+
+## Subagents внутри coding-агента
+
+Родитель IDE порождает child (Task / custom). Это **не** peer handoff ([§18](../part-6-multi-agent-security/18-inter-agent-security.md)): одно окно сессии, наследуемый permission mode, summary обратно родителю.
+
+```mermaid
+flowchart LR
+    User[User]
+    Parent[Parent_coding_agent]
+    Child[Subagent]
+    Tools[Tools_sandbox]
+    User --> Parent
+    Parent -->|"spawn Task"| Child
+    Child -->|"tools subset"| Tools
+    Child -->|"summary untrusted"| Parent
+```
+
+```text
+subagent != peer agent
+inherited mode != narrower scope
+child blast <= parent blast
+inheritance != enforcement
+```
+
+Своё окно контекста и другой system prompt ≠ изоляция прав. Mode родителя (`bypass` / `acceptEdits` / `auto`) наследуется и frontmatter ребёнка его не сужает ([Claude Code — Subagents](https://code.claude.com/docs/en/subagents)). Isolated context: ребёнок может не увидеть поздний запрет пользователя; родитель принимает summary как «свой» результат.
+
+| Угроза | Пример | Risk |
+|---|---|---|
+| Inherit bypass / auto | ребёнок едет в mode родителя при другом prompt | Critical |
+| Tools не subset | child вызывает tool, которого нет у parent | Critical |
+| Isolated context | поздний запрет пользователя не попал к child | High |
+| Repo `.claude/agents/` | кастомный агент с лишними tools / mcpServers в коммите | High |
+
+Контроли: child tools ⊆ parent; child mode не шире parent; policy и [§14](../part-5-control-observability/14-human-in-the-loop.md) на **каждый** child call (`inheritance != enforcement`); output ребёнка untrusted ([§18 messages](../part-6-multi-agent-security/18-inter-agent-security.md)); review `.claude/agents/` как код.
+
+```go
+func modeRank(m string) int {
+	switch m {
+	case "read_only", "default":
+		return 0
+	case "workspace_write", "acceptEdits":
+		return 1
+	case "auto", "network":
+		return 2
+	case "bypass", "bypassPermissions", "danger_full_access":
+		return 3
+	default:
+		return 1
+	}
+}
+
+// GateChild — stub: child tools не ⊆ parent → deny; mode шире parent → deny.
+func GateChild(parentTools, childTools []string, parentMode, childMode string) error {
+	allow := map[string]bool{}
+	for _, t := range parentTools {
+		allow[t] = true
+	}
+	for _, t := range childTools {
+		if !allow[t] {
+			return errors.New("deny: child tool not in parent set")
+		}
+	}
+	if modeRank(childMode) > modeRank(parentMode) {
+		return errors.New("deny: child mode wider than parent")
+	}
+	return nil
+}
+```
+
 ## Fail closed
 
 Если невозможно проверить policy, sandbox state, approval decision, network allowlist, workspace root или tool registry — действие блокируется.
@@ -341,12 +474,18 @@ approval timeout → deny
 - [ ] Все команды логируются.
 - [ ] Full access не используется как стандартный режим.
 - [ ] При ошибке policy/sandbox используется fail closed.
+- [ ] Hook не считается policy: `hook allow` не снимает approval / sandbox ([#agent-hooks](#agent-hooks)).
+- [ ] Repo hook (`.claude/settings.json`, скрипты) проходит review как код; fail-open не считается контролем.
+- [ ] Субагент: child tools ⊆ parent, child mode не шире parent ([#coding-subagents](#coding-subagents)).
+- [ ] Policy / approval на каждый child call; summary ребёнка untrusted; `.claude/agents/` ревьюится как код.
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства)
 - [OpenAI Codex — Agent approvals and security](https://developers.openai.com/codex/agent-approvals-security)
 - [OpenAI Codex — Sandboxing](https://developers.openai.com/codex/concepts/sandboxing)
+- [Claude Code — Hooks](https://code.claude.com/docs/en/hooks) — PreToolUse / PostToolUse; hook ≠ permission system
+- [Claude Code — Subagents](https://code.claude.com/docs/en/subagents) — inherit mode; `child blast <= parent blast`
 - [Anthropic — How we contain Claude across products](https://www.anthropic.com/engineering/how-we-contain-claude)
 - [GitHub Copilot cloud agent](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent)
 
@@ -354,6 +493,11 @@ approval timeout → deny
 
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#sandbox-jailing) — jailing (min env, RW cwd, RO FS)
-- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [Hooks: gate и поверхность](#agent-hooks) — `hook != policy`; repo hook untrusted
+- [Subagents внутри coding-агента](#coding-subagents) — `subagent != peer agent`; child blast ≤ parent
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md) — hook allow ≠ HITL; child call тоже HITL
+- [18 — Inter-Agent Security](../part-6-multi-agent-security/18-inter-agent-security.md) — peer handoff, не intra-session child
+- [31 — CI/CD / MCP / Skills](31-ci-cd-mcp-skills-production-path.md#curxecute) — settings/hooks = high-risk write
+- [36 — MCP / Skill Review](../part-10-course-appendix/36-mcp-skill-review-workshop.md) — только install hooks
 - [19 — Split-context MCP injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection) — sampling как канал фрагмента
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)

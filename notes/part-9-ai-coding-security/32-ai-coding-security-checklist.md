@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-23
-изменения: "AC-MCP-09: inventory локальных MCP на endpoint; registry ≠ discovery."
+изменения: "AC-RI-10: convention → image = instruction path; text-only ≠ pass."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -60,6 +60,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-RI-07 | Instruction files не могут отключить approval/sandbox | High | TODO |
 | AC-RI-08 | Изменение instruction files требует human review | High | TODO |
 | AC-RI-09 | Setup instructions из README/docs не считаются trusted | High | TODO |
+| AC-RI-10 | Convention → image считается instruction path; text-only review ≠ pass ([§27 `#ghostcommit`](27-repository-instructions-attack-surface.md#ghostcommit)) | High | TODO |
 
 ## 3. Permissions and sandbox
 
