@@ -2,8 +2,8 @@
 tags: [ai-security, memory-isolation, context-sanitization, rag-security, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Security Telemetry Injection (#security-telemetry-injection): логи/алерты = untrusted; policy на sink; связка EV-14."
+обновлено: 2026-08-23
+изменения: "Storage layer (#memory-storage-layer): semantic check != software check; якорь EV-18."
 ---
 
 # 09 — Memory Isolation и Context Sanitization
@@ -85,6 +85,63 @@ flowchart LR
 | Tool output poisoning | внешний API вернул инструкцию агенту | Medium | treat tool output as untrusted |
 | Security telemetry injection | заблокированный запрос записан в лог verbatim, агент выполняет инструкцию при разборе события | High | trust label, [policy на sink](#security-telemetry-injection) |
 | RAG injection | документ содержит скрытые команды | High | chunk labels, [retrieval rails](#retrieval-rails) |
+| Memory runtime / state store | сохранённое состояние бьёт по query / serde / чужому чекпоинту, не только по reasoning | High | parameterized queries, safe serde, [storage layer](#memory-storage-layer) |
+
+<a id="memory-storage-layer"></a>
+
+### Storage layer (runtime, не только reasoning)
+
+Санитайзер ловит вредный **факт** в контексте. Это не закрывает **рантайм** хранилища: checkpointer, session store, vector metadata — тот же класс входа, что недоверенные tool args, только источник — сохранённое состояние.
+
+```text
+semantic check != software check
+memory attacks runtime, not only reasoning
+```
+
+Две проверки:
+
+| Слой | Что ловим | Где канон |
+|---|---|---|
+| Semantic | вредный факт становится trusted memory | таблица выше, sanitizer |
+| Software | raw query из `filter`/ключей метаданных; unsafe serde state blob; чужой чекпоинт | этот подраздел; eval — [§20 EV-18](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#memory-runtime-evals-ev-18) |
+
+Практические меры (не учебник БД):
+
+- параметризованные запросы; ключи `filter` и метаданных — недоверенные (тот же класс, что raw SQL от модели — [§07](07-parameter-validation-schema.md));
+- безопасная сериализация: конструктор / pickle с провода — запрет;
+- изоляция чужих чекпоинтов (tenant / thread / session на load, не только на write).
+
+Ориентир (self-hosted SQLite/Redis + user-controlled `filter`; managed PostgreSQL path у вендора — не в этой строке):
+
+| CVE | Класс | Фикс |
+|---|---|---|
+| `CVE-2025-67644` | injection в query к checkpointer (SQLite) | `langgraph-checkpoint-sqlite 3.0.1+` |
+| `CVE-2026-28277` | unsafe deserialization state blob | `langgraph 1.0.10+` |
+| `CVE-2026-27022` | тот же класс injection (Redis) | `langgraph-checkpoint-redis 1.0.2+` |
+
+AppSec оркестрации (SAST/SCA фреймворка) — [§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack). Здесь объект — **хранилище состояния**.
+
+```go
+package memorystore
+
+// MemoryRuntimeAccess — доступ к storage layer (не содержимое факта).
+type MemoryRuntimeAccess struct {
+	FilterKeysFromUntrusted bool
+	RawQueryInterpolation   bool
+	UnsafeSerde             bool
+	CrossCheckpoint         bool
+}
+
+// MemoryRuntimeViolation — true, если state store принимает недоверенный вход в рантайм.
+func MemoryRuntimeViolation(a MemoryRuntimeAccess) bool {
+	if a.FilterKeysFromUntrusted && a.RawQueryInterpolation {
+		return true
+	}
+	return a.UnsafeSerde || a.CrossCheckpoint
+}
+```
+
+Синхрон: [Python](../../examples/python/part-3/09-memory-isolation-context-sanitization.py) · [TypeScript](../../examples/typescript/part-3/09-memory-isolation-context-sanitization.ts).
 
 <a id="strip-role-claims"></a>
 
@@ -581,6 +638,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 | вложение целиком в модель | утечка NDA / secrets / лишние поля | allowlist полей / summary; [метки ресурса](#resource-ai-labels) |
 | вставлять документы рядом с system prompt | context smuggling | structured context |
 | лог или алерт как достоверная находка | telemetry injection → privileged tool | untrusted data + policy на sink ([#security-telemetry-injection](#security-telemetry-injection)) |
+| state blob / filter как trusted | injection / unsafe serde / чужой чекпоинт | parameterized query, safe serde, tenant на load ([#memory-storage-layer](#memory-storage-layer)) |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -613,10 +671,14 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [ ] Context builder явно маркирует untrusted блоки.
 - [ ] Security telemetry / logs / alerts читаются как данные, не как инструкции ([#security-telemetry-injection](#security-telemetry-injection)).
 - [ ] Телеметрия не авторизует shell, secrets_read, network_write, infrastructure_change.
+- [ ] Запросы к memory/checkpointer параметризованы; ключи `filter` и метаданных недоверенные ([#memory-storage-layer](#memory-storage-layer)).
+- [ ] Сериализация state blob не принимает конструктор / pickle с провода.
+- [ ] Чужие чекпоинты не читаются (tenant / thread / session на load).
 
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства) — [NVIDIA NeMo Guardrails](../literature.md#практические-руководства)
+- [Check Point — LangGraph Checkpointer](https://research.checkpoint.com/2026/from-sqli-to-rce-exploiting-langgraphs-checkpointer/) — CVE-2025-67644 / CVE-2026-28277 / CVE-2026-27022; опора [#memory-storage-layer](#memory-storage-layer)
 - [Tenet — GhostJacking](https://tenetsecurity.ai/blog/ghostjacking-attacks-agentic-kill-chain/) — security logs / alerts как канал инъекции
 - [arXiv 2605.24421 — Poisoning the Watchtower](https://arxiv.org/abs/2605.24421) — adversarial log content → LLM-SOC assistant
 - [NVIDIA NeMo Guardrails — Guardrails Configuration](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/guardrails-configuration) — категория `rails.retrieval`
@@ -636,6 +698,9 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [12 — Hallucination Detection](../part-4-output-security/12-hallucination-detection.md) — grounded vs evidence chunks
 - [13 — Egress / inference routing](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [16 — Monitoring (телеметрия как вход)](../part-5-control-observability/16-monitoring-alerting.md#telemetry-as-agent-input)
+- [07 — Parameter Validation](07-parameter-validation-schema.md) — raw SQL от модели; тот же класс из state store
+- [20 — Memory runtime evals / EV-18](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#memory-runtime-evals-ev-18)
 - [20 — Telemetry injection evals / EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14)
+- [22 — Orchestration-стек](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack) — AppSec фреймворка, не storage layer
 - [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)

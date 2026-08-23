@@ -2,8 +2,8 @@
 tags: [ai-security, schema-validation, parameter-validation, tool-safety, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Уточнена граница с §11: tool/function-calling args vs structured output ответа"
+обновлено: 2026-08-23
+изменения: "Якорь: raw SQL из сохранённого состояния / filter — тот же класс, другой источник (§09)."
 ---
 
 # 07 — Parameter Validation и Schema Enforcement
@@ -101,6 +101,8 @@ flowchart LR
 | Cross-tenant access | `customer_id` чужого клиента | High | ownership check |
 | Resource exhaustion | `limit=1000000` | Medium | max limits |
 | Unsafe mode | `dry_run=false` без approval | Medium | safe defaults |
+
+Тот же класс приходит не только из tool args модели. Ключи `filter` / метаданных сохранённого состояния — недоверенный вход в query к memory store; канон — [§09 storage layer](09-memory-isolation-context-sanitization.md#memory-storage-layer).
 
 ## Правила schema enforcement
 
@@ -288,6 +290,7 @@ func ValidateReadCustomer(userID string, args ReadCustomerArgs, access ResourceA
 - [ ] File path не может выйти за base directory.
 - [ ] Shell не используется для пользовательских аргументов.
 - [ ] SQL не генерируется моделью напрямую.
+- [ ] Ключи `filter` / метаданных state store не интерполируются в query ([§09](09-memory-isolation-context-sanitization.md#memory-storage-layer)).
 - [ ] Resource IDs проверяются на принадлежность actor.
 - [ ] Dangerous flags требуют approval.
 - [ ] Validation errors логируются без raw secrets.
@@ -305,5 +308,6 @@ func ValidateReadCustomer(userID string, args ReadCustomerArgs, access ResourceA
 
 - [06 — RBAC и Tool Permissions](06-rbac-tool-permissions.md)
 - [08 — Sandboxing](08-sandboxing.md)
+- [09 — Storage layer](09-memory-isolation-context-sanitization.md#memory-storage-layer) — тот же класс injection, источник — сохранённое состояние
 - [11 — Output Validation и Fact-Checking](../part-4-output-security/11-output-validation-fact-checking.md) — structured output ответа модели (не tool args)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)

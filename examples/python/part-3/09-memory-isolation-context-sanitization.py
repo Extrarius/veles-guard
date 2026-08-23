@@ -228,3 +228,21 @@ def can_authorize_from_telemetry(record: TelemetryRecord, sink: str) -> bool:
     if sink in ("shell", "secrets_read", "network_write", "infrastructure_change"):
         return False
     return False
+
+
+# --- Memory storage layer (§09 #memory-storage-layer) ---
+
+
+@dataclass
+class MemoryRuntimeAccess:
+    filter_keys_from_untrusted: bool = False
+    raw_query_interpolation: bool = False
+    unsafe_serde: bool = False
+    cross_checkpoint: bool = False
+
+
+def memory_runtime_violation(a: MemoryRuntimeAccess) -> bool:
+    """True if the state store accepts untrusted input into the runtime."""
+    if a.filter_keys_from_untrusted and a.raw_query_interpolation:
+        return True
+    return a.unsafe_serde or a.cross_checkpoint

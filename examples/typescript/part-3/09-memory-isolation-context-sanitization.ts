@@ -255,6 +255,23 @@ function canAuthorizeFromTelemetry(record: TelemetryRecord, sink: string): boole
   return false;
 }
 
+// --- Memory storage layer (§09 #memory-storage-layer) ---
+
+interface MemoryRuntimeAccess {
+  filterKeysFromUntrusted?: boolean;
+  rawQueryInterpolation?: boolean;
+  unsafeSerde?: boolean;
+  crossCheckpoint?: boolean;
+}
+
+/** True if the state store accepts untrusted input into the runtime. */
+function memoryRuntimeViolation(a: MemoryRuntimeAccess): boolean {
+  if (a.filterKeysFromUntrusted && a.rawQueryInterpolation) {
+    return true;
+  }
+  return Boolean(a.unsafeSerde || a.crossCheckpoint);
+}
+
 export {
   TrustLevel,
   MemoryScope,
@@ -270,6 +287,15 @@ export {
   canSendToModel,
   minimizeForContext,
   canAuthorizeFromTelemetry,
+  memoryRuntimeViolation,
 };
 
-export type { MemoryRecord, ContextBlock, RetrievedChunk, RetrievalPolicy, ResourceMeta, TelemetryRecord };
+export type {
+  MemoryRecord,
+  ContextBlock,
+  RetrievedChunk,
+  RetrievalPolicy,
+  ResourceMeta,
+  TelemetryRecord,
+  MemoryRuntimeAccess,
+};
