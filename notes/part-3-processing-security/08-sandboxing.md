@@ -2,8 +2,8 @@
 tags: [ai-security, sandboxing, isolation, tool-execution, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Containment: desktop-клиент агента — «данные не покинут стенд» не гарантия (факт без PoC)."
+обновлено: 2026-08-23
+изменения: "Localhost visualizer траекторий = дашборд; auth обязателен."
 ---
 
 # 08 — Sandboxing
@@ -103,6 +103,8 @@ flowchart LR
 Experimental agent frameworks и локальные привилегированные сервисы (MCP, WebSocket, dev API) часто слушают loopback «для удобства». **Loopback — не изоляция:** browser automation агента может обратиться к `127.0.0.1` / `localhost` так же, как к внешнему URL.
 
 Sandbox/devbox для таких фреймворков — обязательный контроль: ограничить blast radius, если локальный сервис скомпрометирован или доступен без auth. Полный кейс и контрмеры — в [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack).
+
+Локальный визуализатор траекторий на loopback — дашборд: промпты, полные роллауты, иногда секреты из контекста. Это не «отладочная страница без учёта». Auth и authz обязательны; loopback сам по себе доступа не даёт. Прокси обвязки — [§13 `#harness-inference-proxy`](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy).
 
 ## Sandbox ≠ isolation (Containment Escape)
 
@@ -421,6 +423,7 @@ var Tools = map[string]ToolSpec{
 - [ ] Файловая система read-only, где возможно.
 - [ ] Sandbox disposable: после задачи очищается.
 - [ ] Experimental frameworks и локальные привилегированные сервисы выполняются в sandbox/devbox.
+- [ ] Локальный визуализатор траекторий требует auth+authz; loopback не вход ([#localhost-is-not-a-trust-boundary](#localhost-is-not-a-trust-boundary)).
 - [ ] Перед eval/red-team пройден pre-eval containment checklist (сеть, секреты, DNS/localhost, kill-switch, signed scope).
 - [ ] Есть executable [`EVAL-NETWORK-PREFLIGHT-01`](#eval-network-preflight-01): fail → `start_agent: false` (не только бумажный checklist).
 - [ ] Цели eval загружены из подписанного scope-манифеста; LLM не расширяет scope при совпадении имени.
@@ -442,7 +445,7 @@ var Tools = map[string]ToolSpec{
 - [28 — Permissions, sandbox и approval](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md#cwd-safety-rule) — cwd shell для coding agent
 - [07 — Parameter Validation и Schema Enforcement](07-parameter-validation-schema.md)
 - [10 — Secrets Management](10-secrets-management.md)
-- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [20 — Red Teaming (EVAL-CONTAINMENT-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#containment-evals-eval-containment-01)
 - [20 — Red Teaming (EVAL-TARGET-BOUNDARY-01)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)

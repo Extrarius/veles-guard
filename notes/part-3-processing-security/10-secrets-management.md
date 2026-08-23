@@ -2,8 +2,8 @@
 tags: [ai-security, secrets-management, credentials, least-privilege, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Telemetry ingest credential / DSN: write-capable, не «публичный»; якорь §09."
+обновлено: 2026-08-23
+изменения: "Ключи провайдера в конфиге локального прокси — custody, не открытый файл."
 ---
 
 # 10 — Secrets Management
@@ -109,6 +109,7 @@ flowchart LR
 6. **No raw env inheritance** — sandbox не наследует env приложения.
 7. **Rotation and revocation** — есть процесс замены и отзыва.
 8. **Audit** — кто, когда и для какого tool запросил secret.
+9. **Proxy key custody** — ключ провайдера в локальном inference-прокси живёт в vault / secret store / env с контролем доступа, не в открытом конфиге, репозитории и не в UI визуализатора. Прокси — [§13 `#harness-inference-proxy`](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy).
 
 ## Go snippet: secret provider и executor-side injection
 
@@ -257,6 +258,7 @@ func looksSensitiveKey(k string) bool {
 | сохранять секреты в memory | долгоживущая утечка | never-store policy |
 | использовать long-lived token | сложнее отозвать | short-lived credentials |
 | показывать stack trace пользователю | DSN/token leak | safe errors |
+| ключ провайдера в открытом конфиге локального прокси | потеря custody; ключ в репо / UI визуализатора | vault / secret store / env с доступом |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -281,6 +283,7 @@ func looksSensitiveKey(k string) bool {
 - [ ] Ошибки не раскрывают DSN/token/env.
 - [ ] Есть процесс rotation/revocation.
 - [ ] Telemetry ingest keys (client token / DSN) считаются write-capable секретами, не публичными ([§09](09-memory-isolation-context-sanitization.md#security-telemetry-injection)).
+- [ ] Ключи провайдера локального inference-прокси — custody (vault / secret store), не открытый конфиг и не UI визуализатора ([§13](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)).
 
 ## Литература
 
@@ -296,5 +299,5 @@ func looksSensitiveKey(k string) bool {
 - [09 — Security Telemetry Injection](09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
 - [08 — Sandboxing](08-sandboxing.md)
-- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
