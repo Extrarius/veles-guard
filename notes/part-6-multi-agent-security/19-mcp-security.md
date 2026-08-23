@@ -2,8 +2,8 @@
 tags: [ai-security, agents, mcp, tools, protocol-security]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Split-context MCP injection (#split-context-mcp-injection): SAFE(A)+SAFE(B)≠SAFE(A+B); provenance args; EV-15."
+обновлено: 2026-08-23
+изменения: "Endpoint inventory: registry ≠ discovery; локальные MCP на парке."
 ---
 
 # 19 — MCP Security
@@ -203,6 +203,21 @@ Allowlist, consent и security review обычно происходят **при
 | Consent на connect | Resource/prompt injection в runtime | Treat as untrusted context; не смешивать с system prompt |
 
 См. [ValidateToolOutput](#валидация-tool-output-runtime-trust-gap) в примере ниже и п. **4. Strict schema validation** (validation до и после tool call). Композиция нескольких «зелёных» фрагментов — [split-context injection](#split-context-mcp-injection).
+
+<a id="code-mode"></a>
+
+### Code-mode (типизированный API вместо цепочки tool calls)
+
+Альтернатива классическому MCP / tool-calling: инструменты экспортируются как **типизированный API**, модель пишет программу (циклы, ветвления, локальная сборка результатов), а не серию `{tool, args}`.
+
+Это **не** замена MCP-канона: tool output, metadata, resources и prompts по-прежнему untrusted; [Trusted Tool Registry](#trusted-tool-registry) и schema остаются. Меняется место исполнения — одна программа в рантайме вместо шага за шагом.
+
+Исполнение этой программы — поверхность [§08 sandbox-runtime](../part-3-processing-security/08-sandboxing.md#sandbox-runtime): pin движка, audit glue, границы process / memory / tenant.
+
+```text
+code-mode != fewer trust boundaries
+model writes code → runtime executes
+```
 
 <a id="split-context-mcp-injection"></a>
 
@@ -450,6 +465,18 @@ Allowlist имени сервера недостаточен. В registry — **
 ```
 
 Ориентир процесса review: [OWASP Securing Agentic Applications Guide 1.0](../literature.md#стандарты-и-фреймворки).
+
+<a id="endpoint-inventory"></a>
+
+### Inventory на endpoint (не registry)
+
+Registry решает, **можно ли вызвать**. Inventory отвечает, **что стоит на машинах**.
+
+```text
+registry != discovery
+```
+
+На парке ищут локальные MCP-серверы и конфиги агента (stdio / loopback / файлы настроек) — не URL SaaS. Отсутствие карточки в [Trusted Tool Registry](#trusted-tool-registry) ≠ «на endpoint ничего нет». Теневой ИИ на машине — [§33 `#shadow-ai`](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai). Сигнал неизвестного локального MCP — [§16](../part-5-control-observability/16-monitoring-alerting.md).
 
 ## Пример (Go)
 
@@ -791,6 +818,8 @@ func isLoopbackOrPrivateHost(host string) bool {
 ## MCP Security Checklist
 
 - [ ] MCP servers подключаются только из [Trusted Tool Registry](#trusted-tool-registry).
+- [ ] На парке есть inventory локальных MCP и конфигов агента ([#endpoint-inventory](#endpoint-inventory)); registry ≠ discovery.
+- [ ] Code-mode (модель пишет код против типизированного API) учтён: registry/schema остаются; исполнение — [§08](../part-3-processing-security/08-sandboxing.md#sandbox-runtime).
 - [ ] У каждой записи: endpoint, tool_type, allowed_models, allowed_data_classes, reviewed_at, known_risks, update_policy (+ owner/risk).
 - [ ] Нет записи / `reviewed=false` / просрочен review → deny call.
 - [ ] Tool discovery не даёт автоматического доступа к tools.
@@ -856,6 +885,9 @@ func isLoopbackOrPrivateHost(host string) bool {
 - [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
 - [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md) — schema args; provenance значений из tool output — этот раздел
+- [16 — Monitoring](../part-5-control-observability/16-monitoring-alerting.md) — `unknown_local_mcp_endpoint`
+- [33 — Shadow AI](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai) — сеть vs endpoint
+- [08 — Sandbox-рантайм](../part-3-processing-security/08-sandboxing.md#sandbox-runtime) — исполнение code-mode
 - [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
