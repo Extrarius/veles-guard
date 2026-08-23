@@ -2,8 +2,8 @@
 tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, конспект]
 часть: "Часть II — Защита на входе"
 статус: готово
-обновлено: 2026-07-16
-изменения: "Добавлены поля версионирования frontmatter (массовая проходка)"
+обновлено: 2026-08-23
+изменения: "N× candidates (#n-candidates-quota): Best-of-N / parallel trajectories multiply token and rate-limit hits. Budget for each, not only winner."
 ---
 
 # 05 — Rate Limiting, Quotas и Token Bombing
@@ -47,6 +47,7 @@ tags: [ai-security, rate-limiting, quotas, token-bombing, input-security, кон
 | Memory writes | максимум 3 записи в память за задачу |
 | External fetch size | максимум 1 MB ответа от внешнего URL |
 | Concurrency | максимум 2 активные задачи на пользователя |
+| Parallel candidates | N траекторий / best-of-N считаются все; budget = N × cost, не только победитель |
 
 ## DFD: ресурсный gateway
 
@@ -91,6 +92,8 @@ flowchart LR
 | Output flooding | модель генерирует слишком длинный ответ | стоимость / задержка |
 | Concurrent abuse | много параллельных задач | исчерпание ресурсов |
 | Budget bypass | пользователь дробит задачу на мелкие запросы | обход квот |
+| Inter-agent swarm flood | N одинаковых агентов бьют в shared queue / polling; per-agent quota не закрывает swarm | исчерпание shared resource |
+| N× candidates / parallel trajectories | Best-of-N и параллельные траектории умножают расход токенов и удары по rate limit | рост стоимости и задержек |
 
 ## High / Medium / Low
 
@@ -163,6 +166,20 @@ maxDuration
 ```text
 user id + org id + API key + IP + session id + tool scope
 ```
+
+### 6. Бюджет N× кандидатов {#n-candidates-quota}
+
+Best-of-N и параллельные траектории одного user-turn — это **N** inference (+ tools), не один запрос. HTTP rate limit на «один request» и per-task budget на «победителя» не видят сумму.
+
+```text
+N candidates != 1 request
+per-task budget != per-candidate budget
+policy on each != budget for each
+```
+
+Admission control оценивает `N × cost`, не один вызов. В квоту идут **все** кандидаты, не только победитель.
+
+Это бюджет, не policy: каждую траекторию проверяет [EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19). N независимых агентов на shared queue — [§18 `#emergent-coordination`](../part-6-multi-agent-security/18-inter-agent-security.md#emergent-coordination), не этот паттерн.
 
 ## Пример (Go): простая оценка токенов
 
@@ -396,6 +413,8 @@ func RunWithBudget(ctx context.Context, runner StepRunner, budget *AgentBudget) 
 - [ ] Есть лимит на размер входа.
 - [ ] Есть оценка input tokens до LLM.
 - [ ] Есть rate limit по user / org / API key.
+- [ ] Swarm на shared queue / polling имеет свой cap; `per-user` / `per-agent` quota ≠ swarm budget ([§18 `#emergent-coordination`](../part-6-multi-agent-security/18-inter-agent-security.md#emergent-coordination)).
+- [ ] Есть ёмкость на N× candidates / parallel trajectories (`N × cost`); N candidates = N requests (бюджет на каждого, не только на победителя) ([`#n-candidates-quota`](#n-candidates-quota)).
 - [ ] Есть дневные / месячные quotas.
 - [ ] Есть maxSteps для agent loop.
 - [ ] Есть maxToolCalls на задачу.
@@ -420,3 +439,5 @@ func RunWithBudget(ctx context.Context, runner StepRunner, budget *AgentBudget) 
 - [07 — Parameter Validation и Schema Enforcement](../part-3-processing-security/07-parameter-validation-schema.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
+- [18 — Emergent coordination](../part-6-multi-agent-security/18-inter-agent-security.md#emergent-coordination) — swarm flood / tacit collusion
+- [20 — Verifier / best-of-N (EV-19)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19) — policy на каждую траекторию, не бюджет
