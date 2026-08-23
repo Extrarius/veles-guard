@@ -139,6 +139,28 @@ def route_inference(dc: AIDataClass) -> InferenceRoute:
     raise ValueError("unknown AI data class")
 
 
+@dataclass
+class InferenceHop:
+    via_ai_gateway: bool = False
+    purpose: str = ""  # completion | verification
+    data_class: AIDataClass | None = None
+    second_provider_external: bool = False
+
+
+def harness_proxy_bypasses_gateway(h: InferenceHop) -> bool:
+    """True if harness proxy skipped the AI Gateway."""
+    return not h.via_ai_gateway
+
+
+def two_stage_residency_violation(
+    payload: AIDataClass, second_provider_external: bool
+) -> bool:
+    """True if D1+ trajectories went to external scoring without policy."""
+    if not second_provider_external:
+        return False
+    return payload != AIDataClass.D0_PUBLIC
+
+
 def _contains(classes: List[DataClass], target: DataClass) -> bool:
     return target in classes
 

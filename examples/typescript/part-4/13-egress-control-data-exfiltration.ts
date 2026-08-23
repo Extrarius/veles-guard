@@ -51,7 +51,34 @@ function routeInference(dc: AIDataClass): InferenceRoute {
   throw new Error("unknown AI data class");
 }
 
-export { routeInference, InferenceRoute, AIDataClass };
+interface InferenceHop {
+  viaAIGateway?: boolean;
+  purpose?: string; // completion | verification
+  dataClass?: AIDataClass;
+  secondProviderExternal?: boolean;
+}
+
+function harnessProxyBypassesGateway(h: InferenceHop): boolean {
+  return !h.viaAIGateway;
+}
+
+function twoStageResidencyViolation(
+  payload: AIDataClass,
+  secondProviderExternal: boolean,
+): boolean {
+  if (!secondProviderExternal) {
+    return false;
+  }
+  return payload !== AIDataClass.D0Public;
+}
+
+export {
+  routeInference,
+  harnessProxyBypassesGateway,
+  twoStageResidencyViolation,
+  InferenceRoute,
+  AIDataClass,
+};
 
 interface EgressRequest {
   userId: string;

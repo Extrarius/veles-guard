@@ -2,8 +2,8 @@
 tags: [ai-security, hallucination-detection, fact-checking, evals, output-security, конспект]
 часть: "Часть IV — Защита на выходе"
 статус: готово
-обновлено: 2026-08-07
-изменения: "Якорь: evidence RAG = chunks после retrieval rails (§09)."
+обновлено: 2026-08-23
+изменения: "Якорь EV-19: выбор траектории / score ≠ authorization."
 ---
 
 # 12 — Hallucination Detection
@@ -420,7 +420,7 @@ Verifier model нужен, если:
 - [ ] Contradicted claims блокируются.
 - [ ] Для time-sensitive claims указывается дата источника.
 - [ ] Для high-impact сценариев включён human review.
-- [ ] Verifier отделён от generator в критичных сценариях.
+- [ ] Verifier отделён от generator в критичных сценариях. Выбор траектории / verifier score ≠ authorization; канон — [§20 EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19).
 - [ ] Решения verifier логируются для аудита.
 
 ## Литература
@@ -436,4 +436,4 @@ Verifier model нужен, если:
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [11 — Output Validation и Fact-Checking](11-output-validation-fact-checking.md)
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) · [Verifier / best-of-N (EV-19)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)
