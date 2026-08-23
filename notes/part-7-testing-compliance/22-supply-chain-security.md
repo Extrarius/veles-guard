@@ -3,7 +3,7 @@ tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Orchestration-стек как объект AppSec: LLM safe != agent safe."
+изменения: "Shared cache / registry в eval harness → §18 #cross-run-eval-store."
 ---
 
 # 22 — Supply Chain Security
@@ -124,6 +124,7 @@ flowchart LR
 - **Skill poisoning**: безопасное `description` + вредный `body` или optional script.
 - **Rug pull**: benign skill/MCP server/модель меняет поведение после consent или обновления на `latest` — pin по version или hash, не `latest`.
 - **Harness extension**: тот же класс supply chain, но меняет **control plane** обвязки (system prompt, tools, модель, thinking level на save points), не skill body. Ревью как изменение policy — [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension), [§30](../part-9-ai-coding-security/30-ai-coding-supply-chain.md).
+- **Shared package cache / registry в eval harness**: тот же артефакт, что dependency cache, но канал между независимыми runs — [§18 `#cross-run-eval-store`](../part-6-multi-agent-security/18-inter-agent-security.md#cross-run-eval-store). Evaluation partner (ниже) не переписываем.
 
 Подробный разбор AI-coding supply chain — в [30 — AI Coding Supply Chain](../part-9-ai-coding-security/30-ai-coding-supply-chain.md).
 
@@ -458,6 +459,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Agent-published package metadata / README / comments — untrusted instruction channel; те же gates, что для human ([§18 artifact poisoning](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
 - [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
 - [ ] Расширение обвязки (harness extension) ревьюится как изменение policy, не как контент ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension)).
+- [ ] Package cache / registry в eval harness не общий на независимые runs ([§18 `#cross-run-eval-store`](../part-6-multi-agent-security/18-inter-agent-security.md#cross-run-eval-store)).
 - [ ] Orchestration-стек аудируется как backend: SAST / SCA / fuzzing / serialization review / injection-тесты к state store ([#orchestration-stack](#orchestration-stack)).
 - [ ] Версии orchestration pinned; changelog ревьюится; отсутствие CVE ≠ pass.
 - [ ] Document parsers, вызываемые как tools, изолированы процессом ([§08](../part-3-processing-security/08-sandboxing.md)).
@@ -504,6 +506,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning) — agent-published metadata / README как PI-канал
+- [18 — Shared eval-run store](../part-6-multi-agent-security/18-inter-agent-security.md#cross-run-eval-store) — cache / registry между eval-runs
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
 - [20 — Red Teaming и Adversarial Testing](20-red-teaming-adversarial-testing.md) (EV-11, Target boundary)
 - [21 — Compliance и Standards](21-compliance-standards.md)
