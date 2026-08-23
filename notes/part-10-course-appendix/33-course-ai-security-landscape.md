@@ -3,7 +3,7 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Shadow AI: два уровня discovery — сеть и endpoint."
+изменения: "Token soup: state bleeding — watchlist §09, не контроль."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -86,6 +86,24 @@ proxy sees the domain; endpoint sees the app
 | Endpoint | процесс, конфиг агента, локальные MCP, права, исполнение | — |
 
 Controlled без inventory на endpoint ≠ наблюдаемость. Реестр вызовов — [§19](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry); что стоит на машинах — [§19 `#endpoint-inventory`](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory). Сигнал — [§16](../part-5-control-observability/16-monitoring-alerting.md). Эталонную платформу ([#reference-platform](#reference-platform)) не подменяет.
+
+<a id="enterprise-scenarios"></a>
+
+### Отраслевые сценарии (учебная карта)
+
+Где агент уже в работе — не threat model и не таблица стадий [lifecycle](#sdlc-vs-agent-lifecycle). Одна строка: типичное действие → канон.
+
+```text
+teaching frame != control canon
+```
+
+| Отрасль | Типичное действие | Канон |
+|---|---|---|
+| Dev | генерация / ревью кода, тесты, миграции | [§03](../part-2-input-security/03-prompt-injection-detection.md), [§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md) |
+| Analytics | сводка документов, отчёт, таблица | [§04](../part-2-input-security/04-pii-redaction-content-filtering.md), [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md) |
+| DevOps | логи, конфиг, pipeline, инцидент | [§08](../part-3-processing-security/08-sandboxing.md), [§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md) |
+| Sec | triage алертов, расследование, правила детекции | [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection), [§16](../part-5-control-observability/16-monitoring-alerting.md) |
+| Design | черновик макета / ТЗ, генерация медиа | [§04](../part-2-input-security/04-pii-redaction-content-filtering.md), [§11](../part-4-output-security/11-output-validation-fact-checking.md) |
 
 ### Слои системы (threat map)
 
@@ -217,6 +235,8 @@ INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXEC
 
 Канон угрозы и stop-patterns — [§03 путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion). На курсе: оценка (assessment) — [§34](34-course-agent-assessment-defense.md#guardrail-assessment); набор тестов (suite) — [§20 EV-12](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#role-confusion-evals-ev-12). Готовые полезные нагрузки (payloads) не публикуем.
 
+Смежный риск tool-текста — state bleeding / subconscious steering (сдвиг персоны без подмены тега). Watchlist, не EV и не контроль — [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#state-bleeding).
+
 Аналогия с SQL-внедрением (SQL injection) полезна как «смешение инструкций и данных», но **не** как «уже решённая задача»: у естественного языка нет формальной грамматики для параметризованных запросов (parameterized queries). Поэтому полагаться только на «умный системный промпт (system prompt)» нельзя — нужны внешние контроли ([§03](../part-2-input-security/03-prompt-injection-detection.md), [§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§14](../part-5-control-observability/14-human-in-the-loop.md)).
 
 ## Четыре ограничения ожидания
@@ -229,6 +249,18 @@ INPUT / CONTEXT  →  AGENT CORE  →  MEMORY / RAG  →  TOOLS / MCP  →  EXEC
 | Context window | Видит только то, что в окне; переполнение = забывание | Короткие сессии, приоритет инструкций; **Lost in the Middle** — внимание слабеет в середине длинного контекста |
 
 Дополнительно: **alignment** (SFT/RLHF и аналоги) снижает вероятность вредного поведения, но не гарантирует безопасность — знания остаются в весах, jailbreak ищет обход. Решение для продукта: **внешние guardrails** (части II–V), а не «модель уже aligned». Конфликт целей helpful / harmless / honest и reward hacking в оценках — [§20 Evaluation Gaming](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking). Рассуждения модели ≠ source of truth — [§15 Reasoning vs actions](../part-5-control-observability/15-observability-tracing.md#reasoning-vs-actions).
+
+<a id="model-circuit-breakers"></a>
+
+#### Circuit breakers модели (Representation Rerouting)
+
+[Zou et al., arXiv 2406.04313](https://arxiv.org/abs/2406.04313) прерывают вредные **внутренние представления** (не refusal training). Это доп. слой **внутри модели**.
+
+```text
+model circuit-breaker != external guardrail
+```
+
+Не замена частей II–V. Не путать с [§17 Circuit Breaker / kill-switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md) — тот вне LLM. Decode-time schema — [§11 `#constrained-decoding`](../part-4-output-security/11-output-validation-fact-checking.md#constrained-decoding). Цифры paper не SLA.
 
 ## Эволюция угроз (кратко)
 
@@ -248,6 +280,12 @@ Base models / prompts  →  RAG  →  autonomous agents  →  MCP / tools  →  
 ```
 
 Агент может оставаться «умным» — те же модели и инструменты (tools) — но **без** тихого запуска оболочки / сети / записи (silent shell / network / write). Возможность (capability) ≠ право действовать без политики (policy) и человека в контуре (HITL). Контрпример: «полный доступ модели к shell ради удобства» vs «тот же инструмент через подтверждение (approval) + песочницу (sandbox)» ([§06](../part-3-processing-security/06-rbac-tool-permissions.md), [§14](../part-5-control-observability/14-human-in-the-loop.md), [§28](../part-9-ai-coding-security/28-coding-agent-permissions-sandbox-approval.md)). Как оценивать сами ограничения (rails) — [§34 оценка защитных ограничений (Guardrail assessment)](34-course-agent-assessment-defense.md#guardrail-assessment).
+
+Пара лекции 4 рядом с этим тезисом, не замена:
+
+| Контролируем | Не теряем |
+|---|---|
+| данные / write / путь inference | UX, скорость, эксперименты ([R0](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)) |
 
 ## Zero Trust for AI
 
@@ -417,8 +455,9 @@ func PlatformHops() []string {
 - [ ] Для одной системы прошли вопрос → framework → результат (хотя бы NIST + OWASP + ATLAS).
 - [ ] На сценарии assistant+RAG зафиксированы harm, residual risk и risk owner.
 - [ ] Модель считается недоверенной; названы внешние ограничения (guardrails), не только выравнивание (alignment).
-- [ ] Понятно [безопасность и полезность (Safety vs Utility)](#safety-vs-utility): безопасность сужает автономию (silent actions), не «вырезает» возможности (capabilities) модели.
-- [ ] Понятны [роли и «суп токенов» (roles / token soup)](#token-soup): теги ролей ≠ граница доверия; канон [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion).
+- [ ] Circuit breaker модели (RR) не считается внешним guardrail и не путается с [§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md) ([#model-circuit-breakers](#model-circuit-breakers)).
+- [ ] Понятно [безопасность и полезность (Safety vs Utility)](#safety-vs-utility): безопасность сужает автономию (silent actions), не «вырезает» возможности (capabilities) модели. Рядом — control vs utility: данные / write / inference контролируем; UX / скорость / эксперимент (R0) не теряем. Назван [отраслевой сценарий](#enterprise-scenarios).
+- [ ] Понятны [роли и «суп токенов» (roles / token soup)](#token-soup): теги ролей ≠ граница доверия; канон [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion). State bleeding — watchlist [§09](../part-3-processing-security/09-memory-isolation-context-sanitization.md#state-bleeding), не gate.
 - [ ] Выбран слой в навигаторе и открыты соответствующие §§ частей I–IX.
 - [ ] Следующий шаг — [§34 оценка (Assessment)](34-course-agent-assessment-defense.md) (ограничения + [класс риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment)), затем практикум §35–38.
 
@@ -437,13 +476,15 @@ func PlatformHops() []string {
 - [01 — Введение](../part-1-architecture-threats/01-introduction.md)
 - [02 — Threat Model](../part-1-architecture-threats/02-threat-model.md)
 - [03 — Путаница ролей / подделка CoT (Role confusion / CoT Forgery)](../part-2-input-security/03-prompt-injection-detection.md#role-confusion)
+- [11 — Constrained decoding](../part-4-output-security/11-output-validation-fact-checking.md#constrained-decoding) — logits mask ≠ Output Gate
+- [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md) — runtime, не RR модели
 - [13 — Шлюз к модели (AI Gateway) / вывод (inference)](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10; [оценка по классу риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment); [PR→CI→exfil](34-course-agent-assessment-defense.md#pr-ci-exfil-trace); [анти-паттерны](34-course-agent-assessment-defense.md#anti-patterns-course)
 - [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) — registry ≠ discovery
 - [16 — Monitoring](../part-5-control-observability/16-monitoring-alerting.md) — `unknown_local_mcp_endpoint`
-- [SDLC ↔ lifecycle](#sdlc-vs-agent-lifecycle); [что логировать у агента](#what-to-log); [эталонная платформа](#reference-platform)
+- [SDLC ↔ lifecycle](#sdlc-vs-agent-lifecycle); [что логировать у агента](#what-to-log); [эталонная платформа](#reference-platform); [отраслевые сценарии](#enterprise-scenarios)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
 - [37 — Agentic Security Baseline Workshop](37-agentic-security-baseline-workshop.md)
