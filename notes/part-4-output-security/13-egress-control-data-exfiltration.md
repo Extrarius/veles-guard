@@ -3,7 +3,7 @@ tags: [ai-security, egress-control, data-exfiltration, dlp, output-security, к�
 часть: "Часть IV — Защита на выходе"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Harness inference proxy: не обход AI Gateway; two-stage = residency."
+изменения: "Commit / encoded source как egress; канон §27 #ghostcommit."
 ---
 
 # 13 — Egress Control и Data Exfiltration Prevention
@@ -111,6 +111,7 @@ Destination + Data + Actor + Purpose проверяются вместе.
 | Email misdelivery | агент отправляет отчёт не тому адресу | High | recipient policy, approval |
 | Browser leakage | агент открывает URL с query-параметрами | Medium | URL sanitizer |
 | Covert channel | данные закодированы в URL/path/base64 | High | payload classifier, size limits |
+| Encoded source / public commit | секрет как целые в исходнике; HTTP allowlist не видит | High | secret-shape на константы; канон [§27 `#ghostcommit`](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md#ghostcommit) |
 | Tool chaining | один tool читает файл, другой отправляет наружу | High | flow-aware policy |
 | Over-sharing | агент отправляет весь документ вместо выдержки | Medium | data minimization |
 
@@ -119,6 +120,8 @@ Destination + Data + Actor + Purpose проверяются вместе.
 Если агент одновременно видит **private data**, принимает **untrusted content** и имеет **outbound** (включая render ссылок/картинок в UI), injection может унести данные без «явного» HTTP-tool. Design rule: убрать хотя бы одну ногу — [§02](../part-1-architecture-threats/02-threat-model.md), [Willison](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/).
 
 Публичный прецедент (механика, не payload): скрытый prompt в merge request / контексте заставил coding assistant вставить в ответ HTML/image URL с закодированными данными; браузер при рендере «картинки» отправил GET наружу ([Legit Security — GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo)). Контроль: не рендерить untrusted HTML/img на внешние домены; destination allowlist для любых outbound URL в ответе; не считать markdown «безопасным текстом».
+
+Другой канал (не HTML/img URL): публичный commit / исходник с целыми — тоже egress; HTTP allowlist его не видит. Канон threat — [§27 `#ghostcommit`](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md#ghostcommit) (`encoded source != not a secret`).
 
 ## Подходы и контрмеры
 
@@ -646,6 +649,7 @@ Egress Control запрещает отправить секрет наружу, 
 - [ ] Egress/navigate трактуются как sinks в Source→Sink ([§03](../part-2-input-security/03-prompt-injection-detection.md)).
 - [ ] Untrusted source + outbound к третьей стороне не silent: allowlist и/или approval.
 - [ ] Ответ агента не рендерит произвольные external img/URL (markdown/HTML exfil).
+- [ ] Публичный commit / исходник с целыми считается egress; HTTP allowlist ≠ закрытый канал ([§27 `#ghostcommit`](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md#ghostcommit)).
 - [ ] Проверен lethal trifecta: private + untrusted + egress не в одном path ([§02](../part-1-architecture-threats/02-threat-model.md)).
 - [ ] Вызовы модели идут через AI Gateway; маршрут inference задан по [D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4) ([#inference-routing](#inference-routing)).
 - [ ] D4 → `reject` для inference; D2–D3 → только `internal`/`specialized`; ошибка классификации = риск утечки во внешнюю модель.
@@ -658,6 +662,7 @@ Egress Control запрещает отправить секрет наружу, 
 - [Microsoft Learn — Generative AI gateway capabilities](https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities)
 - [Simon Willison — The lethal trifecta for AI agents](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)
 - [Legit Security — Remote Prompt Injection in GitLab Duo](https://www.legitsecurity.com/blog/remote-prompt-injection-in-gitlab-duo)
+- [ASSET — Ghostcommit](https://asset-group.github.io/disclosures/ghostcommit/) — commit / encoded source как egress (канон [§27](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md#ghostcommit))
 - [OpenAI — Designing AI agents to resist prompt injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 - [OWASP LLM02:2025 Sensitive Information Disclosure](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/)
 - [OWASP LLM05:2025 Improper Output Handling](https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/)
@@ -672,6 +677,7 @@ Egress Control запрещает отправить секрет наружу, 
 - [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)
 - [06 — RBAC и Tool Permissions](../part-3-processing-security/06-rbac-tool-permissions.md)
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
+- [27 — Ghostcommit](../part-9-ai-coding-security/27-repository-instructions-attack-surface.md#ghostcommit) — image-instruction; секрет как целые в исходнике
 - [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
 - [15 — Observability (поля inference)](../part-5-control-observability/15-observability-tracing.md#inference-audit-fields)
 - [08 — Localhost is not a trust boundary](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary) — визуализатор траекторий
