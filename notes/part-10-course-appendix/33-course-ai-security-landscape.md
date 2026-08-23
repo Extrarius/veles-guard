@@ -2,8 +2,8 @@
 tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 часть: "Часть X — Учебное приложение"
 статус: готово
-обновлено: 2026-08-08
-изменения: "SDLC↔lifecycle, one-pager platform, 7× what-to-log."
+обновлено: 2026-08-23
+изменения: "Shadow AI: два уровня discovery — сеть и endpoint."
 ---
 
 # 33 — Course: AI Security Landscape
@@ -73,6 +73,19 @@ tags: [ai-security, course-appendix, landscape, frameworks, workshop]
 ```
 
 Учебный вывод: контролируемое использование (controlled usage) ≠ «всё можно» — это путь через платформенные точки контроля, не мимо них.
+
+```text
+proxy sees the domain; endpoint sees the app
+```
+
+Сетевой прокси видит **домен сервиса**. На машине остаются процесс агента, конфиг, локальный MCP, права и исполнение — этого прокси не видно.
+
+| Уровень | Что видно | Что не видно |
+|---|---|---|
+| Сеть | SaaS-домен, исходящий HTTPS | локальный агент, stdio MCP, файлы конфига |
+| Endpoint | процесс, конфиг агента, локальные MCP, права, исполнение | — |
+
+Controlled без inventory на endpoint ≠ наблюдаемость. Реестр вызовов — [§19](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry); что стоит на машинах — [§19 `#endpoint-inventory`](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory). Сигнал — [§16](../part-5-control-observability/16-monitoring-alerting.md). Эталонную платформу ([#reference-platform](#reference-platform)) не подменяет.
 
 ### Слои системы (threat map)
 
@@ -396,6 +409,7 @@ func PlatformHops() []string {
 
 - [ ] Понятен разрыв безопасности (security gap): внедрение vs контур контроля.
 - [ ] Для политики GenAI назван режим [запрет / разрешение / контролируемое (ban / allow / controlled)](#shadow-ai) и риск теневого ИИ (Shadow AI) при запрете без альтернативы.
+- [ ] Понятны два уровня discovery: сеть (домен) и endpoint (процесс / конфиг / локальный MCP); прокси ≠ inventory на машине.
 - [ ] Понятна [эталонная платформа (reference platform)](#reference-platform): one-pager путь; агент не ходит к моделям / инструментам (tools) напрямую.
 - [ ] Понятен контраст [SDLC ↔ учебный lifecycle агента](#sdlc-vs-agent-lifecycle): не бренд «ADLC», канон — части I–IX.
 - [ ] Названы [7 учебных полей журнала агента](#what-to-log) (вкл. RAG chunks / routing) со ссылкой на §15.
@@ -427,6 +441,8 @@ func PlatformHops() []string {
 - [25 — Класс риска агента R0–R3](../part-8-practice/25-security-by-design-checklist.md#agent-risk-class)
 - [21 — Compliance и Standards](../part-7-testing-compliance/21-compliance-standards.md)
 - [34 — Course: Agent Assessment and Defense](34-course-agent-assessment-defense.md#guardrail-assessment) — оценка защитных ограничений (Guardrail assessment) → EV-10; [оценка по классу риска R0–R3](34-course-agent-assessment-defense.md#agent-risk-assessment); [PR→CI→exfil](34-course-agent-assessment-defense.md#pr-ci-exfil-trace); [анти-паттерны](34-course-agent-assessment-defense.md#anti-patterns-course)
+- [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) — registry ≠ discovery
+- [16 — Monitoring](../part-5-control-observability/16-monitoring-alerting.md) — `unknown_local_mcp_endpoint`
 - [SDLC ↔ lifecycle](#sdlc-vs-agent-lifecycle); [что логировать у агента](#what-to-log); [эталонная платформа](#reference-platform)
 - [35 — Course Appendix: практикум](35-course-appendix-agentic-security.md)
 - [36 — MCP / Skill Review Workshop](36-mcp-skill-review-workshop.md)
