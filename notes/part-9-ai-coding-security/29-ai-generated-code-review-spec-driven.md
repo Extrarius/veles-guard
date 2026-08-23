@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, code-review, spec-driven, pull-request]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-08
-изменения: "PR/issue untrusted (#pr-issue-untrusted-input); agent-generated PR/issue → §18 artifact poisoning."
+обновлено: 2026-08-23
+изменения: "PR/issue: «одобрение» и argumentation тоже untrusted; якорь EV-17."
 ---
 
 # 29 — AI-generated code review и spec-driven workflow
@@ -340,6 +340,8 @@ Pre-scan до tool/actions: команды в адрес ИИ, скрытый/н
 
 `CanMerge` / CI gates ниже — про merge артефакта; этот блок — про **вход** review-агента в текст PR/issue.
 
+«Одобрение» и argumentation в PR/issue (в т.ч. «уже проверено / LGTM / независимый ревьюер») — тот же класс недоверенных данных, не HITL. Канон — [§14 `#reviewer-pressure`](../part-5-control-observability/14-human-in-the-loop.md#reviewer-pressure) / [§20 EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17).
+
 ### Go snippet: PR/issue untrusted framing
 
 ```go
@@ -444,9 +446,9 @@ func PrepareReviewContext(in PRReviewInput) (framed string, hits []string) {
 - [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
 - [03 — Prompt Injection Detection](../part-2-input-security/03-prompt-injection-detection.md)
 - [13 — Egress Control](../part-4-output-security/13-egress-control-data-exfiltration.md)
-- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md) · [давление на ревьюера](../part-5-control-observability/14-human-in-the-loop.md#reviewer-pressure)
 - [18 — Inter-Agent Security (artifact poisoning)](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md)
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) · [EV-17](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#human-reviewer-pressure-evals-ev-17)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [28 — Coding agent permissions](28-coding-agent-permissions-sandbox-approval.md)

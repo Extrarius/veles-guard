@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Split-context MCP injection в threat model; харнесс — часть поверхности (якорь §19)."
+обновлено: 2026-08-23
+изменения: "Localhost visualizer траекторий: дашборд с промптами; auth обязателен."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -140,7 +140,11 @@ Dev-машина coding agent хранит secrets, tokens, SSH keys и част
 
 В AI-coding контексте это особенно опасно: агент постоянно открывает внешние страницы (docs, issues, PR diffs), а локальные MCP/skills слушают loopback. Контрмеры: auth+authz на local MCP, egress блокирует loopback/private, experimental frameworks — в sandbox/devbox. Подробнее: [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md#localhost-is-not-a-trust-boundary-autojack), [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary).
 
+Локальный визуализатор траекторий на loopback — дашборд (промпты, роллауты, возможные секреты). Auth и authz обязательны; loopback не заменяет вход. Прокси обвязки — [§13 `#harness-inference-proxy`](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy).
+
 MCP-клиент / харнесс — часть поверхности: один и тот же сервер даёт разный результат в разных клиентах (API vs IDE). Split-context injection и sampling как третий канал — [§19](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection).
+
+> **Правило:** `Agent = Model + Harness`. Смена обвязки меняет security posture при той же модели: тот же verifier на двух харнессах дал **79.4% vs 71.2%**. Определение — [глоссарий: Harness](../glossary.md).
 
 <a id="curxecute"></a>
 
@@ -160,6 +164,16 @@ Persistence в config / memory / tools агента после [telemetry inject
 | Hidden workflow | skill меняет CI/dependencies | High |
 | Instruction override | skill просит игнорировать security policy | High |
 | Unreviewed sharing | skill принесён из внешнего источника | Medium/High |
+
+<a id="harness-extension"></a>
+
+### Harness extension / plugin (не skill)
+
+Расширение **самой обвязки** — отдельная сущность, не `SKILL.md`. Оно меняет **control plane** (system prompt, инструменты, модель, thinking level) в рантайме на save points, а не контент задачи. Ревью — как изменение policy, не как правка текста.
+
+Контроли те же по уровню, что у skills (раздел ниже), но объект другой: owner, pin, diff review, allowlist, kill-switch. Не смешивать с description/body skill.
+
+Публичные каталоги расширений обвязки без реестра и owner (у одного проекта — 5000+) — факт поверхности, не разбор продукта. Определение обвязки — [глоссарий: Harness](../glossary.md).
 
 ## Skill Security: уровни контроля
 
@@ -353,9 +367,11 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] Skills/plugins pinned.
 - [ ] Skills/scripts проходят review.
 - [ ] Есть kill-switch per MCP server / skill.
+- [ ] Расширение обвязки (harness extension / plugin) ревьюится как изменение policy: owner, pin, diff review, allowlist, kill-switch ([#harness-extension](#harness-extension)).
 - [ ] Agent-generated artifacts имеют provenance.
 - [ ] Есть audit по PR, CI, deploy.
 - [ ] Локальные MCP/WebSocket в dev-среде требуют auth; browser tools не доверяют localhost.
+- [ ] Локальный визуализатор траекторий — дашборд с промптами; auth+authz обязательны (loopback не вход).
 - [ ] Для среды зафиксирован уровень Skill Security (prototype / startup / production / regulated).
 - [ ] Контроли соответствуют выбранному уровню (не «всем всё», а минимум под риск).
 - [ ] Description skill не считается policy; body/scripts проходят отдельный review.
@@ -366,7 +382,8 @@ func CanEnterProductionPath(pr PR) bool {
 
 ## Литература
 
-- [Список литературы](../literature.md#mcp)
+- [Список литературы](../literature.md#mcp) · [Практические руководства](../literature.md#практические-руководства) — Pi AgentHarness
+- [Pi — AgentHarness lifecycle](https://github.com/earendil-works/pi/blob/main/packages/agent/docs/agent-harness.md) — смена обвязки = смена posture; расширение меняет control plane на save points
 - [Cursor — GHSA-4cxx-hrm3-49rm (CurXecute / CVE-2025-54135)](https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm)
 - [GitHub Copilot cloud agent](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent)
 - [GitHub Actions — Security hardening](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions)
@@ -377,7 +394,9 @@ func CanEnterProductionPath(pr PR) bool {
 
 ## См. также
 
-- [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md)
+- [08 — Sandboxing](../part-3-processing-security/08-sandboxing.md) · [localhost](../part-3-processing-security/08-sandboxing.md#localhost-is-not-a-trust-boundary)
+- [13 — Прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)
+- [Глоссарий — Harness](../glossary.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md) — [split-context injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)

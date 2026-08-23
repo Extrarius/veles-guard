@@ -2,8 +2,8 @@
 tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
-обновлено: 2026-08-08
-изменения: "AC-CR-12/13, AC-RT-10: PR/issue untrusted input для review-агента."
+обновлено: 2026-08-23
+изменения: "AC-SK-08/09: harness extension как policy change + kill-switch."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -160,6 +160,8 @@ High-risk пункт со статусом No блокирует production usag
 | AC-SK-05 | Skills не могут override security policy | High | TODO |
 | AC-SK-06 | Есть kill-switch per skill/plugin | Medium | TODO |
 | AC-SK-07 | Skill updates требуют re-review по событиям из [mcp-skill-review](../../templates/mcp-skill-review.md#re-review-triggers) | High | TODO |
+| AC-SK-08 | Harness extension / plugin: owner, pin, diff review, allowlist; ревью как изменение policy, не как контент ([§31](31-ci-cd-mcp-skills-production-path.md#harness-extension)) | High | TODO |
+| AC-SK-09 | Есть kill-switch на расширение обвязки (отдельно от AC-SK-06 per skill) | High | TODO |
 
 ## 10. Secrets and privacy
 
