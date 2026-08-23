@@ -143,3 +143,38 @@ def authorize_tool(agent: AgentPrincipal, tool: str, now: datetime) -> None:
         raise PermissionError("on_behalf_of required for delegated acting mode")
     if not agent.allowed_tools.get(tool):
         raise PermissionError(f'tool "{tool}" not in agent allowlist')
+
+
+# --- Aggregate permission / compositional authorization (see §06) ---
+
+_FORBIDDEN_PAIRS: tuple[tuple[str, str], ...] = (
+    ("read_internal_docs", "send_external"),
+    ("read_logs", "create_public_issue"),
+    ("read_vulnerabilities", "external_model"),
+    ("create_config", "deploy"),
+)
+
+
+def forbidden_combo(granted: dict[str, bool]) -> bool:
+    """Grant-time: manifest / Gateway.Before. Not an injection detector."""
+    return any(granted.get(a) and granted.get(b) for a, b in _FORBIDDEN_PAIRS)
+
+
+class WriteStep(str, Enum):
+    PLAN = "plan"
+    DRY_RUN = "dry_run"
+    EXECUTE = "execute"
+    ROLLBACK = "rollback"
+
+
+class UncertainWrite(ValueError):
+    """deny: uncertain write"""
+
+
+def gate_write(step: WriteStep | str, certain: bool) -> WriteStep:
+    """Stub: uncertain → deny; without explicit execute → dry-run. Not a rollback engine."""
+    if not certain:
+        raise UncertainWrite("deny: uncertain write")
+    if step in (WriteStep.EXECUTE, WriteStep.ROLLBACK, "execute", "rollback"):
+        return WriteStep(step) if not isinstance(step, WriteStep) else step
+    return WriteStep.DRY_RUN

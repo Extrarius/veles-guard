@@ -136,6 +136,40 @@ function authorizeTool(agent: AgentPrincipal, tool: string, _now: Date): void {
   }
 }
 
+// --- Aggregate permission / compositional authorization (see §06) ---
+
+const forbiddenPairs: ReadonlyArray<readonly [string, string]> = [
+  ["read_internal_docs", "send_external"],
+  ["read_logs", "create_public_issue"],
+  ["read_vulnerabilities", "external_model"],
+  ["create_config", "deploy"],
+];
+
+/** Grant-time: manifest / Gateway.Before. Not an injection detector. */
+function forbiddenCombo(granted: Record<string, boolean>): boolean {
+  return forbiddenPairs.some(([a, b]) => granted[a] && granted[b]);
+}
+
+type WriteStep = "plan" | "dry_run" | "execute" | "rollback";
+
+class UncertainWrite extends Error {
+  constructor() {
+    super("deny: uncertain write");
+    this.name = "UncertainWrite";
+  }
+}
+
+/** Stub: uncertain → deny; without explicit execute → dry-run. Not a rollback engine. */
+function gateWrite(step: WriteStep | "", certain: boolean): WriteStep {
+  if (!certain) {
+    throw new UncertainWrite();
+  }
+  if (step === "execute" || step === "rollback") {
+    return step;
+  }
+  return "dry_run";
+}
+
 export {
   Risk,
   ToolAction,
@@ -146,6 +180,9 @@ export {
   ActingMode,
   effectiveRole,
   authorizeTool,
+  forbiddenCombo,
+  UncertainWrite,
+  gateWrite,
 };
 
 export type { Actor, ToolCall, Policy, Tool, AuditLogger, AgentPrincipal };
