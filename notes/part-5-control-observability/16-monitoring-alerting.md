@@ -3,7 +3,7 @@ tags: [ai-security, agents, monitoring, alerting, detection]
 часть: "Часть V — Контроль и наблюдаемость"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Событие unknown_local_mcp_endpoint: локальный MCP вне inventory."
+изменения: "Progress score (#progress-score-signal): ops metric (stall / spike), not safety / not auto-stop."
 ---
 
 # 16 — Monitoring и Alerting
@@ -222,17 +222,36 @@ guardrail_trigger_rate
 | `egress_destination_out_of_policy` | block + High; escalate IR |
 | `credential_use_after_revoke` | kill-switch + revoke ([§17](17-circuit-breaker-kill-switch.md)) + IR |
 | `score_spike_after_network` / `eval_probe_suspected` | human review score; escalate IR |
+| `progress_score_stall` / progress-score spike | alert + trace; не stop, не authorization ([#progress-score-signal](#progress-score-signal)) |
 | `undeclared_tool_call` / `audit_gap` | High alert + preserve trace |
 | `unknown_local_mcp_endpoint` | High alert; сверить с [§19 inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) |
 | `scope_drift_new_domain` / `out_of_scope_action` | **stop run** ([§17](17-circuit-breaker-kill-switch.md)), без ожидания человека |
 | `external_identity_created` + `unsolicited_human_contact` / `trajectory_violation` | **stop run** ([trajectory correlation](#trajectory-correlation)); ≠ scope drift |
 | `monitoring_tampering_suspected` | **terminate** + preserve logs + Critical alert ([§17](17-circuit-breaker-kill-switch.md)) |
+| `tool_combo_denied` / новая опасная комбинация | alert + trace; канон пар — [§06 aggregate](../part-3-processing-security/06-rbac-tool-permissions.md#aggregate-permission) |
+| всплеск внешних inference-запросов | alert; маршрут — [§13](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) |
+| подозрительные команды в sandbox | alert + рассмотреть ступень tool / write ([§17 levels](17-circuit-breaker-kill-switch.md#kill-switch-levels)); не путать с [§08](../part-3-processing-security/08-sandboxing.md) |
+| anomalous writes / dir-name chatter в shared eval store | alert + trace; канон [EV-21](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#cross-run-artifact-evals-ev-21) (не новый detector) |
 | continue after policy deny | **stop run** |
 | token runaway | stop run |
 | compromised tool | disable tool |
 | confirmed containment / pivot | [§23 Autonomous-agent IR](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment) |
 
 Auto-stop / revoke credentials — путь [§17](17-circuit-breaker-kill-switch.md). Полный ordered playbook (trace, pivot, notify, regression) — [§23](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment). Поля лога eval — [§15](15-observability-tracing.md).
+
+<a id="progress-score-signal"></a>
+
+### Progress / verifier score как ops-сигнал
+
+Verifier / progress score годится как **метрика** (застой или необъяснимый скачок → alert + trace). Он **не** разрешает действие и **не** останавливает run сам по себе.
+
+```text
+progress score != safety signal
+ops metric != authorization
+high score != keep running
+```
+
+Канон policy / селекции — [EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19). Не путать с `score_spike_after_network` (eval score после network tool).
 
 ### 4. Детектировать поведенческие аномалии
 
@@ -545,6 +564,9 @@ func ShouldStopTrajectory(t TrajectorySignals) bool {
 - [ ] High-risk events не теряются в debug logs.
 - [ ] Есть правила для auto-response.
 - [ ] Есть защита от alert fatigue.
+- [ ] Есть сигналы `tool_combo_denied`, всплеск external inference, подозрительные команды в sandbox (имена, не новый detector).
+- [ ] Есть сигнал anomalous writes / dir-name chatter в shared eval store → [EV-21](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#cross-run-artifact-evals-ev-21) (не новый detection canon).
+- [ ] Progress / verifier score — ops-метрика (`progress_score_stall` / spike → alert + trace), не safety и не auto-stop ([#progress-score-signal](#progress-score-signal); канон [EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)).
 - [ ] Kill-switch и circuit breaker тоже мониторятся.
 - [ ] Online/monitoring-сигналы — дополнительный слой evals, не замена pre-release testing; слои описаны в [20 — Типы evals для AI-agent security](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#типы-evals-для-ai-agent-security).
 - [ ] Есть алерты на out-of-task hosts, retry-after-deny, `approval_retry_after_reject`, credential-after-revoke, score-after-net, undeclared/audit_gap.
@@ -567,11 +589,12 @@ func ShouldStopTrajectory(t TrajectorySignals) bool {
 ## См. также
 
 - [15 — Observability и Tracing](15-observability-tracing.md) · eval-поля (`scope_decision`, `monitoring_state`, …) · [Reasoning vs actions](15-observability-tracing.md#reasoning-vs-actions)
-- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»
+- [17 — Circuit Breaker и Kill-Switch](17-circuit-breaker-kill-switch.md) — «Когда срабатывать»; [уровни](17-circuit-breaker-kill-switch.md#kill-switch-levels)
 - [08 — Sandboxing (signed scope)](../part-3-processing-security/08-sandboxing.md#sandbox--isolation-containment-escape)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md)
 - [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory) — `unknown_local_mcp_endpoint`
 - [33 — Shadow AI](../part-10-course-appendix/33-course-ai-security-landscape.md#shadow-ai) — сеть vs endpoint
 - [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
-- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary; [`EVAL-TRAJECTORY-01` / EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); [`EVAL-TELEMETRY-INJECTION-01` / EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14)
+- [20 — Red Teaming и Adversarial Testing](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md) — Target boundary; [`EVAL-TRAJECTORY-01` / EV-13](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01); [`EVAL-TELEMETRY-INJECTION-01` / EV-14](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#telemetry-injection-evals-ev-14); [`EVAL-CROSS-RUN-ARTIFACT-01` / EV-21](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#cross-run-artifact-evals-ev-21); [EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19) — `progress score != safety signal`
+- [18 — Shared eval-run store](../part-6-multi-agent-security/18-inter-agent-security.md#cross-run-eval-store) — threat; сигнал здесь, не канон
 - [23 — Incident Response (Autonomous-agent IR)](../part-7-testing-compliance/23-incident-response-recovery.md#playbook-autonomous-agent-ir-containment)
