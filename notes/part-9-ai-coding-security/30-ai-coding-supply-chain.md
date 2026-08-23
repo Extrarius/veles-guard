@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, supply-chain, dependencies, sbom]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-23
-изменения: "High-risk: конфиг и каталог расширений обвязки (рядом с .cursor/rules)."
+изменения: "High-risk: версии orchestration-зависимостей (agent framework в lockfile)."
 ---
 
 # 30 — AI Coding Supply Chain
@@ -120,6 +120,7 @@ flowchart LR
 | skills/plugins | исполняемые инструкции и scripts |
 | конфиг обвязки | system prompt, tools, модель, thinking level — control plane |
 | каталог расширений обвязки | harness extension / plugin: меняет обвязку, не контент задачи |
+| версии orchestration-зависимостей | agent framework в lockfile: сериализация / кэш / парсеры / state routing — AppSec, не только CVE-фид ([§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)) |
 | build scripts | shell execution |
 | migration scripts | изменение данных |
 
@@ -296,6 +297,7 @@ func BlocksRelease(files []ChangedFile, decision ReviewDecision) bool {
 - [ ] Агент не может отключить scanners.
 - [ ] Агент не может изменить required checks без review.
 - [ ] Версии pinned.
+- [ ] Версии orchestration-зависимостей (agent framework в lockfile) pinned; changelog ревьюится ([§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)).
 - [ ] Агент не подтягивает недоверенные модели/веса/inference-эндпоинты; model provenance проверен (см. §22).
 - [ ] Есть SBOM.
 - [ ] Есть secret scanning.
@@ -316,6 +318,6 @@ func BlocksRelease(files []ChangedFile, decision ReviewDecision) bool {
 
 - [10 — Secrets Management](../part-3-processing-security/10-secrets-management.md)
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md)
-- [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
+- [22 — Orchestration-стек](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)
 - [31 — Harness extension](31-ci-cd-mcp-skills-production-path.md#harness-extension)
 - [27 — Репозиторий как источник инструкций](27-repository-instructions-attack-surface.md)

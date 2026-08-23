@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, checklist, production-review]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-23
-изменения: "AC-SK-08/09: harness extension как policy change + kill-switch."
+изменения: "AC-MCP-09: inventory локальных MCP на endpoint; registry ≠ discovery."
 ---
 
 # 32 — AI Coding Security Checklist
@@ -119,6 +119,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-SC-07 | Есть secret scanning | High | TODO |
 | AC-SC-08 | Есть SBOM для production artifacts | Medium | TODO |
 | AC-SC-09 | Агент не может отключить scanners | High | TODO |
+| AC-SC-10 | Orchestration-зависимости (agent framework) pinned; changelog review; отсутствие CVE ≠ pass ([§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)) | High | TODO |
 
 ## 7. CI/CD and production path
 
@@ -146,6 +147,7 @@ High-risk пункт со статусом No блокирует production usag
 | AC-MCP-06 | MCP egress ограничен | High | TODO |
 | AC-MCP-07 | Есть kill-switch per MCP server | High | TODO |
 | AC-MCP-08 | MCP calls логируются | Medium | TODO |
+| AC-MCP-09 | На парке есть inventory локальных MCP / конфигов агента; отсутствие в registry ≠ «нет на endpoint» ([§19](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory)) | High | TODO |
 | AC-ADI-01 | Resource IDs / provenance из tool / issue / PR не trusted без deterministic validation ([§03](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)) | High | TODO |
 | AC-ADI-02 | Agent не принимает self-asserted trust из tool response / structured metadata | High | TODO |
 
@@ -311,7 +313,9 @@ AI-coding agent можно считать минимально безопасн�
 ## См. также
 
 - [03 — Prompt Injection Detection (ADI)](../part-2-input-security/03-prompt-injection-detection.md#agent-data-injection-adi)
+- [19 — Endpoint inventory](../part-6-multi-agent-security/19-mcp-security.md#endpoint-inventory)
 - [25 — Security-by-Design чек-лист](../part-8-practice/25-security-by-design-checklist.md)
 - [26 — AI-coding agent: модель угроз](26-ai-coding-agent-threat-model.md)
+- [22 — Orchestration-стек](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
 - [31 — CI/CD, MCP, Skills и production path](31-ci-cd-mcp-skills-production-path.md)
