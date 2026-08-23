@@ -3,7 +3,7 @@ tags: [ai-security, конспект]
 часть: "Часть I — Архитектура и угрозы"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Trajectory: давление на обнаружившего человека — якорь EV-17."
+изменения: "STRIDE: Framework internals (сериализация / кэш / парсер / state routing)."
 ---
 
 # 02 — Модель угроз (Threat Model)
@@ -222,6 +222,7 @@ STRIDE — это способ пройтись по компонентам си
 | Audit Logger | Repudiation | Нельзя восстановить, почему агент выполнил действие | Medium | immutable logs, correlation ID, tool call reason |
 | Config / Policies | Tampering | Изменение конфигурации расширяет права агента | High | config review, approval, versioning, access control |
 | Agent / workflow control plane (exposed) | Elevation of Privilege | ATA (напр. JADEPUFFER): RCE → secrets → pivot → destructive DB | High | auth на control plane, network isolation, no secrets in env, patch, IR playbook §23 |
+| Framework internals (serialization / cache / parser / state routing) | Tampering / Elevation of Privilege | Injection пересекает границу в код фреймворка, не только в промпт | High | AppSec стека: SAST / SCA / fuzzing / serialization review; pin + changelog; не только auth на exposed control plane ([§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)) |
 | Eval harness / metrics / test store | Tampering / Elevation of Privilege | Evaluation Gaming: spoofed path к эталону, evaluator или test data → недостоверный score | High | isolate ground truth; separate evaluator; block dataset hosts; score spike → human review ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#evaluation-gaming--reward-hacking)) |
 | Eval target scope / signed manifest | Elevation of Privilege / Tampering | Target ambiguity: вымышленная цель совпала с реальной org → агент считает найденную infra частью испытания | High | signed scope manifest; deterministic allowlist; LLM не расширяет цели ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#target-boundary-evals-eval-target-boundary-01)) |
 | Agent loop / multi-step tools | Elevation of Privilege | Trajectory composition: по отдельности допустимые шаги (read → identity → human contact → write) дают эффект вне goal | High | policy на цепочку; `EVAL-TRAJECTORY-01` / EV-13 ([§20](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01)); корреляция [§16](../part-5-control-observability/16-monitoring-alerting.md#trajectory-correlation) |
@@ -364,7 +365,7 @@ Security-телеметрия (WAF-лог, SIEM, error report) закрывае�
 | Контроль | отсутствие approval, плохие логи, отсутствие мониторинга, нет kill-switch | 14, 15, 16, 17 |
 | Мультиагентность | spoofing агента, insecure delegation, poisoned inter-agent messages | 18, 19 |
 | Практика / compliance | отсутствие red teaming, supply chain, incident response | 20, 21, 22, 23, 24, 25 |
-| Инфраструктура агента | exposed control plane, ATA / agentic ransomware | 02 (ATA), 10, 17, 23 |
+| Инфраструктура агента | exposed control plane, ATA / agentic ransomware; framework internals (сериализация / кэш / парсер / state routing) | 02 (ATA), 10, 17, 22, 23 |
 
 ## Маппинг на OWASP ASI Top 10
 
@@ -566,6 +567,7 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [ ] Логи не содержат секреты без redaction.
 - [ ] Есть связь угроз с разделами конспекта.
 - [ ] Учтены exposed AI/agent control planes как initial access для ATA.
+- [ ] Учтены framework internals (сериализация / кэш / парсер / state routing), не только exposed UI ([§22](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)).
 - [ ] Есть detection signals для agentic ransomware (self-narrating payloads, rapid retries, credential sweep → destructive).
 - [ ] Secrets не предполагаются в env на internet-facing agent hosts.
 - [ ] Есть IR playbook на ATA / agentic ransomware ([§23](../part-7-testing-compliance/23-incident-response-recovery.md)).
@@ -607,4 +609,5 @@ func HighRisksWithoutControls(risks []Risk) []Risk {
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
 - [09 — Security Telemetry Injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection)
 - [13 — Egress Control (lethal trifecta / exfil)](../part-4-output-security/13-egress-control-data-exfiltration.md)
+- [22 — Orchestration-стек](../part-7-testing-compliance/22-supply-chain-security.md#orchestration-stack)
 - [26 — AI Coding Agent Threat Model](../part-9-ai-coding-security/26-ai-coding-agent-threat-model.md)
