@@ -148,6 +148,30 @@ function validatePath(path: string, allowedRoots: string[]): void {
   throw new Error(`path is outside allowed roots: ${path}`);
 }
 
+type ServerRequestKind = "sampling" | "elicitation" | "roots";
+
+/** Stub: sampling/elicitation without preview → deny;
+ *  roots — only publishRoots, separately from AllowedRoots. */
+function gateServerRequest(
+  kind: ServerRequestKind,
+  preview: string,
+  publishRoots: string[]
+): void {
+  if (kind === "sampling" || kind === "elicitation") {
+    if (!preview.trim()) {
+      throw new Error(`${kind} denied: preview required`);
+    }
+    return;
+  }
+  if (kind === "roots") {
+    if (publishRoots.length === 0) {
+      throw new Error("roots denied: no published workspace");
+    }
+    return;
+  }
+  throw new Error(`unknown server request: ${kind}`);
+}
+
 interface MCPClient {
   callTool(serverId: string, tool: string, args: Record<string, unknown>): unknown;
 }

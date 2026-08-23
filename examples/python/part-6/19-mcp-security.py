@@ -108,6 +108,29 @@ def validate_path(path: str, allowed_roots: List[str]) -> None:
     raise ValueError(f"path is outside allowed roots: {path}")
 
 
+class ServerRequestKind(str, Enum):
+    SAMPLING = "sampling"
+    ELICITATION = "elicitation"
+    ROOTS = "roots"
+
+
+def gate_server_request(
+    kind: ServerRequestKind | str, preview: str, publish_roots: List[str]
+) -> None:
+    """Stub: sampling/elicitation without preview → deny;
+    roots — only publish_roots, separately from AllowedRoots."""
+    k = kind.value if isinstance(kind, ServerRequestKind) else kind
+    if k in (ServerRequestKind.SAMPLING, ServerRequestKind.ELICITATION, "sampling", "elicitation"):
+        if not preview.strip():
+            raise ValueError(f"{k} denied: preview required")
+        return
+    if k in (ServerRequestKind.ROOTS, "roots"):
+        if not publish_roots:
+            raise ValueError("roots denied: no published workspace")
+        return
+    raise ValueError(f"unknown server request: {k}")
+
+
 class MCPClient(Protocol):
     def call_tool(
         self, server_id: str, tool: str, args: Dict[str, Any]
