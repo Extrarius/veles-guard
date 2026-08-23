@@ -3,7 +3,7 @@ tags: [ai-security, ai-coding, cicd, mcp, skills, production]
 часть: "Часть IX — AI Coding Agent Security"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Localhost visualizer траекторий: дашборд с промптами; auth обязателен."
+изменения: "Hooks/settings: high-risk write того же класса, что mcp.json; канон §28 #agent-hooks."
 ---
 
 # 31 — CI/CD, MCP, Skills и production path
@@ -153,6 +153,8 @@ MCP-клиент / харнесс — часть поверхности: оди�
 [GHSA-4cxx-hrm3-49rm](https://github.com/cursor/cursor/security/advisories/GHSA-4cxx-hrm3-49rm) / [CVE-2025-54135](https://nvd.nist.gov/vuln/detail/CVE-2025-54135): цепочка prompt injection → запись MCP config (`mcp.json`) → **auto-start** нового entry → RCE на хосте разработчика. Урок для production path: изменение MCP/skills config — high-risk write (approval + re-review); не считать workspace file «просто текстом». Review до connect — [§36](../part-10-course-appendix/36-mcp-skill-review-workshop.md), [§19](../part-6-multi-agent-security/19-mcp-security.md).
 
 Persistence в config / memory / tools агента после [telemetry injection](../part-3-processing-security/09-memory-isolation-context-sanitization.md#security-telemetry-injection) — тот же класс high-risk write: re-review, не «агент сам починил».
+
+Запись `.claude/settings.json` / hook-скрипта — тот же класс, что `mcp.json`: high-risk write, approval + re-review, не «просто конфиг». Канон gate vs поверхность — [§28 `#agent-hooks`](28-coding-agent-permissions-sandbox-approval.md#agent-hooks).
 
 ## Skills threat model
 
@@ -364,6 +366,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [ ] MCP servers в allowlist.
 - [ ] MCP config changes требуют review.
 - [ ] Учтён [CurXecute / CVE-2025-54135](#curxecute): запись MCP config = high-risk write (approval + re-review), не «просто текст».
+- [ ] Запись `.claude/settings.json` / hook-скрипта = high-risk write того же класса; канон — [§28 hooks](28-coding-agent-permissions-sandbox-approval.md#agent-hooks).
 - [ ] Skills/plugins pinned.
 - [ ] Skills/scripts проходят review.
 - [ ] Есть kill-switch per MCP server / skill.
@@ -400,6 +403,7 @@ func CanEnterProductionPath(pr PR) bool {
 - [19 — MCP Security](../part-6-multi-agent-security/19-mcp-security.md) — [split-context injection](../part-6-multi-agent-security/19-mcp-security.md#split-context-mcp-injection)
 - [22 — Supply Chain Security](../part-7-testing-compliance/22-supply-chain-security.md)
 - [23 — Incident Response и Recovery](../part-7-testing-compliance/23-incident-response-recovery.md)
+- [28 — Hooks](28-coding-agent-permissions-sandbox-approval.md#agent-hooks) — settings/hooks = high-risk write; `hook != policy`
 - [27 — Repository instructions](27-repository-instructions-attack-surface.md)
 - [30 — AI Coding Supply Chain](30-ai-coding-supply-chain.md)
 - [36 — MCP / Skill Review Workshop](../part-10-course-appendix/36-mcp-skill-review-workshop.md)
