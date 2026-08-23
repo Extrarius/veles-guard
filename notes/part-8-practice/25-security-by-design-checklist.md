@@ -3,7 +3,7 @@ tags: [ai-security, agents, checklist, security-by-design, review]
 часть: "Часть VIII — Практика"
 статус: готово
 обновлено: 2026-08-23
-изменения: "MCP-11: inventory агентов и локальных MCP на endpoint."
+изменения: "Capability-aware profile (#capability-aware-profile): higher model capability != same controls."
 ---
 
 # 25 — Security-by-Design чек-лист
@@ -348,6 +348,20 @@ Design Review → Pre-Release Review → Production Review
 
 Рамка процесса: [NIST AI RMF 1.0](../literature.md#стандарты-и-фреймворки). Для R3 — также compliance / EU AI Act через [§21](../part-7-testing-compliance/21-compliance-standards.md).
 
+<a id="capability-aware-profile"></a>
+
+### Capability-aware profile
+
+Класс R0–R3 — риск **агента как продукта**. Capability **модели** — отдельная ось: cyber-tuned / меньше dual-use refusals не меняет R-класс автоматически и не заменяет матрицу выше.
+
+```text
+higher model capability != same controls
+model class != agent risk class
+Daybreak tier != production policy
+```
+
+Если поднимаете model capability, независимо от R ужесточайте identity, scope, мониторинг, изоляцию. R1 + cyber-модель ≠ «тот же assistant». Вендорный доступ (программа Daybreak и аналоги) ≠ production policy. Ось tools — [§02 Capability → blast radius](../part-1-architecture-threats/02-threat-model.md).
+
 ### Go snippet: RequiredControls по классу
 
 ```go
@@ -393,6 +407,7 @@ func RequiredControls(class AgentRiskClass) []string {
 ```text
 BLOCK release if:
 - нет класса риска R0–R3;
+- подняли model capability, а identity / scope / мониторинг / изоляция остались как у прежней модели ([#capability-aware-profile](#capability-aware-profile));
 - нет владельца / заполненного agent passport;
 - для R2+ inference в обход AI Gateway / proxy;
 - нет DFD/threat model;
@@ -526,11 +541,12 @@ func Export(items []Item) ([]byte, error) {
 - [NIST AI Risk Management Framework 1.0](https://www.nist.gov/itl/ai-risk-management-framework)
 - [MITRE ATLAS](https://atlas.mitre.org/)
 - [OpenAI Agents SDK — Guardrails and Human Review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)
+- [OpenAI — Expanding Daybreak](https://openai.com/index/expanding-daybreak-as-the-cyber-defense-window-narrows/) — выше capability модели → строже профиль ([#capability-aware-profile](#capability-aware-profile))
 
 ## См. также
 
 - [Шаблоны — Agent passport](../../templates/agent-passport.md)
-- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md) — tools → blast radius; модель → [#capability-aware-profile](#capability-aware-profile)
 - [06 — RBAC / Tool Gateway](../part-3-processing-security/06-rbac-tool-permissions.md#tool-gateway)
 - [13 — AI Gateway / inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
