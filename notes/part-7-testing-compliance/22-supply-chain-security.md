@@ -3,7 +3,7 @@ tags: [ai-security, agents, supply-chain, sbom, dependencies, models, mcp]
 часть: "Часть VII — Тестирование и compliance"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Якорь: расширение обвязки — control plane, не skill body."
+изменения: "Orchestration-стек как объект AppSec: LLM safe != agent safe."
 ---
 
 # 22 — Supply Chain Security
@@ -144,6 +144,7 @@ flowchart LR
 | Unpinned image | build подтянул новый base image без проверки | Medium |
 | No provenance | неизвестно, откуда взялся artifact | Medium |
 | Agent-published package / README as PI channel | агент публикует package metadata / README / comment → другой агент читает как trusted context | High |
+| Orchestration internals (сериализация / кэш / парсер / state routing) | Injection уходит в код фреймворка; отсутствие CVE ≠ отсутствие уязвимости | High |
 
 ## Подходы и контрмеры
 
@@ -207,7 +208,31 @@ Prompts и security policies должны жить как код:
 - tool schema validation;
 - MCP server allowlist check;
 - red team regression suite;
-- SBOM generation.
+- SBOM generation;
+- orchestration stack SAST / SCA;
+- serialization review / fuzzing парсеров и кодеков;
+- injection-тесты к хранилищу состояния агента.
+
+### Orchestration-стек {#orchestration-stack}
+
+Безопасная LLM не делает безопасным агента. Injection пересекает trust boundary и уходит в **код фреймворка**: сериализация, кэш, парсеры, роутинг состояния.
+
+```text
+LLM safe != agent safe
+```
+
+Orchestration-стек (агентный фреймворк, клиент state store, document tools) — **тот же объект аудита**, что и backend:
+
+- SAST / SCA;
+- fuzzing сериализации и парсеров;
+- serialization review (не только «модель не поддалась»);
+- injection-тесты к хранилищу состояния агента.
+
+Pin версий **и** changelog. CVE-фид недостаточен: отсутствие CVE ≠ отсутствие уязвимости.
+
+Ориентир масштаба ([Check Point — Black Hat 2026](https://blog.checkpoint.com/research/black-hat-2026-check-point-research-takes-the-stage/)): **21 находка / 12 CVE / 6 фреймворков**.
+
+Отдельно: memory corruption в библиотеках документов (парсер PDF / imaging), которые фреймворк вызывает как tool, — это не «баг модели». Парсер в том же процессе, что и агент, даёт тот же blast radius. Процессная изоляция — [§08](../part-3-processing-security/08-sandboxing.md). CVE checkpointer и pin движка песочницы — отдельные границы, не этот подраздел.
 
 ### 6. Runtime verification
 
@@ -433,6 +458,9 @@ func (a Allowlist) Check(item Artifact) error {
 - [ ] Agent-published package metadata / README / comments — untrusted instruction channel; те же gates, что для human ([§18 artifact poisoning](../part-6-multi-agent-security/18-inter-agent-security.md#agent-generated-artifact-poisoning)).
 - [ ] Agent Skills/plugins ревьюятся по description и body; pinned by version/hash.
 - [ ] Расширение обвязки (harness extension) ревьюится как изменение policy, не как контент ([§31](../part-9-ai-coding-security/31-ci-cd-mcp-skills-production-path.md#harness-extension)).
+- [ ] Orchestration-стек аудируется как backend: SAST / SCA / fuzzing / serialization review / injection-тесты к state store ([#orchestration-stack](#orchestration-stack)).
+- [ ] Версии orchestration pinned; changelog ревьюится; отсутствие CVE ≠ pass.
+- [ ] Document parsers, вызываемые как tools, изолированы процессом ([§08](../part-3-processing-security/08-sandboxing.md)).
 - [ ] Защита от rug pull: skills/MCP/модели pinned, не `latest`.
 - [ ] Если используется внешняя лаборатория оценки — пройден [checklist Evaluation partner](#7-evaluation-partner--внешняя-лаборатория) (или явный N/A).
 - [ ] У заказчика независимый kill switch и live telemetry при partner-eval (см. тот же checklist).
@@ -467,6 +495,7 @@ func (a Allowlist) Check(item Artifact) error {
 - [GREAT: RLHF Emotion-Aware Triggers](https://arxiv.org/abs/2510.09260)
 - [Enhancing All-to-X Backdoor Attacks](https://arxiv.org/abs/2511.13356)
 - [The Trigger in the Haystack](https://arxiv.org/abs/2602.03085)
+- [Check Point — Black Hat 2026 roundup](https://blog.checkpoint.com/research/black-hat-2026-check-point-research-takes-the-stage/) — 21 / 12 / 6; опора [#orchestration-stack](#orchestration-stack)
 
 ## См. также
 
