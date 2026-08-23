@@ -2,8 +2,8 @@
 tags: [ai-security, agents, multi-agent, handoff, delegation]
 часть: "Часть VI — Мультиагентная безопасность"
 статус: готово
-обновлено: 2026-08-16
-изменения: "Независимость источников (#source-independence) + арбитраж вне спора; EV-16."
+обновлено: 2026-08-23
+изменения: "Self-verifier на той же модели ≠ независимый источник; якорь EV-19."
 ---
 
 # 18 — Inter-Agent Security
@@ -284,6 +284,7 @@ agent A
 | Independent primary source (отдельный документ / наблюдение / канал) | да |
 | Тот же документ у четырёх агентов | нет — один источник, четыре голоса |
 | Вывод другого агента на той же модели и том же контексте | нет |
+| Verifier на той же модели, судящий свои роллауты | нет — тот же источник, что generator |
 | Пересказ вывода («агент B сказал то же») | нет |
 
 Контроли:
@@ -299,7 +300,9 @@ majority vote = сколько агентов согласились
 evidence      = сколько независимых источников подтвердили
 ```
 
-Eval: [§20 EV-16](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16).
+Требование logprobs сужает пул верификаторов до моделей, которые их отдают, и конфликтует с model diversity (арбитр на другой модели). Выбор траектории по score — не авторизация: [§20 EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19).
+
+Eval: [§20 EV-16](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16) · [§20 EV-19](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19).
 
 <a id="arbitration-outside-contestants"></a>
 
@@ -649,4 +652,5 @@ func ArbiterIsOutsideDispute(arbiterID string, contestants []string) bool {
 - [29 — AI-generated code review](../part-9-ai-coding-security/29-ai-generated-code-review-spec-driven.md) — agent-generated PR, те же gates
 - [20 — Trajectory evals](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01) — composition шагов (смежная тема)
 - [20 — Correlated evidence evals (EV-16)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#correlated-evidence-evals-ev-16)
+- [20 — Verifier / best-of-N (EV-19)](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#verifier-selection-evals-ev-19)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
