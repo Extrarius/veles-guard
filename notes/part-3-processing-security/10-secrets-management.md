@@ -3,7 +3,7 @@ tags: [ai-security, secrets-management, credentials, least-privilege, processing
 часть: "Часть III — Защита обработки"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Ключи провайдера в конфиге локального прокси — custody, не открытый файл."
+изменения: "Credential broker (#credential-broker): secretless executor = broker; one system prompt != IAM."
 ---
 
 # 10 — Secrets Management
@@ -110,6 +110,22 @@ flowchart LR
 7. **Rotation and revocation** — есть процесс замены и отзыва.
 8. **Audit** — кто, когда и для какого tool запросил secret.
 9. **Proxy key custody** — ключ провайдера в локальном inference-прокси живёт в vault / secret store / env с контролем доступа, не в открытом конфиге, репозитории и не в UI визуализатора. Прокси — [§13 `#harness-inference-proxy`](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy).
+
+<a id="credential-broker"></a>
+
+#### Credential broker
+
+Имя уже описанного secretless executor, не новый слой. Брокер стоит **между** агентом / MCP и внешней системой: выдаёт short-lived scoped token **от имени actor**; scope проверяет IAM, не LLM.
+
+```text
+one system prompt != IAM
+```
+
+Эквивалент: `secretless executor = credential broker`.
+
+Один system prompt с правилами на все сценарии не заменяет per-scenario policy и брокера. Промпт не выдаёт и не проверяет токен.
+
+Не путать с [Contextual Integrity §03](../part-2-input-security/03-prompt-injection-detection.md#contextual-integrity) (`claim != verified transmission principle`) и с [Agent Identity §06](06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding) (principal / binding). Здесь — **выдача** credentials. Сниппет ниже — тот же `GetScopedToken`.
 
 ## Go snippet: secret provider и executor-side injection
 
@@ -259,6 +275,7 @@ func looksSensitiveKey(k string) bool {
 | использовать long-lived token | сложнее отозвать | short-lived credentials |
 | показывать stack trace пользователю | DSN/token leak | safe errors |
 | ключ провайдера в открытом конфиге локального прокси | потеря custody; ключ в репо / UI визуализатора | vault / secret store / env с доступом |
+| один system prompt на все сценарии | модель судит scope вместо IAM | per-scenario policy + [credential broker](#credential-broker) |
 
 ## Маппинг на OWASP ASI / LLM Top 10
 
@@ -275,6 +292,7 @@ func looksSensitiveKey(k string) bool {
 - [ ] LLM не получает API keys, tokens, passwords.
 - [ ] Tool args не содержат секреты.
 - [ ] Secrets подставляет executor после policy/validation.
+- [ ] Credential broker выдаёт short-lived scoped token от имени actor; проверка в IAM, не в одном system prompt ([#credential-broker](#credential-broker)).
 - [ ] Credentials имеют минимальный scope.
 - [ ] Предпочтение short-lived tokens.
 - [ ] Sandbox не наследует env приложения.
@@ -297,6 +315,8 @@ func looksSensitiveKey(k string) bool {
 ## См. также
 
 - [09 — Security Telemetry Injection](09-memory-isolation-context-sanitization.md#security-telemetry-injection)
+- [03 — Contextual Integrity](../part-2-input-security/03-prompt-injection-detection.md#contextual-integrity) — claim ≠ principle; здесь — выдача токена
+- [06 — Agent Identity](06-rbac-tool-permissions.md#agent-identity-и-safe-tool-binding) — principal / binding; здесь — credential broker
 - [04 — PII Redaction и Content Filtering](../part-2-input-security/04-pii-redaction-content-filtering.md)
 - [08 — Sandboxing](08-sandboxing.md)
 - [13 — Egress Control и Data Exfiltration Prevention](../part-4-output-security/13-egress-control-data-exfiltration.md) · [прокси обвязки](../part-4-output-security/13-egress-control-data-exfiltration.md#harness-inference-proxy)

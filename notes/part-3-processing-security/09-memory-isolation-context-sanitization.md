@@ -3,7 +3,7 @@ tags: [ai-security, memory-isolation, context-sanitization, rag-security, proces
 часть: "Часть III — Защита обработки"
 статус: готово
 обновлено: 2026-08-23
-изменения: "Storage layer (#memory-storage-layer): semantic check != software check; якорь EV-18."
+изменения: "State bleeding (#state-bleeding): watchlist; tool-текст ≠ role confusion / ≠ контроль."
 ---
 
 # 09 — Memory Isolation и Context Sanitization
@@ -173,6 +173,19 @@ func StripRoleClaims(s string) string {
 	return strings.TrimSpace(strings.Join(out, "\n"))
 }
 ```
+
+<a id="state-bleeding"></a>
+
+#### State bleeding / subconscious steering (watchlist)
+
+Безобидный текст из канала `tool` (напр. e-commerce) может сдвинуть тон / цель / персону агента **без** подмены тега роли и **без** forged CoT.
+
+```text
+state bleeding != role confusion
+watchlist != control
+```
+
+Tool output уже untrusted. [Strip role-claims](#strip-role-claims) и policy on sink **не** закрывают это доказанно. Исследований мало — наблюдение, не gate. Канон ролей — [§03](../part-2-input-security/03-prompt-injection-detection.md#role-confusion); курс — [§33 token soup](../part-10-course-appendix/33-course-ai-security-landscape.md#token-soup).
 
 <a id="security-telemetry-injection"></a>
 
@@ -666,6 +679,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 - [ ] Есть TTL для временного контекста.
 - [ ] Есть sanitizer перед записью в long-term memory.
 - [ ] Untrusted текст проходит [strip role-claims](#strip-role-claims) до memory write / inject в prompt.
+- [ ] [State bleeding](#state-bleeding) назван как watchlist, не контроль (не EV, не gate).
 - [ ] Есть audit для memory write/update/delete.
 - [ ] Есть механизм удаления памяти.
 - [ ] Context builder явно маркирует untrusted блоки.
@@ -691,6 +705,7 @@ func ApplyRetrievalRails(chunks []RetrievedChunk, p RetrievalPolicy, check func(
 
 ## См. также
 
+- [State bleeding](#state-bleeding) — watchlist; ≠ role confusion
 - [03 — Prompt Injection / Role confusion](../part-2-input-security/03-prompt-injection-detection.md#role-confusion) — стиль ≠ тег; strip role-claims здесь
 - [03 — Guardrail pipeline](../part-2-input-security/03-prompt-injection-detection.md#guardrail-pipeline-router) — входной layered path; retrieval — отдельный stage
 - [04 — PII / D0–D4](../part-2-input-security/04-pii-redaction-content-filtering.md#ai-data-classes-d0-d4)

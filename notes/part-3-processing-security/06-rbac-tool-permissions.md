@@ -2,8 +2,8 @@
 tags: [ai-security, rbac, tool-permissions, excessive-agency, processing-security, конспект]
 часть: "Часть III — Защита обработки"
 статус: готово
-обновлено: 2026-08-08
-изменения: "Tool Gateway (#tool-gateway): 3 фазы до/во время/после; связка Runtime Trust Gap §19."
+обновлено: 2026-08-23
+изменения: "Write controls (#write-controls): plan / dry-run / rollback / deny-uncertain; HITL остаётся в §14."
 ---
 
 # 06 — RBAC и Tool Permissions
@@ -121,6 +121,71 @@ agent can call email.send only after approval
 | Destructive | удаление, закрытие доступа, платеж | strict approval / deny by default |
 | Code execution | shell, SQL write, browser automation | sandbox + approval + limits |
 
+<a id="read-vs-write"></a>
+
+Учебный контраст read vs write — **не** канон исполнения write:
+
+```text
+teaching table != write-control canon
+```
+
+| | Read | Write |
+|---|---|---|
+| Примеры | поиск, статус, summary | delete, deploy, email, pipeline |
+| Контроли | ACL, filter, audit, rate limit | [исполнение write](#write-controls) + [approval §14](../part-5-control-observability/14-human-in-the-loop.md) |
+
+<a id="write-controls"></a>
+
+### Контроли исполнения write
+
+Набор для **write**, не для read. Approval — [§14](../part-5-control-observability/14-human-in-the-loop.md), не здесь.
+
+```text
+write controls != HITL
+plan before execute != planning role
+```
+
+| Контроль | Смысл |
+|---|---|
+| plan before execute | сначала план (что / куда / эффект), потом вызов |
+| dry-run по умолчанию | write не идёт в prod без явного execute |
+| rollback | компенсирующее действие или отказ, если отката нет |
+| deny при неопределённости | нет ясного эффекта / цели / scope → deny, не «попробуем» |
+| approval | **не здесь** — [§14](../part-5-control-observability/14-human-in-the-loop.md) |
+| extended logging | уже [§15](../part-5-control-observability/15-observability-tracing.md) |
+
+Это контроли **исполнения**, не ступень kill-switch «все write» ([§17](../part-5-control-observability/17-circuit-breaker-kill-switch.md#kill-switch-levels)). Не путать с watchlist «план как контракт».
+
+```go
+package agentsec
+
+import "errors"
+
+type WriteStep string
+
+const (
+	WritePlan     WriteStep = "plan"
+	WriteDryRun   WriteStep = "dry_run"
+	WriteExecute  WriteStep = "execute"
+	WriteRollback WriteStep = "rollback"
+)
+
+var ErrUncertainWrite = errors.New("deny: uncertain write")
+
+// GateWrite — stub: uncertain → deny; без явного execute → dry-run. Не rollback-engine.
+func GateWrite(step WriteStep, certain bool) (WriteStep, error) {
+	if !certain {
+		return "", ErrUncertainWrite
+	}
+	if step == WriteExecute || step == WriteRollback {
+		return step, nil
+	}
+	return WriteDryRun, nil
+}
+```
+
+Синхрон: [Python](../../examples/python/part-3/06-rbac-tool-permissions.py) · [TypeScript](../../examples/typescript/part-3/06-rbac-tool-permissions.ts).
+
 ## Agent Identity и Safe Tool Binding
 
 Агент — **first-class principal**, а не «общий service account с prompt-ограничениями». Права и tools привязываются к управляемой identity, а не к тексту модели.
@@ -156,7 +221,51 @@ Identity стабильна для lifecycle (onboard / rotate / suspend / decom
 
 - Read и write — разные roles и/или разные tools; delete / export / admin — approval или JIT.
 - Агенту доступен только **curated allowlist** (tools manifest): нельзя «подключить всё полезное» и считать каждый интеграционный риск изолированным.
-- Комбинация «разумных» доступов (email + files + tickets + repo) даёт **aggregate permission** шире суммы частей — полный разбор aggregate — backlog P2; минимум здесь: явный allowlist и review при добавлении tool.
+
+<a id="aggregate-permission"></a>
+
+### Aggregate permission / compositional authorization
+
+Комбинация «разумных» грантов (email + files + tickets + repo) даёт **effective agency** шире суммы частей. Per-tool allowlist это не ловит: каждый tool по отдельности в политике, вместе — секрет из A уходит через B.
+
+```text
+per-tool allow != effective agency
+```
+
+```text
+Effective Agency = Identity Permissions + Tool Combination + Data Reach + Autonomy
+```
+
+| Пара | Почему опасно вместе |
+|---|---|
+| read internal docs + send external | чтение + канал наружу без отдельного approval |
+| read logs + create public issue | внутренние логи → публичная поверхность |
+| read vulnerabilities + external model | findings уходят во внешний inference |
+| create config + deploy | изменение и выкладка одним principal |
+
+Мера: **отдельные агенты / identity на разные зоны риска**, не один манифест «всё полезное». Grant-time вопрос: может ли этот principal разрешёнными tools прочитать секрет из A и отправить через B? Если да — deny combo или split identity. Это **не** [EV-13 / trajectory](../part-7-testing-compliance/20-red-teaming-adversarial-testing.md#trajectory-evals-eval-trajectory-01): там цепочка шагов vs goal в рантайме; здесь — выдача прав.
+
+Tool Gateway фаза «до» проверяет combo (`ForbiddenCombo` ниже), не только `Authorize(agent, tool)`.
+
+```go
+package agentsec
+
+// ForbiddenCombo — grant-time: манифест / Gateway.Before. Не detector injection.
+func ForbiddenCombo(granted map[string]bool) bool {
+	pairs := [][2]string{
+		{"read_internal_docs", "send_external"},
+		{"read_logs", "create_public_issue"},
+		{"read_vulnerabilities", "external_model"},
+		{"create_config", "deploy"},
+	}
+	for _, p := range pairs {
+		if granted[p[0]] && granted[p[1]] {
+			return true
+		}
+	}
+	return false
+}
+```
 
 <a id="tool-gateway"></a>
 
@@ -188,16 +297,22 @@ type ToolGateway struct {
 	// Registry lookup — see §19 Trusted Tool Registry
 	InRegistry func(tool string) bool
 	Authorize  func(agentID, tool string) error // identity / allowlist / approval
+	ComboDeny  func(agentID string) error       // aggregate: ForbiddenCombo on granted set
 	Validate   func(args map[string]any) error  // §07
 }
 
-// Before — фаза «до»: registry + identity/approval + schema.
+// Before — фаза «до»: registry + identity/approval + combo + schema.
 func (g ToolGateway) Before(call ToolCall) error {
 	if g.InRegistry != nil && !g.InRegistry(call.Tool) {
 		return fmt.Errorf("tool %q not in trusted registry", call.Tool)
 	}
 	if g.Authorize != nil {
 		if err := g.Authorize(call.AgentID, call.Tool); err != nil {
+			return err
+		}
+	}
+	if g.ComboDeny != nil {
+		if err := g.ComboDeny(call.AgentID); err != nil {
 			return err
 		}
 	}
@@ -446,6 +561,7 @@ High-risk действия не выполняются автоматическ�
 
 - [ ] У каждого tool есть owner, action, risk level и описание.
 - [ ] Tools разделены на read / write / delete / execute.
+- [ ] Назван контраст [read vs write](#read-vs-write). Write идёт через [план / dry-run / rollback / deny-uncertain](#write-controls); approval — [§14](../part-5-control-observability/14-human-in-the-loop.md).
 - [ ] Для каждого tool задан allowlist ролей и scopes.
 - [ ] High-risk действия требуют human approval.
 - [ ] LLM не получает прямой доступ к executor; вызовы идут через [Tool Gateway](#tool-gateway) (до / во время / после).
@@ -454,6 +570,7 @@ High-risk действия не выполняются автоматическ�
 - [ ] Credentials привязаны к actor/session/scope.
 - [ ] У каждого production-агента отдельная identity + human owner (см. Identity checklist выше).
 - [ ] Acting mode и tool allowlist enforced в runtime, не в prompt.
+- [ ] Проверен [aggregate permission](#aggregate-permission): per-tool allow ≠ effective agency; опасные пары (read+send, logs+public, vulns+external model, config+deploy) — deny combo или split identity.
 - [ ] Все tool calls логируются с trace id / correlation id и identity fields ([§15](../part-5-control-observability/15-observability-tracing.md)).
 - [ ] В логах нет raw secrets.
 - [ ] По умолчанию неизвестный tool запрещён.
@@ -462,7 +579,7 @@ High-risk действия не выполняются автоматическ�
 ## Литература
 
 - [Список литературы](../literature.md#практические-руководства) · [Стандарты](../literature.md#стандарты-и-фреймворки) — OWASP Securing Agentic Applications Guide 1.0
-- [Microsoft — Least privilege for AI agents: Identity, access, and tool binding](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/)
+- [Microsoft — Least privilege for AI agents: Identity, access, and tool binding](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/) — first-class principal; [#aggregate-permission](#aggregate-permission)
 - [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/)
 - [OWASP Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)
 - [OpenAI Agents SDK — Agents](https://developers.openai.com/api/docs/guides/agents)
@@ -471,11 +588,13 @@ High-risk действия не выполняются автоматическ�
 
 ## См. также
 
-- [02 — Модель угроз](../part-1-architecture-threats/02-threat-model.md)
+- [02 — Модель угроз / aggregate permission](../part-1-architecture-threats/02-threat-model.md#aggregate-permission)
 - [07 — Parameter Validation и Schema Enforcement](07-parameter-validation-schema.md)
 - [08 — Sandboxing](08-sandboxing.md) — фаза «во время» Tool Gateway
 - [13 — AI Gateway / inference](../part-4-output-security/13-egress-control-data-exfiltration.md#inference-routing) — не путать с Tool Gateway
-- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md)
+- [Read vs write](#read-vs-write) — учебный контраст; канон исполнения — [#write-controls](#write-controls)
+- [14 — Human-in-the-Loop](../part-5-control-observability/14-human-in-the-loop.md) — approval, не dry-run
+- [25 — T-09 dry-run](../part-8-practice/25-security-by-design-checklist.md) — чек-лист практики, канон здесь
 - [15 — Observability и Tracing](../part-5-control-observability/15-observability-tracing.md)
 - [17 — Circuit Breaker и Kill-Switch](../part-5-control-observability/17-circuit-breaker-kill-switch.md)
 - [19 — Trusted Tool Registry / Runtime Trust Gap](../part-6-multi-agent-security/19-mcp-security.md#trusted-tool-registry)
